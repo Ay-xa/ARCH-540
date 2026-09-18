@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>BCBC Openings — V04</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    img { max-width: 100%; }
+    [hidden] { display: none !important; }
+
+    :root {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+
+      --bg:#f0f2f7;--surface:#fff;--card:#f6f8fc;--border:#dde2ee;
+      --text:#1c1f2e;--sub:#6070a0;--accent:#1458cc;
+      --parcel-fill:#e8ecf7;--parcel-stroke:#8898c8;
+      --bldg:#1a3f7a;--win-ok:#3b82f6;--win-fail:#ef4444;
+      --pass-bg:#dcfce7;--pass-fg:#166534;
+      --fail-bg:#fee2e2;--fail-fg:#7f1d1d;
+      --ruler:#a0b0d0;
+    }
+    @media(prefers-color-scheme:dark){
+      :root:not([data-theme=light]){
+        --bg:#0a0c12;--surface:#121620;--card:#191e2c;--border:#252d44;
+        --text:#dde2f4;--sub:#6878a8;--accent:#5090f8;
+        --parcel-fill:#141a28;--parcel-stroke:#3a4a78;
+        --bldg:#1e3d6a;--win-ok:#3b82f6;--win-fail:#ef4444;
+        --pass-bg:#14291e;--pass-fg:#86efac;
+        --fail-bg:#290f0f;--fail-fg:#fca5a5;
+        --ruler:#2a3555;
+      }
+    }
+    :root[data-theme=dark]{
+      --bg:#0a0c12;--surface:#121620;--card:#191e2c;--border:#252d44;
+      --text:#dde2f4;--sub:#6878a8;--accent:#5090f8;
+      --parcel-fill:#141a28;--parcel-stroke:#3a4a78;
+      --bldg:#1e3d6a;--win-ok:#3b82f6;--win-fail:#ef4444;
+      --pass-bg:#14291e;--pass-fg:#86efac;
+      --fail-bg:#290f0f;--fail-fg:#fca5a5;
+      --ruler:#2a3555;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100%;overflow:hidden}
+
+    .panel{width:264px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+    .ptitle{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+    .sec-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-bottom:6px}
+    .field{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}
+    .field label{font-size:11px;color:var(--sub)}
+    .fr{display:flex;align-items:center;gap:6px}
+    input[type=range]{flex:1;accent-color:var(--accent);height:2px}
+    .val{font-family:'JetBrains Mono',monospace;font-size:11px;min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+    select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:4px;font-size:11px;font-family:inherit;outline:none}
+    select:focus{border-color:var(--accent)}
+    .div{height:1px;background:var(--border)}
+    .note{font-size:9.5px;color:var(--sub);line-height:1.45}
+    .note-warn{font-size:9.5px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:3px;padding:5px 7px;line-height:1.45}
+
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;gap:10px}
+    .plan-wrap{flex:1;min-height:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    #planSvg{max-width:100%;max-height:100%;display:block;cursor:default;user-select:none}
+
+    .elevs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;height:192px;flex-shrink:0}
+    .ecard{background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+    .ehead{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+    .edir{font-size:11px;font-weight:700;letter-spacing:.06em}
+    .badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.04em}
+    .badge.ok{background:var(--pass-bg);color:var(--pass-fg)}
+    .badge.no{background:var(--fail-bg);color:var(--fail-fg)}
+    .esvgw{flex:1;min-height:0;overflow:hidden}
+    .esvg{width:100%;height:100%}
+    .estats{padding:3px 7px 5px;display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:0;flex-shrink:0}
+    .sl{font-size:8.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;line-height:1.3}
+    .sv{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-variant-numeric:tabular-nums;line-height:1.5}
+
+    @media(max-width:700px){
+      body{flex-direction:column;overflow:auto;height:auto}
+      .panel{width:100%;max-height:none}
+      .main{padding:8px;height:auto}
+      .plan-wrap{height:260px;flex:none}
+      .elevs{grid-template-columns:repeat(2,1fr);height:auto}
+      .ecard{height:180px}
+    }
+  </style>
+</head>
+<body>
+
+<div style="display:flex;height:100%;overflow:hidden">
+<aside class="panel">
+  <div class="ptitle">BCBC 2024 · Unprotected Openings</div>
+
+  <div>
+    <div class="sec-label">Parcel</div>
+    <div class="field"><label>Width E–W</label><div class="fr"><input type="range" id="pW" min="10" max="120" step="1" value="35"><span class="val" id="pWv">35 m</span></div></div>
+    <div class="field"><label>Depth N–S</label><div class="fr"><input type="range" id="pD" min="10" max="120" step="1" value="40"><span class="val" id="pDv">40 m</span></div></div>
+  </div>
+  <div class="div"></div>
+  <div>
+    <div class="sec-label">Building</div>
+    <div class="field"><label>Width E–W</label><div class="fr"><input type="range" id="bW" min="3" max="100" step="1" value="18"><span class="val" id="bWv">18 m</span></div></div>
+    <div class="field"><label>Depth N–S</label><div class="fr"><input type="range" id="bD" min="3" max="100" step="1" value="14"><span class="val" id="bDv">14 m</span></div></div>
+    <div class="field"><label>Height</label><div class="fr"><input type="range" id="bH" min="3" max="80" step="0.5" value="15"><span class="val" id="bHv">15.0 m</span></div></div>
+    <div class="field"><label>Floor-to-floor height</label><div class="fr"><input type="range" id="fH" min="2.5" max="6" step="0.1" value="3.5"><span class="val" id="fHv">3.5 m</span></div></div>
+  </div>
+  <div class="div"></div>
+  <div>
+    <div class="sec-label">Building Position</div>
+    <div class="field"><label>Offset X (E–W)</label><div class="fr"><input type="range" id="bOX" min="-1" max="1" step="0.01" value="0"><span class="val" id="bOXv">0.0</span></div></div>
+    <div class="field"><label>Offset Y (N–S)</label><div class="fr"><input type="range" id="bOY" min="-1" max="1" step="0.01" value="0"><span class="val" id="bOYv">0.0</span></div></div>
+    <div class="note" style="margin-top:2px">Or drag the building in the plan view.</div>
+  </div>
+  <div class="div"></div>
+  <div>
+    <div class="sec-label">Occupancy</div>
+    <div class="field"><label>Group</label>
+      <select id="occ">
+        <option value="A">A – Assembly</option>
+        <option value="B">B – Care / Detention</option>
+        <option value="C">C – Residential</option>
+        <option value="D" selected>D – Business &amp; Personal Services</option>
+        <option value="E">E – Mercantile</option>
+        <option value="F3">F Div.3 – Low Hazard Industrial</option>
+        <option value="F12">F Div.1&amp;2 – High Hazard Industrial</option>
+      </select>
+    </div>
+    <div class="field"><label>Sprinkler system</label>
+      <select id="spk">
+        <option value="no">Not Sprinklered</option>
+        <option value="yes">Sprinklered (NFPA 13)</option>
+      </select>
+    </div>
+  </div>
+  <div class="div"></div>
+  <div>
+    <div class="sec-label">Neighbour Facade → Property Line</div>
+    <div class="field"><label>North</label><div class="fr"><input type="range" id="nN" min="0" max="40" step="0.5" value="5"><span class="val" id="nNv">5.0 m</span></div></div>
+    <div class="field"><label>South</label><div class="fr"><input type="range" id="nS" min="0" max="40" step="0.5" value="5"><span class="val" id="nSv">5.0 m</span></div></div>
+    <div class="field"><label>East</label><div class="fr"><input type="range" id="nE" min="0" max="40" step="0.5" value="5"><span class="val" id="nEv">5.0 m</span></div></div>
+    <div class="field"><label>West</label><div class="fr"><input type="range" id="nW" min="0" max="40" step="0.5" value="5"><span class="val" id="nWv">5.0 m</span></div></div>
+  </div>
+  <div class="div"></div>
+  <div class="note">Drag building in plan view to reposition.<br>LD = main facade→PL + neighbour facade→PL.<br>Lookup: EBF rounded up, LD rounded down.<br>⚠ Table C values are approximate (×0.68 of Table B) — verify against BCBC 2024.</div>
+  <div class="note-warn">⚠ BCBC table data in this tool is carried from V01 and has not been independently verified against BCBC 2024. Confirm all values before use in any submission.</div>
+</aside>
+
+<div class="main">
+  <div class="plan-wrap" id="planWrap">
+    <svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="elevs">
+    <div class="ecard" id="ecN"></div>
+    <div class="ecard" id="ecS"></div>
+    <div class="ecard" id="ecE"></div>
+    <div class="ecard" id="ecW"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// BCBC 2024 Table 3.2.3.1 Data
+// ⚠ UNVERIFIED — carried from V01. Verify against BCBC 2024 before any use.
+// ═══════════════════════════════════════════════════════════
+
+const LD_B=[0,1.2,1.5,2,2.5,3,4,5,6,7,8,9,10,11,12,13,14,16,18,20,25,30,35,40,45,50];
+const EBF_B=[10,15,20,25,30,40,50,60,80,100,150,250,350,500,1000,2000];
+const TB=[
+ [[0,8,10,18,29,46,91,100],[0,8,12,21,33,50,96,100],[0,11,18,32,48,68,100]],
+ [[0,7,9,14,22,33,63,100],[0,8,10,17,25,37,67,100],[0,10,15,26,39,53,87,100]],
+ [[0,7,9,12,18,26,49,81,100],[0,8,10,15,21,30,53,85,100],[0,9,14,23,33,45,72,100]],
+ [[0,7,8,11,16,23,41,66,98,100],[0,8,9,13,19,26,45,70,100],[0,9,13,21,30,39,62,90,100]],
+ [[0,7,8,11,15,20,35,56,83,100],[0,7,9,12,17,23,39,61,88,100],[0,8,12,19,27,36,56,79,100]],
+ [[0,7,8,10,13,17,28,44,64,89,100],[0,7,8,11,15,20,32,48,69,93,100],[0,8,11,17,24,31,47,66,88,100]],
+ [[0,7,8,9,12,15,24,37,53,72,96,100],[0,7,8,10,14,18,28,41,57,77,100],[0,8,10,15,21,28,41,57,76,97,100]],
+ [[0,7,8,9,11,14,21,32,45,62,81,100],[0,7,8,10,13,16,25,36,49,66,85,100],[0,8,10,14,20,25,38,51,67,85,100]],
+ [[0,7,7,8,10,12,18,26,36,48,62,79,98,100],[0,7,8,9,11,14,21,29,40,52,67,84,100],[0,8,9,13,17,22,32,44,56,70,86,100]],
+ [[0,7,7,8,9,11,16,22,30,40,51,65,80,97,100],[0,7,8,9,11,13,18,25,34,44,56,69,84,100],[0,7,9,12,16,20,29,39,49,61,74,89,100]],
+ [[0,7,7,8,9,10,13,17,22,29,37,46,56,67,79,93,100],[0,7,7,8,10,11,15,20,26,33,41,50,60,71,84,97,100],[0,7,8,11,13,17,24,31,39,48,57,68,79,91,100]],
+ [[0,7,7,7,8,9,10,13,16,20,25,30,36,43,51,59,68,87,100],[0,7,7,8,9,10,12,15,19,24,28,34,40,47,55,63,72,92,100],[0,7,8,9,11,14,19,24,30,36,43,50,57,65,73,82,92,100]],
+ [[0,7,7,7,8,8,9,11,14,16,20,24,28,33,38,44,50,64,81,99,100],[0,7,7,8,9,9,11,13,16,19,23,27,32,37,42,48,55,69,85,100],[0,7,8,9,10,12,16,21,25,30,36,41,47,53,59,66,73,88,100]],
+ [[0,7,7,7,7,8,9,10,12,14,16,19,22,25,29,33,37,47,59,71,100],[0,7,7,7,8,8,10,12,14,16,19,22,25,29,33,37,41,52,63,76,100],[0,7,7,8,9,11,14,18,22,25,30,34,38,43,48,53,58,70,82,96,100]],
+ [[0,7,7,7,7,7,8,9,9,10,12,13,14,16,18,20,22,27,33,39,58,82,100],[0,7,7,7,7,8,9,10,11,12,14,15,17,19,21,23,26,31,37,43,63,86,100],[0,7,7,8,8,9,11,13,16,19,21,24,27,30,33,36,39,46,53,60,82,100]],
+ [[0,7,7,7,7,7,7,8,8,9,9,10,11,12,13,14,15,17,20,23,33,44,58,74,93,100],[0,7,7,7,7,7,8,8,9,10,11,12,13,14,15,16,17,20,23,27,37,49,63,79,97,100],[0,7,7,7,8,8,9,11,12,14,16,18,19,21,23,25,27,32,36,40,53,66,82,99,100]],
+];
+
+// Table C ≈ Table B × 0.68  (approximate — Groups E & F Div.1&2, non-sprinklered)
+// ⚠ UNVERIFIED — verify against BCBC 2024 Table 3.2.3.1-C before use.
+const TC=TB.map(r=>r.map(v=>v.map((x,i)=>i===0?0:Math.min(100,Math.round(x*0.68)))));
+
+const LD_D=[0,1.2,1.5,2,2.5,3,4,5,6,7,8,9];
+const EBF_D=[10,15,20,25,30,40,50,60,80,100,150];
+const TD=[
+ [0,16,24,42,66,100],
+ [0,16,20,34,50,74,100],
+ [0,16,20,30,42,60,100],
+ [0,16,18,26,38,52,90,100],
+ [0,14,18,24,34,46,78,100],
+ [0,14,16,22,30,40,64,96,100],
+ [0,14,16,20,28,36,56,82,100],
+ [0,14,16,20,26,32,50,72,98,100],
+ [0,14,16,18,22,28,42,58,80,100],
+ [0,14,16,18,22,26,36,50,68,88,100],
+ [0,14,14,16,20,22,30,40,52,66,82,100],
+];
+
+const LD_E=[0,1.2,1.5,2,2.5,3,4,5,6,7,8,9,10,11,12,13,14,15];
+const EBF_E=[10,15,20,25,30,40,50,60,80,100,150,200];
+const TE=[
+ [0,8,12,20,34,50,96,100],
+ [0,8,10,16,26,36,68,100],
+ [0,8,10,14,22,30,54,86,100],
+ [0,8,10,14,18,26,44,70,100],
+ [0,8,8,12,18,24,40,60,88,100],
+ [0,8,8,12,16,20,32,48,68,94,100],
+ [0,8,8,10,14,18,28,40,58,76,100],
+ [0,8,8,10,12,16,24,36,50,66,86,100],
+ [0,8,8,10,12,14,20,30,40,52,66,84,100],
+ [0,8,8,8,10,12,18,26,34,44,56,70,84,100],
+ [0,8,8,8,10,12,16,20,26,32,40,50,60,72,84,98,100],
+ [0,8,8,8,8,10,14,18,22,28,34,42,50,60,68,80,92,100],
+];
+
+// ═══════════════════════════════════════════════════════════
+// Lookup helpers
+// ═══════════════════════════════════════════════════════════
+
+function ldIdx(ldArr,ld){
+  let idx=0;
+  for(let i=0;i<ldArr.length;i++){ if(ldArr[i]<=ld+1e-9) idx=i; else break; }
+  return idx;
+}
+function ebfIdx(ebfArr,ebf){
+  for(let i=0;i<ebfArr.length;i++) if(ebfArr[i]>=ebf-1e-9) return i;
+  return ebfArr.length-1;
+}
+function ratioIdx(fw,fh){
+  const r=Math.max(fw/fh,fh/fw);
+  return r<3?0:r<=10?1:2;
+}
+function pctLookup(tbl,ldArr,ebfArr,ld,ebf,ri){
+  const li=ldIdx(ldArr,ld);
+  const ei=ebfIdx(ebfArr,ebf);
+  const row=ri!==undefined?tbl[ei][ri]:tbl[ei];
+  return li>=row.length?100:row[li];
+}
+
+function getTableInfo(occ,spk){
+  if(spk){
+    if(occ==='E'||occ==='F12') return {t:TE,ld:LD_E,ebf:EBF_E,name:'E',ratio:false};
+    return {t:TD,ld:LD_D,ebf:EBF_D,name:'D',ratio:false};
+  }else{
+    if(occ==='E'||occ==='F12') return {t:TC,ld:LD_B,ebf:EBF_B,name:'C*',ratio:true};
+    return {t:TB,ld:LD_B,ebf:EBF_B,name:'B',ratio:true};
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════
+
+const S={
+  parcelW:35,parcelD:40,
+  bldgW:18,bldgD:14,bldgH:15,fh:3.5,
+  bX:0,bY:0,
+  occ:'D',spk:false,
+  nN:5,nS:5,nE:5,nW:5
+};
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+function bldgLimits(){
+  return {
+    xMin:-(S.parcelW-S.bldgW)/2, xMax:(S.parcelW-S.bldgW)/2,
+    yMin:-(S.parcelD-S.bldgD)/2, yMax:(S.parcelD-S.bldgD)/2
+  };
+}
+
+function calcFacade(dir){
+  const {parcelW,parcelD,bldgW,bldgD,bldgH,bX,bY,fh,occ,spk}=S;
+  let fw,ldProp,nbr;
+  if(dir==='N'){ fw=bldgW; ldProp=parcelD/2-(bY+bldgD/2); nbr=S.nN; }
+  else if(dir==='S'){ fw=bldgW; ldProp=(bY-bldgD/2)+parcelD/2; nbr=S.nS; }
+  else if(dir==='E'){ fw=bldgD; ldProp=parcelW/2-(bX+bldgW/2); nbr=S.nE; }
+  else{ fw=bldgD; ldProp=(bX-bldgW/2)+parcelW/2; nbr=S.nW; }
+
+  const ld=Math.max(0,ldProp)+nbr;
+  const ebf=fw*bldgH;
+  const ri=ratioIdx(fw,bldgH);
+  const tbl=getTableInfo(occ,spk);
+  const pct=tbl.ratio?pctLookup(tbl.t,tbl.ld,tbl.ebf,ld,ebf,ri):pctLookup(tbl.t,tbl.ld,tbl.ebf,ld,ebf);
+  const allowM2=(pct/100)*ebf;
+
+  const nFloors=Math.max(1,Math.floor(bldgH/fh));
+  const nWpF=Math.max(1,Math.round(fw/3.2));
+  const bayW=fw/nWpF;
+  const maxWW=bayW*0.62,maxWH=fh*0.58;
+  const maxArea=maxWW*maxWH*nWpF*nFloors;
+  const scl=maxArea>0?Math.min(1,Math.sqrt(allowM2/maxArea)):0;
+  const winW=maxWW*scl,winH=maxWH*scl;
+  const winArea=winW*winH*nWpF*nFloors;
+
+  return{dir,ld,ldProp,nbr,fw,ebf,pct,allowM2,tblName:tbl.name,ri,
+         nFloors,nWpF,bayW,winW,winH,winArea,pass:pct>0};
+}
+
+// ═══════════════════════════════════════════════════════════
+// SVG helper
+// ═══════════════════════════════════════════════════════════
+
+const ns='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){
+  const e=document.createElementNS(ns,tag);
+  for(const[k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function txt(content,attrs,parent){
+  const e=el('text',attrs,parent);
+  e.textContent=content;
+  return e;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Plan View
+// ═══════════════════════════════════════════════════════════
+
+const planSvg=document.getElementById('planSvg');
+const MARG=40;
+let planScale=8;
+const AXI=Math.cos(Math.PI/6);  // ≈ 0.866
+const AYI=Math.sin(Math.PI/6);  // 0.5
+let isoSc=8; // pixels per metre, updated each render
+
+function renderPlan(){
+  planSvg.innerHTML='';
+  const {parcelW,parcelD,bldgW,bldgD,bX,bY}=S;
+  const bH=S.bldgH;
+
+  // Fixed viewBox — isometric axonometric view
+  const VW=800, VH=560;
+  planSvg.setAttribute('viewBox',`0 0 ${VW} ${VH}`);
+
+  // Scale to fit parcel + building height comfortably
+  const horizSpan=(parcelW+parcelD)*AXI;
+  const vertSpan=bH+(parcelW/2+parcelD/2)*AYI;
+  isoSc=Math.min(VW*0.68/horizSpan, VH*0.70/vertSpan);
+
+  // SVG origin: viewer from SE-above; ground parcel centred in view
+  const ox=VW/2;
+  const oy=VH/2+(bH/2)*isoSc;
+
+  // Projection: world (x=East, y=North, z=up) → SVG screen
+  function proj(wx,wy,wz){
+    return [ox+(wx-wy)*AXI*isoSc, oy+(wx+wy)*AYI*isoSc-wz*isoSc];
+  }
+  function pts(cs){return cs.map(c=>c.join(',')).join(' ');}
+
+  // Parcel corners at ground
+  const pSW=proj(-parcelW/2,-parcelD/2,0);
+  const pSE=proj( parcelW/2,-parcelD/2,0);
+  const pNE=proj( parcelW/2, parcelD/2,0);
+  const pNW=proj(-parcelW/2, parcelD/2,0);
+
+  // Parcel ground parallelogram
+  el('polygon',{points:pts([pSW,pSE,pNE,pNW]),
+    fill:'var(--parcel-fill)',stroke:'var(--parcel-stroke)',
+    'stroke-width':'1.5','stroke-dasharray':'6,4'},planSvg);
+
+  // Parcel dimension labels
+  const dimStyle='font-size:9px;font-family:JetBrains Mono,monospace;fill:var(--sub);text-anchor:middle;dominant-baseline:middle';
+  txt(`${parcelW}m`,{x:(pSW[0]+pSE[0])/2,y:(pSW[1]+pSE[1])/2+11,style:dimStyle},planSvg);
+  txt(`${parcelD}m`,{x:(pSE[0]+pNE[0])/2+12,y:(pSE[1]+pNE[1])/2,style:dimStyle},planSvg);
+
+  // Building footprint world coords
+  const bSW=[bX-bldgW/2,bY-bldgD/2];
+  const bSE=[bX+bldgW/2,bY-bldgD/2];
+  const bNE=[bX+bldgW/2,bY+bldgD/2];
+  const bNW=[bX-bldgW/2,bY+bldgD/2];
+
+  // Projected at z=0 (ground)
+  const sw0=proj(bSW[0],bSW[1],0);
+  const se0=proj(bSE[0],bSE[1],0);
+  const ne0=proj(bNE[0],bNE[1],0);
+  const nw0=proj(bNW[0],bNW[1],0);
+
+  // Projected at z=bH (roof)
+  const swH=proj(bSW[0],bSW[1],bH);
+  const seH=proj(bSE[0],bSE[1],bH);
+  const neH=proj(bNE[0],bNE[1],bH);
+  const nwH=proj(bNW[0],bNW[1],bH);
+
+  // Ground shadow
+  el('polygon',{points:pts([[sw0[0]+4,sw0[1]+3],[se0[0]+4,se0[1]+3],[ne0[0]+4,ne0[1]+3],[nw0[0]+4,nw0[1]+3]]),
+    fill:'rgba(0,0,0,0.13)'},planSvg);
+
+  // LD annotation lines (ground plane: building facade midpoint → parcel edge)
+  const facadeResults=['N','S','E','W'].map(d=>calcFacade(d));
+  const ldColors={N:'#60a5fa',S:'#f97316',E:'#22c55e',W:'#e879f9'};
+
+  facadeResults.forEach(f=>{
+    const col=ldColors[f.dir];
+    let facPt,plPt;
+    if(f.dir==='N'){ facPt=proj(bX,bY+bldgD/2,0); plPt=proj(bX,parcelD/2,0); }
+    else if(f.dir==='S'){ facPt=proj(bX,bY-bldgD/2,0); plPt=proj(bX,-parcelD/2,0); }
+    else if(f.dir==='E'){ facPt=proj(bX+bldgW/2,bY,0); plPt=proj(parcelW/2,bY,0); }
+    else{ facPt=proj(bX-bldgW/2,bY,0); plPt=proj(-parcelW/2,bY,0); }
+    if(Math.hypot(facPt[0]-plPt[0],facPt[1]-plPt[1])>4){
+      el('line',{x1:facPt[0],y1:facPt[1],x2:plPt[0],y2:plPt[1],
+        stroke:col,'stroke-width':'1.2','stroke-dasharray':'4,3'},planSvg);
+    }
+    const mx=(facPt[0]+plPt[0])/2, my=(facPt[1]+plPt[1])/2;
+    txt(`LD=${f.ld.toFixed(1)}m`,{x:mx+2,y:my-4,
+      style:`font-size:8px;font-family:JetBrains Mono,monospace;fill:${col};dominant-baseline:middle`},planSvg);
+  });
+
+  // Building — painter's order: North → West → East → South → Roof
+  el('polygon',{points:pts([nw0,ne0,neH,nwH]),
+    fill:'var(--bldg)','fill-opacity':'0.40',
+    stroke:'var(--accent)','stroke-width':'0.6','stroke-opacity':'0.6'},planSvg);
+  el('polygon',{points:pts([sw0,nw0,nwH,swH]),
+    fill:'var(--bldg)','fill-opacity':'0.50',
+    stroke:'var(--accent)','stroke-width':'0.6','stroke-opacity':'0.6'},planSvg);
+  el('polygon',{points:pts([ne0,se0,seH,neH]),
+    fill:'var(--bldg)','fill-opacity':'0.65',
+    stroke:'var(--accent)','stroke-width':'0.8'},planSvg);
+  el('polygon',{points:pts([sw0,se0,seH,swH]),
+    fill:'var(--bldg)','fill-opacity':'0.80',
+    stroke:'var(--accent)','stroke-width':'0.8'},planSvg);
+  el('polygon',{points:pts([swH,seH,neH,nwH]),
+    fill:'var(--bldg)','fill-opacity':'1.0',
+    stroke:'var(--accent)','stroke-width':'1.5'},planSvg);
+
+  // Roof label
+  const bls=`font-size:9px;font-family:JetBrains Mono,monospace;fill:rgba(255,255,255,0.85);text-anchor:middle;dominant-baseline:middle`;
+  const roofCtr=proj(bX,bY,bH+0.6);
+  if(bldgW*isoSc>22&&bldgD*isoSc>14) txt(`${bldgW}×${bldgD}m`,{x:roofCtr[0],y:roofCtr[1],style:bls},planSvg);
+
+  // N/S/E/W face labels
+  const dlStyle=`font-size:8.5px;font-family:Outfit,sans-serif;fill:rgba(255,255,255,0.7);text-anchor:middle;dominant-baseline:middle;font-weight:700`;
+  const nMid=proj(bX,bY+bldgD/2,bH/2); txt('N',{x:nMid[0],y:nMid[1],style:dlStyle},planSvg);
+  const sMid=proj(bX,bY-bldgD/2,bH/2); txt('S',{x:sMid[0],y:sMid[1],style:dlStyle},planSvg);
+  const eMid=proj(bX+bldgW/2,bY,bH/2); txt('E',{x:eMid[0],y:eMid[1],style:dlStyle},planSvg);
+  const wMid=proj(bX-bldgW/2,bY,bH/2); txt('W',{x:wMid[0],y:wMid[1],style:dlStyle},planSvg);
+
+  // Transparent hit rect for drag (covers full projected extent)
+  const allX=[sw0,se0,ne0,nw0,swH,seH,neH,nwH].map(p=>p[0]);
+  const allY=[sw0,se0,ne0,nw0,swH,seH,neH,nwH].map(p=>p[1]);
+  bldgRect=el('rect',{
+    x:Math.min(...allX), y:Math.min(...allY),
+    width:Math.max(...allX)-Math.min(...allX),
+    height:Math.max(...allY)-Math.min(...allY),
+    fill:'transparent',stroke:'none',cursor:'grab'
+  },planSvg);
+
+  // Compass rose
+  const cx2=VW-22, cy2=22;
+  el('circle',{cx:cx2,cy:cy2,r:14,fill:'var(--surface)',stroke:'var(--border)','stroke-width':'1'},planSvg);
+  el('polygon',{points:`${cx2},${cy2-10} ${cx2-4},${cy2+4} ${cx2+4},${cy2+4}`,fill:'var(--accent)'},planSvg);
+  txt('N',{x:cx2,y:cy2-3,
+    style:`font-size:7px;font-family:Outfit,sans-serif;fill:var(--accent);text-anchor:middle;dominant-baseline:middle;font-weight:700`},planSvg);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Elevation Cards
+// ═══════════════════════════════════════════════════════════
+
+function buildElevCard(containerId,f){
+  const c=document.getElementById(containerId);
+  c.innerHTML='';
+
+  const head=document.createElement('div');
+  head.className='ehead';
+  const dirSpan=document.createElement('span');
+  dirSpan.className='edir';
+  dirSpan.textContent={N:'North',S:'South',E:'East',W:'West'}[f.dir];
+  const badge=document.createElement('span');
+  badge.className='badge '+(f.pass?'ok':'no');
+  badge.textContent=f.pass?'PASS':'FAIL';
+  head.appendChild(dirSpan);
+  head.appendChild(badge);
+  c.appendChild(head);
+
+  const wrap=document.createElement('div');
+  wrap.className='esvgw';
+  const fw=f.fw, fh2=S.bldgH;
+  const svg2=document.createElementNS(ns,'svg');
+  svg2.setAttribute('viewBox',`-0.5 -0.5 ${fw+1} ${fh2+1}`);
+  svg2.setAttribute('preserveAspectRatio','xMidYMid meet');
+  svg2.setAttribute('class','esvg');
+
+  el('rect',{x:0,y:0,width:fw,height:fh2,fill:'var(--card)',stroke:'var(--border)','stroke-width':'0.15'},svg2);
+
+  for(let fl=0;fl<f.nFloors;fl++){
+    const y=fh2-fl*S.fh;
+    el('line',{x1:0,y1:y,x2:fw,y2:y,stroke:'var(--border)','stroke-width':'0.08'},svg2);
+  }
+
+  const winCol=f.pass?'var(--win-ok)':'var(--win-fail)';
+  for(let fl=0;fl<f.nFloors;fl++){
+    const floorY=fh2-(fl+1)*S.fh;
+    for(let w=0;w<f.nWpF;w++){
+      const centreX=(w+0.5)*f.bayW;
+      const wx=centreX-f.winW/2;
+      const wy=floorY+(S.fh-f.winH)/2;
+      if(f.winW>0.05&&f.winH>0.05){
+        el('rect',{x:wx,y:wy,width:f.winW,height:f.winH,
+          fill:winCol,'fill-opacity':'0.75',stroke:winCol,'stroke-width':'0.06'},svg2);
+      }
+    }
+  }
+
+  el('line',{x1:0,y1:fh2,x2:fw,y2:fh2,stroke:'var(--sub)','stroke-width':'0.25'},svg2);
+  el('line',{x1:0,y1:0,x2:fw,y2:0,stroke:'var(--text)','stroke-width':'0.15'},svg2);
+
+  wrap.appendChild(svg2);
+  c.appendChild(wrap);
+
+  const stats=document.createElement('div');
+  stats.className='estats';
+  function stat(label,value){
+    const d=document.createElement('div');
+    const l=document.createElement('div');l.className='sl';l.textContent=label;
+    const v=document.createElement('div');v.className='sv';v.textContent=value;
+    d.appendChild(l);d.appendChild(v);
+    return d;
+  }
+  stats.appendChild(stat('LD',f.ld.toFixed(1)+' m'));
+  stats.appendChild(stat('Table',f.tblName));
+  stats.appendChild(stat('EBF',f.ebf.toFixed(0)+' m²'));
+  stats.appendChild(stat('Allow.',f.pct+'%'));
+  stats.appendChild(stat('Allow.m²',f.allowM2.toFixed(1)+'m²'));
+  stats.appendChild(stat('Win.m²',f.winArea.toFixed(1)+'m²'));
+  c.appendChild(stats);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main render loop
+// ═══════════════════════════════════════════════════════════
+
+function render(){
+  const lim=bldgLimits();
+  S.bX=clamp(S.bX,lim.xMin,lim.xMax);
+  S.bY=clamp(S.bY,lim.yMin,lim.yMax);
+  renderPlan();
+  ['N','S','E','W'].forEach((d,i)=>buildElevCard(['ecN','ecS','ecE','ecW'][i],calcFacade(d)));
+  syncPositionSliders();
+}
+
+// Sync position sliders to current S.bX / S.bY (called after drag)
+function syncPositionSliders(){
+  const lim=bldgLimits();
+  const rangeX=lim.xMax-lim.xMin||1;
+  const rangeY=lim.yMax-lim.yMin||1;
+  const normX=lim.xMax>lim.xMin?(S.bX-lim.xMin)/rangeX*2-1:0;
+  const normY=lim.yMax>lim.yMin?(S.bY-lim.yMin)/rangeY*2-1:0;
+  document.getElementById('bOX').value=normX.toFixed(2);
+  document.getElementById('bOY').value=normY.toFixed(2);
+  document.getElementById('bOXv').textContent=normX.toFixed(2);
+  document.getElementById('bOYv').textContent=normY.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Plan drag — mouse
+// ═══════════════════════════════════════════════════════════
+
+let bldgRect=null;
+let dragging=false;
+let dragStartSvg={x:0,y:0};
+let dragStartBldg={x:0,y:0};
+
+function svgPt(svg,clientX,clientY){
+  const pt=svg.createSVGPoint();
+  pt.x=clientX; pt.y=clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+planSvg.addEventListener('mousedown',e=>{
+  if(bldgRect&&(e.target===bldgRect||bldgRect.contains(e.target))){
+    dragging=true;
+    bldgRect.style.cursor='grabbing';
+    const p=svgPt(planSvg,e.clientX,e.clientY);
+    dragStartSvg={x:p.x,y:p.y};
+    dragStartBldg={x:S.bX,y:S.bY};
+    e.preventDefault();
+  }
+});
+planSvg.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  const p=svgPt(planSvg,e.clientX,e.clientY);
+  const lim=bldgLimits();
+  const dsx=p.x-dragStartSvg.x, dsy=p.y-dragStartSvg.y;
+  const dwx=(dsx/(AXI*isoSc)+dsy/(AYI*isoSc))/2;
+  const dwy=(dsy/(AYI*isoSc)-dsx/(AXI*isoSc))/2;
+  S.bX=clamp(dragStartBldg.x+dwx,lim.xMin,lim.xMax);
+  S.bY=clamp(dragStartBldg.y+dwy,lim.yMin,lim.yMax);
+  render();
+});
+planSvg.addEventListener('mouseup',()=>{dragging=false;if(bldgRect)bldgRect.style.cursor='grab';});
+planSvg.addEventListener('mouseleave',()=>{dragging=false;if(bldgRect)bldgRect.style.cursor='grab';});
+
+// ═══════════════════════════════════════════════════════════
+// Plan drag — touch
+// ═══════════════════════════════════════════════════════════
+
+planSvg.addEventListener('touchstart',e=>{
+  if(bldgRect&&e.target===bldgRect){
+    dragging=true;
+    const t=e.touches[0];
+    const p=svgPt(planSvg,t.clientX,t.clientY);
+    dragStartSvg={x:p.x,y:p.y};
+    dragStartBldg={x:S.bX,y:S.bY};
+    e.preventDefault();
+  }
+},{passive:false});
+planSvg.addEventListener('touchmove',e=>{
+  if(!dragging) return;
+  const t=e.touches[0];
+  const p=svgPt(planSvg,t.clientX,t.clientY);
+  const lim=bldgLimits();
+  const dsx=p.x-dragStartSvg.x, dsy=p.y-dragStartSvg.y;
+  const dwx=(dsx/(AXI*isoSc)+dsy/(AYI*isoSc))/2;
+  const dwy=(dsy/(AYI*isoSc)-dsx/(AXI*isoSc))/2;
+  S.bX=clamp(dragStartBldg.x+dwx,lim.xMin,lim.xMax);
+  S.bY=clamp(dragStartBldg.y+dwy,lim.yMin,lim.yMax);
+  render();
+  e.preventDefault();
+},{passive:false});
+planSvg.addEventListener('touchend',()=>{dragging=false;});
+
+// ═══════════════════════════════════════════════════════════
+// Input wiring
+// ═══════════════════════════════════════════════════════════
+
+function wire(id,valId,key,dec,unit,extraCheck){
+  const sl=document.getElementById(id);
+  const lb=document.getElementById(valId);
+  sl.addEventListener('input',()=>{
+    S[key]=parseFloat(sl.value);
+    lb.textContent=S[key].toFixed(dec)+(unit||' m');
+    if(extraCheck) extraCheck();
+    S.bX=0; S.bY=0;
+    render();
+  });
+}
+
+function checkBldg(){
+  if(S.bldgW>S.parcelW-0.5){S.bldgW=S.parcelW-0.5;document.getElementById('bW').value=S.bldgW;}
+  if(S.bldgD>S.parcelD-0.5){S.bldgD=S.parcelD-0.5;document.getElementById('bD').value=S.bldgD;}
+  document.getElementById('bWv').textContent=S.bldgW.toFixed(0)+' m';
+  document.getElementById('bDv').textContent=S.bldgD.toFixed(0)+' m';
+}
+
+wire('pW','pWv','parcelW',0,' m',checkBldg);
+wire('pD','pDv','parcelD',0,' m',checkBldg);
+wire('bW','bWv','bldgW',0,' m',checkBldg);
+wire('bD','bDv','bldgD',0,' m',checkBldg);
+wire('bH','bHv','bldgH',1,' m');
+wire('fH','fHv','fh',1,' m');
+wire('nN','nNv','nN',1,' m');
+wire('nS','nSv','nS',1,' m');
+wire('nE','nEv','nE',1,' m');
+wire('nW','nWv','nW',1,' m');
+
+// Building position sliders (normalised –1…+1 maps to full allowed range)
+document.getElementById('bOX').addEventListener('input',e=>{
+  document.getElementById('bOXv').textContent=parseFloat(e.target.value).toFixed(2);
+  const lim=bldgLimits();
+  const t=(parseFloat(e.target.value)+1)/2;
+  S.bX=lim.xMin+t*(lim.xMax-lim.xMin);
+  render();
+});
+document.getElementById('bOY').addEventListener('input',e=>{
+  document.getElementById('bOYv').textContent=parseFloat(e.target.value).toFixed(2);
+  const lim=bldgLimits();
+  const t=(parseFloat(e.target.value)+1)/2;
+  S.bY=lim.yMin+t*(lim.yMax-lim.yMin);
+  render();
+});
+
+document.getElementById('occ').addEventListener('change',e=>{S.occ=e.target.value;render();});
+document.getElementById('spk').addEventListener('change',e=>{S.spk=e.target.value==='yes';render();});
+
+// Boot
+render();
+</script>
+</body>
+</html>
