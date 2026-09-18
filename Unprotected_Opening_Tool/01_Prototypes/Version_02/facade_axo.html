@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>立面开窗合规 — Axo 视图</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f4f3ef;
+    color: #1a1a18;
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    background: #fff;
+    border-bottom: 1px solid #e0dfd8;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: #1a1a18;
+    display: grid; place-items: center;
+    font-size: 10px; color: #fff;
+    font-weight: 600; letter-spacing: 0.04em;
+    line-height: 1.1; text-align: center;
+  }
+
+  header h1 { font-size: 14px; font-weight: 500; }
+  header p  { font-size: 11px; color: #888; margin-top: 1px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    height: calc(100vh - 53px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid #e0dfd8;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e0dfd8;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .slider-label {
+    font-size: 12px;
+    color: #444;
+    width: 68px;
+    flex-shrink: 0;
+  }
+
+  .slider-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #e0dfd8;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #1a1a18;
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1a1a18;
+    width: 46px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Stats cards ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: #f4f3ef;
+    border-radius: 6px;
+    padding: 10px 10px 8px;
+  }
+
+  .stat-card .label {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 3px;
+  }
+
+  .stat-card .value {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .stat-card .sub {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  /* Facade breakdown */
+  .facade-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0efe8;
+  }
+
+  .facade-row:last-child { border-bottom: none; }
+
+  .facade-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .facade-dir { font-size: 12px; color: #444; width: 24px; }
+
+  .facade-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: #e0dfd8;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .facade-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .facade-pct {
+    font-size: 11px;
+    font-weight: 500;
+    width: 40px;
+    text-align: right;
+  }
+
+  .facade-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    width: 40px;
+    text-align: center;
+  }
+
+  .ok   { background: #e6f4ec; color: #1a6e38; }
+  .warn { background: #fef3e2; color: #8a5000; }
+  .fail { background: #fce9e9; color: #9e2222; }
+
+  /* ── Canvas area ── */
+  .canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    background: #f4f3ef;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: #fff;
+    border: 1px solid #e0dfd8;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #444;
+    line-height: 1.8;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .legend-swatch {
+    width: 16px; height: 8px;
+    border-radius: 2px;
+  }
+
+  .algo-note {
+    font-size: 10px;
+    color: #888;
+    line-height: 1.6;
+    background: #f4f3ef;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .algo-note strong { color: #444; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FA<br>ÇA</div>
+  <div>
+    <h1>立面开窗合规检测 — 轴测视图</h1>
+    <p>Façade window compliance · axonometric model</p>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <!-- Building dims -->
+    <div>
+      <div class="section-title">主建筑尺寸</div>
+      <div class="slider-row">
+        <span class="slider-label">宽度 W</span>
+        <input type="range" id="bW" min="6" max="40" value="16" step="1" oninput="redraw()">
+        <span class="slider-val" id="bW-v">16 m</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">长度 D</span>
+        <input type="range" id="bD" min="6" max="40" value="24" step="1" oninput="redraw()">
+        <span class="slider-val" id="bD-v">24 m</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">高度 H</span>
+        <input type="range" id="bH" min="4" max="60" value="18" step="1" oninput="redraw()">
+        <span class="slider-val" id="bH-v">18 m</span>
+      </div>
+    </div>
+
+    <!-- Neighbour distances -->
+    <div>
+      <div class="section-title">相邻建筑距离</div>
+      <div class="slider-row">
+        <span class="slider-label">北 North</span>
+        <input type="range" id="dN" min="3" max="50" value="12" step="0.5" oninput="redraw()">
+        <span class="slider-val" id="dN-v">12 m</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">南 South</span>
+        <input type="range" id="dS" min="3" max="50" value="8" step="0.5" oninput="redraw()">
+        <span class="slider-val" id="dS-v">8 m</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">东 East</span>
+        <input type="range" id="dE" min="3" max="50" value="20" step="0.5" oninput="redraw()">
+        <span class="slider-val" id="dE-v">20 m</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">西 West</span>
+        <input type="range" id="dW" min="3" max="50" value="6" step="0.5" oninput="redraw()">
+        <span class="slider-val" id="dW-v">6 m</span>
+      </div>
+    </div>
+
+    <!-- Algorithm note -->
+    <div>
+      <div class="section-title">开窗比例算法</div>
+      <div class="algo-note">
+        允许开窗比例 = <strong>clamp(10%, d × 2%, 70%)</strong><br>
+        d = 相邻建筑距离（m）<br><br>
+        3 m → 10%　｜　15 m → 30%<br>
+        25 m → 50%　｜　35 m → 70%+
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div>
+      <div class="section-title">总面积统计</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">总墙面面积</div>
+          <div class="value" id="stat-wall">—</div>
+          <div class="sub">m²</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">允许开窗面积</div>
+          <div class="value" id="stat-allowed">—</div>
+          <div class="sub">m²</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-facade breakdown -->
+    <div>
+      <div class="section-title">各立面开窗比例</div>
+      <div id="facade-breakdown"></div>
+    </div>
+
+  </div>
+
+  <!-- 3D Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="axo"></canvas>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#a8c4e0"></div>主建筑</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#d4b896"></div>相邻建筑</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#6ab3e8;border:1px solid #4090c8"></div>开窗 ≤ 限值（合规）</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e86060;border:1px solid #c83030"></div>开窗 > 限值（超标）</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('axo');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.clientWidth  * devicePixelRatio;
+  canvas.height = wrap.clientHeight * devicePixelRatio;
+  canvas.style.width  = wrap.clientWidth  + 'px';
+  canvas.style.height = wrap.clientHeight + 'px';
+  redraw();
+}
+
+window.addEventListener('resize', resize);
+
+/* ── Algorithm ─────────────────────────────────────────── */
+function allowedRatio(distM) {
+  return Math.min(0.70, Math.max(0.10, distM * 0.02));
+}
+
+/* ── Axonometric projection ─────────────────────────────── */
+// ISO axo: x→right-down, y→left-down, z→up
+const AX = Math.cos(Math.PI / 6);
+const AY = Math.sin(Math.PI / 6);
+
+function project(x, y, z, scale, ox, oy) {
+  return {
+    px: ox + (x - y) * AX * scale,
+    py: oy - z * scale + (x + y) * AY * scale
+  };
+}
+
+/* ── Drawing helpers ─────────────────────────────────────── */
+function face(pts, fill, stroke, lw = 1) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0].px, pts[0].py);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].px, pts[i].py);
+  ctx.closePath();
+  if (fill)  { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+}
+
+function box(x, y, z, w, d, h, sc, ox, oy, colors) {
+  const p = (px, py, pz) => project(x + px, y + py, z + pz, sc, ox, oy);
+
+  const B00 = p(0,0,0), B10 = p(w,0,0), B11 = p(w,d,0), B01 = p(0,d,0);
+  const T00 = p(0,0,h), T10 = p(w,0,h), T11 = p(w,d,h), T01 = p(0,d,h);
+
+  // bottom (ground shadow - skip)
+  // south face (y=d, visible)
+  face([B01, B11, T11, T01], colors.south, colors.edge, 0.8);
+  // west face (x=0, visible)
+  face([B00, B01, T01, T00], colors.west, colors.edge, 0.8);
+  // east face (x=w, visible in some views - draw anyway, painter's order)
+  face([B10, B11, T11, T10], colors.east, colors.edge, 0.8);
+  // north face (y=0)
+  face([B00, B10, T10, T00], colors.north, colors.edge, 0.8);
+  // top
+  face([T00, T10, T11, T01], colors.top, colors.edge, 0.8);
+}
+
+/* ── Draw windows on a face ─────────────────────────────── */
+function drawWindows(x0, y0, x1, y1, x2, y2, x3, y3, ratio, isCompliant) {
+  if (ratio <= 0) return;
+  const color  = isCompliant ? 'rgba(106,179,232,0.85)' : 'rgba(232,96,96,0.85)';
+  const stroke = isCompliant ? '#4090c8' : '#c83030';
+
+  // Distribute windows as a regular grid on the face
+  // We'll draw them as sub-quads using bilinear interpolation
+  const cols = 3, rows = 2;
+  const margin = 0.08;
+  const gap    = 0.04;
+  const totalW = 1 - 2 * margin;
+  const totalH = 0.55; // windows occupy lower 55% of height
+  const winW = (totalW - gap * (cols - 1)) / cols;
+  const winH = (totalH - gap * (rows - 1)) / rows;
+
+  // Scale winW so total window area = ratio of face
+  const baseRatio = cols * rows * winW * winH;
+  const scale = Math.sqrt(ratio / baseRatio);
+  const sW = Math.min(winW * scale, winW * 1.4);
+  const sH = Math.min(winH * scale, winH * 1.4);
+
+  function lerp2(t, s, a, b, c, d) {
+    const ab = { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+    const dc = { x: d.x + t * (c.x - d.x), y: d.y + t * (c.y - d.y) };
+    return { x: ab.x + s * (dc.x - ab.x), y: ab.y + s * (dc.y - ab.y) };
+  }
+
+  const A = { x: x0, y: y0 }, B = { x: x1, y: y1 };
+  const C = { x: x2, y: y2 }, D = { x: x3, y: y3 };
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const u0 = margin + c * (winW + gap);
+      const u1 = u0 + sW;
+      const v0 = margin + 0.3 + r * (winH + gap);
+      const v1 = v0 + sH;
+
+      if (u1 > 1 - margin || v1 > 1 - margin * 0.5) continue;
+
+      const p0 = lerp2(u0, v0, A, B, C, D);
+      const p1 = lerp2(u1, v0, A, B, C, D);
+      const p2 = lerp2(u1, v1, A, B, C, D);
+      const p3 = lerp2(u0, v1, A, B, C, D);
+
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  }
+}
+
+/* ── Get face corner pixel coords ───────────────────────── */
+function faceCorners(bx, by, bz, bw, bd, bh, sc, ox, oy, dir) {
+  const p = (dx, dy, dz) => {
+    const pt = project(bx + dx, by + dy, bz + dz, sc, ox, oy);
+    return { x: pt.px, y: pt.py };
+  };
+  switch (dir) {
+    case 'N': return [p(0,0,0), p(bw,0,0), p(bw,0,bh), p(0,0,bh)];
+    case 'S': return [p(bw,bd,0), p(0,bd,0), p(0,bd,bh), p(bw,bd,bh)];
+    case 'E': return [p(bw,0,0), p(bw,bd,0), p(bw,bd,bh), p(bw,0,bh)];
+    case 'W': return [p(0,bd,0), p(0,0,0), p(0,0,bh), p(0,bd,bh)];
+  }
+}
+
+/* ── Label on face ───────────────────────────────────────── */
+function faceLabel(corners, text, color) {
+  const cx = corners.reduce((s, c) => s + c.x, 0) / corners.length;
+  const cy = corners.reduce((s, c) => s + c.y, 0) / corners.length;
+  ctx.save();
+  ctx.font = '500 11px system-ui, sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+}
+
+/* ── Main render ─────────────────────────────────────────── */
+function redraw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f4f3ef';
+  ctx.fillRect(0, 0, W, H);
+
+  const bW = +document.getElementById('bW').value;
+  const bD = +document.getElementById('bD').value;
+  const bH = +document.getElementById('bH').value;
+  const dN = +document.getElementById('dN').value;
+  const dS = +document.getElementById('dS').value;
+  const dE = +document.getElementById('dE').value;
+  const dW = +document.getElementById('dW').value;
+
+  document.getElementById('bW-v').textContent = bW + ' m';
+  document.getElementById('bD-v').textContent = bD + ' m';
+  document.getElementById('bH-v').textContent = bH + ' m';
+  document.getElementById('dN-v').textContent = dN.toFixed(1) + ' m';
+  document.getElementById('dS-v').textContent = dS.toFixed(1) + ' m';
+  document.getElementById('dE-v').textContent = dE.toFixed(1) + ' m';
+  document.getElementById('dW-v').textContent = dW.toFixed(1) + ' m';
+
+  const ratioN = allowedRatio(dN);
+  const ratioS = allowedRatio(dS);
+  const ratioE = allowedRatio(dE);
+  const ratioW = allowedRatio(dW);
+
+  // Scale: fit everything in canvas
+  const totalW = dW + bW + dE;
+  const totalD = dN + bD + dS;
+  const totalH = Math.max(bH, 8);
+  const neighbH = Math.max(bH * 0.7, 6);
+
+  const maxDim = Math.max(totalW, totalD, totalH);
+  const sc = Math.min(W, H) * 0.28 / maxDim * (1 / devicePixelRatio);
+
+  const ox = W * 0.5;
+  const oy = H * 0.54;
+
+  // Ground grid
+  const gridStroke = '#dddcd5';
+  ctx.strokeStyle = gridStroke;
+  ctx.lineWidth = 0.5;
+  const gx0 = -dW - 2, gx1 = bW + dE + 2;
+  const gy0 = -dN - 2, gy1 = bD + dS + 2;
+  for (let gx = Math.floor(gx0); gx <= Math.ceil(gx1); gx++) {
+    const a = project(gx, gy0, 0, sc, ox, oy);
+    const b = project(gx, gy1, 0, sc, ox, oy);
+    ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+  }
+  for (let gy = Math.floor(gy0); gy <= Math.ceil(gy1); gy++) {
+    const a = project(gx0, gy, 0, sc, ox, oy);
+    const b = project(gx1, gy, 0, sc, ox, oy);
+    ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+  }
+
+  // Neighbour buildings (flat, muted)
+  const nColors = { north:'#d8c8b4', south:'#c8baa6', east:'#cfc0aa', west:'#d3c4ae', top:'#e0d4c4', edge:'#b0a090' };
+
+  // North neighbour — sits at y = -dN - neighbH_d (depth of 4m)
+  const nND = 6;
+  box(-4, -dN - nND, 0, bW + 8, nND, neighbH, sc, ox, oy, nColors);
+  // South neighbour
+  box(-4, bD + dS, 0, bW + 8, nND, neighbH, sc, ox, oy, nColors);
+  // East neighbour
+  const nED = 6;
+  box(bW + dE, -4, 0, nED, bD + 8, neighbH, sc, ox, oy, nColors);
+  // West neighbour
+  box(-dW - nED, -4, 0, nED, bD + 8, neighbH, sc, ox, oy, nColors);
+
+  // Main building — painted face by face for window overlay
+  // Draw base box first (no fill — we'll fill each face)
+  const mainX = 0, mainY = 0, mainZ = 0;
+  const mColors = { north:'#b8cfe0', south:'#a8c4dc', east:'#9ab8d0', west:'#aac0d8', top:'#c8dce8', edge:'#6090b0' };
+
+  // Faces in painter's order (back to front for this view: N, W, E, S, top)
+  const drawFace = (dir, lightFactor) => {
+    const c = faceCorners(mainX, mainY, mainZ, bW, bD, bH, sc, ox, oy, dir);
+    const ratio = { N: ratioN, S: ratioS, E: ratioE, W: ratioW }[dir];
+    const isCompliant = true; // Windows are exactly AT the limit (auto-generated)
+    // face fill
+    const fills = { N: '#b8cfe0', S: '#a8c4dc', E: '#9ab8d0', W: '#aac0d8' };
+    ctx.beginPath();
+    c.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+    ctx.closePath();
+    ctx.fillStyle = fills[dir];
+    ctx.fill();
+    ctx.strokeStyle = '#5880a0';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // windows
+    drawWindows(c[0].x, c[0].y, c[1].x, c[1].y, c[2].x, c[2].y, c[3].x, c[3].y, ratio, true);
+    // label
+    const pctStr = (ratio * 100).toFixed(0) + '%';
+    faceLabel(c, `${dir}  ${pctStr}`, '#1e3a52');
+  };
+
+  drawFace('N');
+  drawFace('W');
+  drawFace('E');
+  drawFace('S');
+
+  // Top face
+  const p = (dx, dy, dz) => project(mainX + dx, mainY + dy, mainZ + dz, sc, ox, oy);
+  const T = [p(0,0,bH), p(bW,0,bH), p(bW,bD,bH), p(0,bD,bH)];
+  ctx.beginPath();
+  T.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.px, pt.py) : ctx.lineTo(pt.px, pt.py));
+  ctx.closePath();
+  ctx.fillStyle = '#c8dce8';
+  ctx.fill();
+  ctx.strokeStyle = '#5880a0';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+  // Distance dimension lines
+  const dimColor = '#888';
+  const drawDim = (ax, ay, az, bx2, by2, bz2, label) => {
+    const a = project(ax, ay, az, sc, ox, oy);
+    const b = project(bx2, by2, bz2, sc, ox, oy);
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = dimColor;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
+    ctx.setLineDash([]);
+    const mx = (a.px + b.px) / 2 + 4;
+    const my = (a.py + b.py) / 2 - 4;
+    ctx.font = '10px system-ui';
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, mx, my);
+  };
+
+  const mh = bH * 0.5;
+  drawDim(0, -dN, mh, 0, 0, mh, dN.toFixed(0) + 'm');
+  drawDim(0, bD, mh, 0, bD + dS, mh, dS.toFixed(0) + 'm');
+  drawDim(bW, 0, mh, bW + dE, 0, mh, dE.toFixed(0) + 'm');
+  drawDim(-dW, 0, mh, 0, 0, mh, dW.toFixed(0) + 'm');
+
+  // Compass
+  const cpx = W - 50 * devicePixelRatio, cpy = 50 * devicePixelRatio;
+  const csc = 18 * devicePixelRatio;
+  const dirs2d = [
+    { label: 'N', dx: 0, dy: -1 },
+    { label: 'S', dx: 0, dy: 1 },
+    { label: 'E', dx: 1, dy: 0 },
+    { label: 'W', dx: -1, dy: 0 },
+  ];
+  ctx.font = `${9 * devicePixelRatio}px system-ui`;
+  ctx.fillStyle = '#444';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  dirs2d.forEach(d => {
+    ctx.fillText(d.label, cpx + d.dx * csc, cpy + d.dy * csc);
+  });
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 0.8;
+  [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx, dy]) => {
+    ctx.beginPath();
+    ctx.moveTo(cpx, cpy);
+    ctx.lineTo(cpx + dx * csc * 0.6, cpy + dy * csc * 0.6);
+    ctx.stroke();
+  });
+
+  // ── Update sidebar stats ────────────────────────────────
+  const wallN = bW * bH, wallS = bW * bH;
+  const wallE = bD * bH, wallW = bD * bH;
+  const totalWall = wallN + wallS + wallE + wallW;
+  const totalAllowed = wallN * ratioN + wallS * ratioS + wallE * ratioE + wallW * ratioW;
+
+  document.getElementById('stat-wall').textContent = Math.round(totalWall);
+  document.getElementById('stat-allowed').textContent = Math.round(totalAllowed);
+
+  const facades = [
+    { dir: '北', dist: dN, ratio: ratioN, wall: wallN },
+    { dir: '南', dist: dS, ratio: ratioS, wall: wallS },
+    { dir: '东', dist: dE, ratio: ratioE, wall: wallE },
+    { dir: '西', dist: dW, ratio: ratioW, wall: wallW },
+  ];
+
+  const colors = ['#5b9bd5', '#3a8fc0', '#6ab0d0', '#4898b8'];
+  let html = '';
+  facades.forEach((f, i) => {
+    const pct = (f.ratio * 100).toFixed(0);
+    const statusClass = f.ratio <= 0.3 ? 'warn' : 'ok';
+    const statusLabel = f.ratio <= 0.15 ? '受限' : f.ratio <= 0.35 ? '适中' : '宽松';
+    html += `
+      <div class="facade-row">
+        <div class="facade-dot" style="background:${colors[i]}"></div>
+        <div class="facade-dir">${f.dir}</div>
+        <div class="facade-bar-wrap">
+          <div class="facade-bar-fill" style="width:${pct}%;background:${colors[i]}"></div>
+        </div>
+        <div class="facade-pct" style="color:${colors[i]}">${pct}%</div>
+        <div class="facade-status ${statusClass}">${statusLabel}</div>
+      </div>`;
+  });
+  document.getElementById('facade-breakdown').innerHTML = html;
+}
+
+resize();
+</script>
+</body>
+</html>

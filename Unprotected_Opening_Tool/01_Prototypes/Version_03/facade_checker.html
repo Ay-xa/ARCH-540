@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>立面开窗面积合规检测</title>
+<style>
+  :root {
+    --bg: #0f1923;
+    --panel: #162130;
+    --panel2: #1c2c3e;
+    --border: #2a4060;
+    --accent: #3a9bd5;
+    --accent2: #5bbfff;
+    --ok: #2ecc71;
+    --warn: #e67e22;
+    --fail: #e74c3c;
+    --text: #cde4f7;
+    --muted: #6a8aaa;
+    --grid: rgba(58,154,213,0.06);
+    --mono: 'Courier New', monospace;
+    --sans: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(15,25,35,0.9);
+    backdrop-filter: blur(4px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo-mark {
+    width: 36px; height: 36px;
+    border: 2px solid var(--accent);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 0;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  header p {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  .badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 3px 8px;
+    letter-spacing: 0.08em;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+  }
+
+  .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .panel-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+    margin-top: 12px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="number"], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="number"]:focus,
+  select:focus,
+  textarea:focus { border-color: var(--accent); }
+
+  select option { background: var(--panel); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Rule table */
+  .rule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+  .rule-table th {
+    text-align: left;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rule-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(42,64,96,0.4);
+    vertical-align: middle;
+  }
+  .rule-table tr:last-child td { border-bottom: none; }
+  .rule-table input[type="number"] {
+    padding: 4px 6px;
+    font-size: 12px;
+    width: 70px;
+  }
+
+  /* Facade input */
+  .facade-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .facade-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 14px;
+    position: relative;
+  }
+
+  .facade-card::before {
+    content: attr(data-dir);
+    position: absolute;
+    top: -1px; right: -1px;
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 7px;
+  }
+
+  .facade-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin-bottom: 12px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 9px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--accent); color: var(--bg); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* Results */
+  .result-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .compliance-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .summary-cell {
+    background: var(--panel);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .summary-cell .value {
+    font-size: 28px;
+    font-family: var(--mono);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .summary-cell .unit {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  .v-ok { color: var(--ok); }
+  .v-warn { color: var(--warn); }
+  .v-fail { color: var(--fail); }
+  .v-neutral { color: var(--accent2); }
+
+  /* Facade result cards */
+  .facade-results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .result-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .result-card.ok { border-left-color: var(--ok); }
+  .result-card.fail { border-left-color: var(--fail); }
+  .result-card.warn { border-left-color: var(--warn); }
+
+  .result-card .direction {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .result-card .status-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    margin-bottom: 10px;
+  }
+
+  .status-ok { background: rgba(46,204,113,0.15); color: var(--ok); border: 1px solid var(--ok); }
+  .status-fail { background: rgba(231,76,60,0.15); color: var(--fail); border: 1px solid var(--fail); }
+  .status-warn { background: rgba(230,126,34,0.15); color: var(--warn); border: 1px solid var(--warn); }
+
+  .bar-container {
+    background: var(--bg);
+    height: 6px;
+    margin: 10px 0;
+    position: relative;
+  }
+
+  .bar-actual {
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    transition: width 0.5s ease;
+  }
+
+  .bar-limit {
+    position: absolute;
+    top: -4px;
+    height: 14px;
+    width: 2px;
+    background: var(--muted);
+  }
+
+  .bar-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .metric { background: var(--panel2); padding: 8px 10px; }
+  .metric .m-label { font-size: 9px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 3px; }
+  .metric .m-value { font-family: var(--mono); font-size: 13px; }
+
+  .diff-value { font-size: 11px; font-family: var(--mono); margin-top: 8px; }
+
+  /* Algorithm config */
+  .algo-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-top: 8px;
+  }
+
+  .algo-block span { color: var(--accent2); }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab {
+    padding: 10px 18px;
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .import-area {
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: border-color 0.15s;
+  }
+  .import-area:hover { border-color: var(--accent); }
+  .import-area p { font-size: 12px; color: var(--muted); }
+  .import-area small { font-size: 10px; color: var(--border); font-family: var(--mono); }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  .empty-state svg { margin-bottom: 16px; opacity: 0.3; }
+  .empty-state p { font-size: 13px; }
+  .empty-state small { font-size: 11px; font-family: var(--mono); display: block; margin-top: 6px; }
+
+  .hint { font-size: 10px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .facade-results { grid-template-columns: 1fr; }
+    .compliance-summary { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">FA<br>CA</div>
+  <div>
+    <h1>立面开窗合规检测系统</h1>
+    <p>FACADE WINDOW AREA COMPLIANCE CHECKER · REVIT INTEGRATION</p>
+  </div>
+  <div class="badge">v1.0</div>
+</header>
+
+<main>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Algorithm Config -->
+    <div class="panel">
+      <div class="panel-title">// 建筑规章算法配置</div>
+
+      <label>算法模式</label>
+      <select id="algo-mode" onchange="updateAlgoDisplay()">
+        <option value="linear">线性插值（距离→比例）</option>
+        <option value="stepped">分级阶梯（区间限值）</option>
+        <option value="formula">自定义公式</option>
+      </select>
+
+      <!-- Linear mode -->
+      <div id="algo-linear">
+        <p class="hint" style="margin-top:10px">根据相邻建筑距离线性插值计算允许开窗比例</p>
+        <label>最小距离（m）→ 最小允许比例（%）</label>
+        <div class="row2">
+          <input type="number" id="lin-min-dist" value="3" min="0" step="0.5" onchange="renderAlgoPreview()">
+          <input type="number" id="lin-min-ratio" value="10" min="0" max="100" step="1" onchange="renderAlgoPreview()">
+        </div>
+        <label>最大距离（m）→ 最大允许比例（%）</label>
+        <div class="row2">
+          <input type="number" id="lin-max-dist" value="30" min="0" step="0.5" onchange="renderAlgoPreview()">
+          <input type="number" id="lin-max-ratio" value="70" min="0" max="100" step="1" onchange="renderAlgoPreview()">
+        </div>
+        <label>绝对上限（%）</label>
+        <input type="number" id="lin-cap" value="70" min="0" max="100" step="1" onchange="renderAlgoPreview()">
+      </div>
+
+      <!-- Stepped mode -->
+      <div id="algo-stepped" style="display:none">
+        <p class="hint" style="margin-top:10px">按距离区间分级设定允许比例上限</p>
+        <table class="rule-table" style="margin-top:10px">
+          <thead>
+            <tr>
+              <th>距离 ≥（m）</th>
+              <th>允许比例（%）</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="stepped-rows">
+          </tbody>
+        </table>
+        <button class="btn" style="margin-top:10px;font-size:11px;padding:6px 12px" onclick="addSteppedRow()">+ 添加区间</button>
+      </div>
+
+      <!-- Formula mode -->
+      <div id="algo-formula" style="display:none">
+        <p class="hint" style="margin-top:10px">使用 JavaScript 表达式，变量 <code style="color:var(--accent2)">d</code> 为相邻距离（m）</p>
+        <label>公式（返回允许比例 0~100）</label>
+        <input type="text" id="formula-input" value="Math.min(70, Math.max(10, (d - 3) / 27 * 60 + 10))"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent2);padding:8px;font-family:var(--mono);font-size:12px;outline:none"
+          onchange="renderAlgoPreview()">
+        <div class="algo-block" id="algo-preview-formula" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Preview -->
+      <div class="algo-block" id="algo-preview" style="margin-top:12px">
+        <span>// 算法预览将显示在此</span>
+      </div>
+    </div>
+
+    <!-- Orientation rules -->
+    <div class="panel">
+      <div class="panel-title">// 朝向修正系数</div>
+      <p class="hint">各朝向相对基准算法的乘数修正（1.0 = 不修正）</p>
+      <table class="rule-table" style="margin-top:10px">
+        <thead>
+          <tr><th>朝向</th><th>系数</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>北</td><td><input type="number" id="coeff-N" value="1.2" step="0.05" min="0.1" max="2" style="width:60px"></td><td style="font-size:10px;color:var(--muted)">北立面常放宽</td></tr>
+          <tr><td>东</td><td><input type="number" id="coeff-E" value="1.0" step="0.05" min="0.1" max="2" style="width:60px"></td><td style="font-size:10px;color:var(--muted)">基准</td></tr>
+          <tr><td>南</td><td><input type="number" id="coeff-S" value="0.9" step="0.05" min="0.1" max="2" style="width:60px"></td><td style="font-size:10px;color:var(--muted)">南立面日照需控制</td></tr>
+          <tr><td>西</td><td><input type="number" id="coeff-W" value="1.0" step="0.05" min="0.1" max="2" style="width:60px"></td><td style="font-size:10px;color:var(--muted)">基准</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="result-panel">
+
+    <div class="panel">
+      <div class="panel-title">// Revit 模型数据输入</div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('manual')">手动输入</div>
+        <div class="tab" onclick="switchTab('json')">JSON 导入</div>
+        <div class="tab" onclick="switchTab('sample')">示例数据</div>
+      </div>
+
+      <div id="tab-manual" class="tab-content active">
+        <div class="facade-grid">
+          <div class="facade-card" data-dir="NORTH">
+            <h3>北立面</h3>
+            <label>相邻建筑距离（m）</label>
+            <input type="number" id="N-dist" value="12" min="0" step="0.5">
+            <label>立面墙体总面积（m²）</label>
+            <input type="number" id="N-wall" value="320" min="0">
+            <label>开窗总面积（m²）</label>
+            <input type="number" id="N-window" value="85" min="0">
+          </div>
+          <div class="facade-card" data-dir="SOUTH">
+            <h3>南立面</h3>
+            <label>相邻建筑距离（m）</label>
+            <input type="number" id="S-dist" value="8" min="0" step="0.5">
+            <label>立面墙体总面积（m²）</label>
+            <input type="number" id="S-wall" value="320" min="0">
+            <label>开窗总面积（m²）</label>
+            <input type="number" id="S-window" value="95" min="0">
+          </div>
+          <div class="facade-card" data-dir="EAST">
+            <h3>东立面</h3>
+            <label>相邻建筑距离（m）</label>
+            <input type="number" id="E-dist" value="20" min="0" step="0.5">
+            <label>立面墙体总面积（m²）</label>
+            <input type="number" id="E-wall" value="180" min="0">
+            <label>开窗总面积（m²）</label>
+            <input type="number" id="E-window" value="54" min="0">
+          </div>
+          <div class="facade-card" data-dir="WEST">
+            <h3>西立面</h3>
+            <label>相邻建筑距离（m）</label>
+            <input type="number" id="W-dist" value="5" min="0" step="0.5">
+            <label>立面墙体总面积（m²）</label>
+            <input type="number" id="W-wall" value="180" min="0">
+            <label>开窗总面积（m²）</label>
+            <input type="number" id="W-window" value="60" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-json" class="tab-content">
+        <div class="import-area" onclick="document.getElementById('json-file').click()">
+          <p>点击上传 JSON 文件</p>
+          <small>支持 Revit 导出格式或自定义 JSON 格式</small>
+          <input type="file" id="json-file" accept=".json" style="display:none" onchange="importJSON(event)">
+        </div>
+        <label>或直接粘贴 JSON</label>
+        <textarea id="json-input" placeholder='{"facades":[{"direction":"N","adjacentDistance":12,"wallArea":320,"windowArea":85},...]}'></textarea>
+        <button class="btn" style="margin-top:10px" onclick="parseJSON()">解析并填入</button>
+      </div>
+
+      <div id="tab-sample" class="tab-content">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">选择预设场景快速测试</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn" onclick="loadSample('urban')">城市高密度场景（多立面超标）</button>
+          <button class="btn" onclick="loadSample('suburban')">郊区低密度场景（普遍合规）</button>
+          <button class="btn" onclick="loadSample('mixed')">混合场景（部分合规）</button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runCheck()">运行检测</button>
+        <button class="btn" onclick="exportReport()">导出报告</button>
+        <button class="btn" onclick="resetAll()">重置</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-area">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect x="8" y="8" width="32" height="32" stroke="#3a9bd5" stroke-width="1.5" stroke-dasharray="4 2"/>
+          <rect x="16" y="18" width="7" height="10" stroke="#3a9bd5" stroke-width="1.5"/>
+          <rect x="25" y="18" width="7" height="10" stroke="#3a9bd5" stroke-width="1.5"/>
+          <line x1="8" y1="40" x2="40" y2="40" stroke="#3a9bd5" stroke-width="1"/>
+        </svg>
+        <p>配置规章参数并输入 Revit 数据</p>
+        <small>点击「运行检测」查看合规分析报告</small>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ─── Stepped rows default data ───────────────────────────────────────────────
+const defaultSteps = [
+  { dist: 0, ratio: 10 },
+  { dist: 6, ratio: 20 },
+  { dist: 10, ratio: 30 },
+  { dist: 15, ratio: 45 },
+  { dist: 20, ratio: 55 },
+  { dist: 30, ratio: 70 },
+];
+
+function initSteppedRows() {
+  const tbody = document.getElementById('stepped-rows');
+  tbody.innerHTML = '';
+  defaultSteps.forEach((s, i) => addSteppedRow(s.dist, s.ratio));
+}
+
+function addSteppedRow(dist = '', ratio = '') {
+  const tbody = document.getElementById('stepped-rows');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="number" value="${dist}" min="0" step="0.5" style="width:70px" onchange="renderAlgoPreview()"></td>
+    <td><input type="number" value="${ratio}" min="0" max="100" step="1" style="width:60px" onchange="renderAlgoPreview()"></td>
+    <td><button onclick="this.closest('tr').remove();renderAlgoPreview()" style="background:none;border:none;color:var(--fail);cursor:pointer;font-size:14px">×</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// ─── Algorithm functions ──────────────────────────────────────────────────────
+function getAlgorithm() {
+  const mode = document.getElementById('algo-mode').value;
+
+  if (mode === 'linear') {
+    const dMin = parseFloat(document.getElementById('lin-min-dist').value);
+    const rMin = parseFloat(document.getElementById('lin-min-ratio').value);
+    const dMax = parseFloat(document.getElementById('lin-max-dist').value);
+    const rMax = parseFloat(document.getElementById('lin-max-ratio').value);
+    const cap  = parseFloat(document.getElementById('lin-cap').value);
+    return (d) => {
+      if (d <= dMin) return rMin;
+      if (d >= dMax) return Math.min(rMax, cap);
+      const r = rMin + (d - dMin) / (dMax - dMin) * (rMax - rMin);
+      return Math.min(r, cap);
+    };
+  }
+
+  if (mode === 'stepped') {
+    const rows = [...document.querySelectorAll('#stepped-rows tr')].map(tr => {
+      const inputs = tr.querySelectorAll('input');
+      return { dist: parseFloat(inputs[0].value), ratio: parseFloat(inputs[1].value) };
+    }).filter(r => !isNaN(r.dist) && !isNaN(r.ratio))
+      .sort((a, b) => a.dist - b.dist);
+    return (d) => {
+      let ratio = rows[0]?.ratio ?? 10;
+      for (const row of rows) {
+        if (d >= row.dist) ratio = row.ratio;
+        else break;
+      }
+      return ratio;
+    };
+  }
+
+  if (mode === 'formula') {
+    const expr = document.getElementById('formula-input').value;
+    return (d) => {
+      try {
+        // eslint-disable-next-line no-new-func
+        const fn = new Function('d', `return ${expr}`);
+        const v = fn(d);
+        return Math.max(0, Math.min(100, v));
+      } catch (e) {
+        return 0;
+      }
+    };
+  }
+}
+
+function getCoeff(dir) {
+  return parseFloat(document.getElementById(`coeff-${dir}`).value) || 1.0;
+}
+
+function getAllowedRatio(dir, dist) {
+  const base = getAlgorithm()(dist);
+  const coeff = getCoeff(dir);
+  return Math.min(100, base * coeff);
+}
+
+// ─── Algorithm preview ────────────────────────────────────────────────────────
+function renderAlgoPreview() {
+  const fn = getAlgorithm();
+  if (!fn) return;
+  const preview = document.getElementById('algo-preview');
+  const samples = [3, 6, 10, 15, 20, 25, 30];
+  let html = '<span>// 距离→允许比例预览（基准，未含朝向修正）</span><br>';
+  samples.forEach(d => {
+    const r = fn(d).toFixed(1);
+    html += `d=${String(d).padStart(4)}m → <span>${r}%</span><br>`;
+  });
+  preview.innerHTML = html;
+
+  if (document.getElementById('algo-mode').value === 'formula') {
+    document.getElementById('algo-preview-formula').innerHTML = html;
+  }
+}
+
+function updateAlgoDisplay() {
+  const mode = document.getElementById('algo-mode').value;
+  document.getElementById('algo-linear').style.display  = mode === 'linear'  ? '' : 'none';
+  document.getElementById('algo-stepped').style.display = mode === 'stepped' ? '' : 'none';
+  document.getElementById('algo-formula').style.display = mode === 'formula' ? '' : 'none';
+  renderAlgoPreview();
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = ['manual', 'json', 'sample'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ─── Data collection ──────────────────────────────────────────────────────────
+function getManualData() {
+  const dirs = ['N', 'S', 'E', 'W'];
+  const nameMap = { N: '北立面', S: '南立面', E: '东立面', W: '西立面' };
+  return dirs.map(d => ({
+    direction: d,
+    label: nameMap[d],
+    adjacentDistance: parseFloat(document.getElementById(`${d}-dist`).value) || 0,
+    wallArea: parseFloat(document.getElementById(`${d}-wall`).value) || 0,
+    windowArea: parseFloat(document.getElementById(`${d}-window`).value) || 0,
+  }));
+}
+
+// ─── Run check ────────────────────────────────────────────────────────────────
+function runCheck() {
+  const data = getManualData();
+  const results = data.map(f => {
+    const allowedRatio = getAllowedRatio(f.direction, f.adjacentDistance);
+    const allowedArea  = f.wallArea * (allowedRatio / 100);
+    const actualRatio  = f.wallArea > 0 ? (f.windowArea / f.wallArea) * 100 : 0;
+    const diff         = f.windowArea - allowedArea;
+    const status       = actualRatio <= allowedRatio ? 'ok'
+                        : actualRatio <= allowedRatio * 1.1 ? 'warn' : 'fail';
+    return { ...f, allowedRatio, allowedArea, actualRatio, diff, status };
+  });
+
+  renderResults(results);
+}
+
+function renderResults(results) {
+  const total = results.length;
+  const ok   = results.filter(r => r.status === 'ok').length;
+  const warn = results.filter(r => r.status === 'warn').length;
+  const fail = results.filter(r => r.status === 'fail').length;
+
+  const totalWindow  = results.reduce((s, r) => s + r.windowArea, 0);
+  const totalWall    = results.reduce((s, r) => s + r.wallArea, 0);
+  const overallRatio = totalWall > 0 ? (totalWindow / totalWall * 100).toFixed(1) : 0;
+
+  const statusLabel = { ok: '合规', warn: '临界', fail: '超标' };
+  const statusClass = { ok: 'status-ok', warn: 'status-warn', fail: 'status-fail' };
+
+  let html = `
+    <div class="panel">
+      <div class="panel-title">// 检测结果总览</div>
+      <div class="compliance-summary">
+        <div class="summary-cell">
+          <div class="value v-${fail > 0 ? 'fail' : ok === total ? 'ok' : 'warn'}">${ok}/${total}</div>
+          <div class="unit">立面合规数量</div>
+        </div>
+        <div class="summary-cell">
+          <div class="value v-fail">${fail}</div>
+          <div class="unit">超标立面</div>
+        </div>
+        <div class="summary-cell">
+          <div class="value v-warn">${warn}</div>
+          <div class="unit">临界立面</div>
+        </div>
+        <div class="summary-cell">
+          <div class="value v-neutral">${overallRatio}%</div>
+          <div class="unit">综合开窗比例</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">// 各立面详细分析</div>
+      <div class="facade-results">
+  `;
+
+  results.forEach(r => {
+    const barPct = Math.min(100, r.actualRatio);
+    const limitPct = Math.min(100, r.allowedRatio);
+    const barColor = r.status === 'ok' ? 'var(--ok)' : r.status === 'warn' ? 'var(--warn)' : 'var(--fail)';
+    const diffSign = r.diff > 0 ? '+' : '';
+    const diffColor = r.diff > 0 ? 'var(--fail)' : 'var(--ok)';
+
+    html += `
+      <div class="result-card ${r.status}">
+        <div class="direction">${r.direction === 'N' ? '北' : r.direction === 'S' ? '南' : r.direction === 'E' ? '东' : '西'} / ${r.label}</div>
+        <div class="status-badge ${statusClass[r.status]}">${statusLabel[r.status]}</div>
+
+        <div class="bar-container">
+          <div class="bar-actual" style="width:${barPct}%;background:${barColor}"></div>
+          <div class="bar-limit" style="left:${limitPct}%"></div>
+        </div>
+        <div class="bar-label">
+          <span>0%</span>
+          <span style="color:var(--muted)">限值 ${r.allowedRatio.toFixed(1)}%</span>
+          <span>100%</span>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="m-label">相邻距离</div>
+            <div class="m-value">${r.adjacentDistance} m</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">允许比例</div>
+            <div class="m-value">${r.allowedRatio.toFixed(1)}%</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">实际开窗</div>
+            <div class="m-value">${r.windowArea.toFixed(1)} m²</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">允许开窗</div>
+            <div class="m-value">${r.allowedArea.toFixed(1)} m²</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">实际比例</div>
+            <div class="m-value">${r.actualRatio.toFixed(1)}%</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">墙体面积</div>
+            <div class="m-value">${r.wallArea.toFixed(1)} m²</div>
+          </div>
+        </div>
+
+        <div class="diff-value" style="color:${diffColor}">
+          ${diffSign}${r.diff.toFixed(2)} m²
+          ${r.diff > 0 ? '▲ 超出允许面积' : '▼ 低于允许面积上限'}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div></div>`;
+
+  document.getElementById('results-area').innerHTML = html;
+}
+
+// ─── JSON Import ──────────────────────────────────────────────────────────────
+function parseJSON() {
+  try {
+    const raw = document.getElementById('json-input').value.trim();
+    const obj = JSON.parse(raw);
+    const facades = obj.facades || obj;
+    fillFromArray(facades);
+  } catch (e) {
+    alert('JSON 解析失败，请检查格式：' + e.message);
+  }
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('json-input').value = e.target.result;
+    parseJSON();
+    switchTab('manual');
+  };
+  reader.readAsText(file);
+}
+
+function fillFromArray(facades) {
+  const dirMap = { N: 'N', S: 'S', E: 'E', W: 'W',
+                   north: 'N', south: 'S', east: 'E', west: 'W',
+                   北: 'N', 南: 'S', 东: 'E', 西: 'W' };
+  facades.forEach(f => {
+    const d = dirMap[f.direction] || dirMap[f.direction?.toLowerCase()];
+    if (!d) return;
+    if (f.adjacentDistance !== undefined) document.getElementById(`${d}-dist`).value = f.adjacentDistance;
+    if (f.wallArea !== undefined)         document.getElementById(`${d}-wall`).value = f.wallArea;
+    if (f.windowArea !== undefined)       document.getElementById(`${d}-window`).value = f.windowArea;
+  });
+  switchTab('manual');
+}
+
+// ─── Sample data ──────────────────────────────────────────────────────────────
+const samples = {
+  urban: [
+    { direction: 'N', adjacentDistance: 5,  wallArea: 280, windowArea: 105 },
+    { direction: 'S', adjacentDistance: 4,  wallArea: 280, windowArea: 98 },
+    { direction: 'E', adjacentDistance: 6,  wallArea: 160, windowArea: 62 },
+    { direction: 'W', adjacentDistance: 3,  wallArea: 160, windowArea: 72 },
+  ],
+  suburban: [
+    { direction: 'N', adjacentDistance: 25, wallArea: 350, windowArea: 120 },
+    { direction: 'S', adjacentDistance: 20, wallArea: 350, windowArea: 140 },
+    { direction: 'E', adjacentDistance: 18, wallArea: 200, windowArea: 70 },
+    { direction: 'W', adjacentDistance: 22, wallArea: 200, windowArea: 75 },
+  ],
+  mixed: [
+    { direction: 'N', adjacentDistance: 14, wallArea: 300, windowArea: 95 },
+    { direction: 'S', adjacentDistance: 7,  wallArea: 300, windowArea: 88 },
+    { direction: 'E', adjacentDistance: 18, wallArea: 170, windowArea: 55 },
+    { direction: 'W', adjacentDistance: 5,  wallArea: 170, windowArea: 65 },
+  ],
+};
+
+function loadSample(key) {
+  fillFromArray(samples[key]);
+  runCheck();
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function exportReport() {
+  const data = getManualData();
+  const results = data.map(f => {
+    const allowedRatio = getAllowedRatio(f.direction, f.adjacentDistance);
+    const allowedArea  = f.wallArea * (allowedRatio / 100);
+    const actualRatio  = f.wallArea > 0 ? (f.windowArea / f.wallArea) * 100 : 0;
+    const diff         = f.windowArea - allowedArea;
+    const status       = actualRatio <= allowedRatio ? '合规' : actualRatio <= allowedRatio * 1.1 ? '临界' : '超标';
+    return { ...f, allowedRatio: allowedRatio.toFixed(2), allowedArea: allowedArea.toFixed(2),
+             actualRatio: actualRatio.toFixed(2), diff: diff.toFixed(2), status };
+  });
+
+  const json = JSON.stringify({ generatedAt: new Date().toISOString(), algorithm: document.getElementById('algo-mode').value, results }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `facade_compliance_${Date.now()}.json`;
+  a.click();
+}
+
+function resetAll() {
+  document.getElementById('results-area').innerHTML = `
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="8" width="32" height="32" stroke="#3a9bd5" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <rect x="16" y="18" width="7" height="10" stroke="#3a9bd5" stroke-width="1.5"/>
+        <rect x="25" y="18" width="7" height="10" stroke="#3a9bd5" stroke-width="1.5"/>
+        <line x1="8" y1="40" x2="40" y2="40" stroke="#3a9bd5" stroke-width="1"/>
+      </svg>
+      <p>配置规章参数并输入 Revit 数据</p>
+      <small>点击「运行检测」查看合规分析报告</small>
+    </div>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+initSteppedRows();
+renderAlgoPreview();
+</script>
+</body>
+</html>
