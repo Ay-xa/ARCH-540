@@ -19,4 +19,3 @@ When working with the user:
 - Do not invent architectural regulations, building code requirements, planning policies, or numerical values.
 - When regulations or code requirements are involved, distinguish verified information from assumptions.
 - Treat the project as an evolving design exploration rather than a fixed software specification.
-hi
