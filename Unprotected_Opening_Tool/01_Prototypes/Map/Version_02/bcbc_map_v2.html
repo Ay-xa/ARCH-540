@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>BCBC Map Prototype V2 — Parcel + Zoning</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: system-ui, sans-serif; }
+
+    :root {
+      --bg: #f0f2f7; --surface: #fff; --card: #f6f8fc; --border: #dde2ee;
+      --text: #1c1f2e; --sub: #6070a0; --accent: #1458cc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0c12; --surface: #121620; --card: #191e2c; --border: #252d44;
+        --text: #dde2f4; --sub: #6878a8; --accent: #5090f8;
+      }
+    }
+
+    body { display: flex; flex-direction: column; background: var(--bg); color: var(--text); }
+
+    .topbar {
+      flex-shrink: 0; height: 44px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    }
+    .topbar-title { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .topbar-hint  { font-size: 11px; color: var(--sub); }
+
+    .main { flex: 1; display: flex; min-height: 0; }
+    #map  { flex: 1; min-width: 0; cursor: crosshair; }
+
+    .panel {
+      width: 300px; flex-shrink: 0;
+      background: var(--surface); border-left: 1px solid var(--border);
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+
+    /* ── sections ── */
+    .psec { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .slabel {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--accent); margin-bottom: 8px;
+    }
+
+    /* ── empty / loading / error ── */
+    .empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; padding: 32px 16px; text-align: center; color: var(--sub);
+    }
+    .empty-icon { font-size: 32px; }
+    .empty-text { font-size: 12px; line-height: 1.6; }
+    .loading { padding: 16px; text-align: center; font-size: 12px; color: var(--accent); }
+    .errbox  { margin: 12px; padding: 10px; background: #fee2e2; color: #7f1d1d;
+               border-radius: 4px; font-size: 11px; line-height: 1.5; }
+
+    /* ── address ── */
+    .addr  { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .addrsub { font-size: 11px; color: var(--sub); }
+
+    /* ── grid cells ── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .cell  {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 6px 8px;
+    }
+    .cell-label { font-size: 9px; text-transform: uppercase; letter-spacing: .07em;
+                  color: var(--sub); margin-bottom: 1px; }
+    .cell-value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* ── zoning badge ── */
+    .zbadge {
+      display: inline-block; padding: 4px 10px; border-radius: 4px;
+      font-size: 14px; font-weight: 800; letter-spacing: .04em;
+      background: #dbeafe; color: #1e40af; margin-bottom: 6px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .zbadge { background: #1e3a5f; color: #93c5fd; }
+    }
+    .zrow { font-size: 11px; color: var(--sub); line-height: 1.7; }
+    .zrow span { color: var(--text); font-weight: 600; }
+
+    /* ── dims ── */
+    .dim-row { display: flex; gap: 6px; margin-top: 6px; }
+    .dim-cell {
+      flex: 1; background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 7px; text-align: center;
+    }
+    .dim-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--sub); }
+    .dim-val { font-size: 16px; font-weight: 700; color: var(--accent); }
+    .dim-unit { font-size: 9px; color: var(--sub); }
+
+    /* ── copy button ── */
+    .copybtn {
+      display: block; width: 100%; padding: 9px;
+      background: var(--accent); color: #fff; border: none; border-radius: 5px;
+      font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: .04em;
+    }
+    .copybtn:hover { opacity: .85; }
+    .note { font-size: 9.5px; color: var(--sub); line-height: 1.5; margin-top: 6px; }
+
+    /* ── layer switcher (sits under the zoom control) ── */
+    .leaflet-control-layers {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 6px !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15) !important;
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      padding: 6px 8px !important;
+    }
+    .leaflet-control-layers-list { font-size: 12px; }
+    .leaflet-control-layers label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+    .leaflet-control-layers-separator { border-top: 1px solid var(--border); margin: 4px 0; }
+
+    @media (max-width: 640px) {
+      .main { flex-direction: column; }
+      .panel { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 45vh; }
+      #map { min-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">BCBC Parcel + Zoning</span>
+  <span class="topbar-hint">Click the map to load parcel boundary and zoning district</span>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+  <aside class="panel" id="panel">
+    <div class="empty">
+      <div class="empty-icon">🗺</div>
+      <div class="empty-text">Click anywhere on the map to select a parcel.<br>Parcel boundary and zoning data will load from Vancouver Open Data.</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// Map
+// ═══════════════════════════════════════════
+const map = L.map('map', { center: [49.2627, -123.0674], zoom: 16 });
+
+// ── Base layers ──
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  subdomains: 'abc', maxZoom: 19,
+});
+
+const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd', maxZoom: 21,
+});
+
+osmLayer.addTo(map); // default base layer — no API key needed
+
+// ── Layer switcher, stacked under the zoom control (top-left) ──
+L.control.layers(
+  {
+    'OpenStreetMap': osmLayer,
+    'CARTO Light (needs API key)': cartoLayer,
+  },
+  null,
+  { position: 'topleft', collapsed: false }
+).addTo(map);
+
+// ═══════════════════════════════════════════
+// ArcGIS endpoints
+// ═══════════════════════════════════════════
+const PARCEL_URL =
+  'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/' +
+  'Vancouver_property_parcel_polygons/FeatureServer/0/query';
+
+const ZONING_URL =
+  'https://services5.arcgis.com/cuQhNeNcUrgLmYGD/ArcGIS/rest/services/' +
+  'Zoning_Districts_Vancouver/FeatureServer/0/query';
+
+async function queryPoint(url, lat, lng) {
+  const p = new URLSearchParams({
+    geometry: `${lng},${lat}`,
+    geometryType: 'esriGeometryPoint',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: '*',
+    returnGeometry: 'true',
+    f: 'geojson',
+  });
+  const r = await fetch(`${url}?${p}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════
+// Geometry helpers
+// ═══════════════════════════════════════════
+const LAT_M = 111320;
+function lngM(d, lat) { return d * LAT_M * Math.cos(lat * Math.PI / 180); }
+function latM(d)       { return d * LAT_M; }
+
+function axialBBox(coords) {
+  const ring = coords[0];
+  let x0=Infinity, x1=-Infinity, y0=Infinity, y1=-Infinity;
+  for (const [lng, lat] of ring) {
+    if (lng < x0) x0 = lng; if (lng > x1) x1 = lng;
+    if (lat < y0) y0 = lat; if (lat > y1) y1 = lat;
+  }
+  const midLat = (y0 + y1) / 2;
+  return {
+    widthM: Math.round(lngM(x1 - x0, midLat)),
+    depthM: Math.round(latM(y1 - y0)),
+  };
+}
+
+function orientedBBox(coords) {
+  const ring = coords[0];
+  const midLat = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+  const pts = ring.map(([lng, lat]) => [lngM(lng, midLat), latM(lat)]);
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  const c  = pts.map(p => [p[0]-cx, p[1]-cy]);
+  const n  = c.length;
+  const cxx = c.reduce((s,p)=>s+p[0]*p[0],0)/n;
+  const cyy = c.reduce((s,p)=>s+p[1]*p[1],0)/n;
+  const cxy = c.reduce((s,p)=>s+p[0]*p[1],0)/n;
+  const ang = 0.5 * Math.atan2(2*cxy, cxx-cyy);
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const us = c.map(p =>  p[0]*ca + p[1]*sa);
+  const vs = c.map(p => -p[0]*sa + p[1]*ca);
+  const u = Math.max(...us)-Math.min(...us);
+  const v = Math.max(...vs)-Math.min(...vs);
+  return {
+    longM:  Math.round(Math.max(u, v)),
+    shortM: Math.round(Math.min(u, v)),
+    angleDeg: (((ang*180/Math.PI)%180)+180)%180,
+  };
+}
+
+// ═══════════════════════════════════════════
+// Zoning colour map (major categories)
+// ═══════════════════════════════════════════
+const ZONE_COLORS = {
+  'RS': '#86efac', 'RT': '#6ee7b7', 'RM': '#34d399',
+  'C':  '#93c5fd', 'FC': '#60a5fa',
+  'I':  '#fca5a5', 'M': '#fca5a5',
+  'CD': '#d8b4fe',
+};
+function zoneColor(dis) {
+  if (!dis) return '#e2e8f0';
+  for (const [k, v] of Object.entries(ZONE_COLORS)) {
+    if (dis.startsWith(k)) return v;
+  }
+  return '#e2e8f0';
+}
+
+// ═══════════════════════════════════════════
+// Layer state
+// ═══════════════════════════════════════════
+let parcelLayer = null, zoningLayer = null, clickDot = null;
+let lastData = null;
+
+// ═══════════════════════════════════════════
+// Panel helpers
+// ═══════════════════════════════════════════
+const panel = document.getElementById('panel');
+
+function showLoading() {
+  panel.innerHTML = `<div class="loading">⏳ Fetching parcel and zoning data…</div>`;
+}
+function showError(msg) {
+  panel.innerHTML = `<div class="errbox">⚠ ${msg}</div>`;
+}
+
+function showResult(parcel, zoning) {
+  const pp = parcel.properties;
+  const zp = zoning ? zoning.properties : null;
+
+  const addr = `${pp.CIVIC_NO || ''} ${pp.STREETNAME || ''}`.trim() || 'Unknown address';
+  const bbox = axialBBox(parcel.geometry.coordinates);
+  const obb  = orientedBBox(parcel.geometry.coordinates);
+  const areaM2 = pp.Shape__Area ? Math.round(pp.Shape__Area) : null;
+  const perimM  = pp.Shape__Length ? Math.round(pp.Shape__Length) : null;
+
+  const zDis = zp?.zoning_dis || '—';
+  const zCat = zp?.zoning_cat || '—';
+  const zCla = zp?.zoning_cla || '—';
+
+  lastData = { addr, bbox, obb, areaM2, zDis, zCat, taxCoord: pp.TAX_COORD };
+
+  panel.innerHTML = `
+    <div class="psec">
+      <div class="slabel">Selected Parcel</div>
+      <div class="addr">${addr}</div>
+      <div class="addrsub">Tax Coord: ${pp.TAX_COORD||'—'} &nbsp;·&nbsp; Site ID: ${pp.SITE_ID||'—'}</div>
+    </div>
+
+    <div class="psec">
+      <div class="slabel">Zoning District</div>
+      <div class="zbadge">${zDis}</div>
+      <div class="zrow">Category: <span>${zCat}</span></div>
+      <div class="zrow">Classification: <span>${zCla}</span></div>
+    </div>
+
+    <div class="psec">
+      <div class="slabel">Parcel Size</div>
+      <div class="grid2">
+        <div class="cell">
+          <div class="cell-label">Area</div>
+          <div class="cell-value">${areaM2 !== null ? areaM2+' m²' : '—'}</div>
+        </div>
+        <div class="cell">
+          <div class="cell-label">Perimeter</div>
+          <div class="cell-value">${perimM !== null ? perimM+' m' : '—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="slabel">Approx. Dimensions → V04 Inputs</div>
+      <div class="dim-row">
+        <div class="dim-cell">
+          <div class="dim-lbl">Parcel Width E–W</div>
+          <div class="dim-val">${bbox.widthM}</div>
+          <div class="dim-unit">metres</div>
+        </div>
+        <div class="dim-cell">
+          <div class="dim-lbl">Parcel Depth N–S</div>
+          <div class="dim-val">${bbox.depthM}</div>
+          <div class="dim-unit">metres</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px">
+        Oriented fit: ${obb.longM} × ${obb.shortM} m @ ${obb.angleDeg.toFixed(0)}° from East.<br>
+        Use axis-aligned values for standard N–S grid parcels; oriented for diagonal lots.
+      </div>
+    </div>
+
+    <div class="psec">
+      <button class="copybtn" onclick="copyParams()">📋  Copy Params for V04</button>
+      <div class="note">Copies parcel width/depth and zoning you can enter into V04.</div>
+    </div>
+  `;
+}
+
+function copyParams() {
+  if (!lastData) return;
+  const { addr, bbox, obb, areaM2, zDis, zCat } = lastData;
+  const text = [
+    `BCBC V04 Parcel Params — ${addr}`,
+    ``,
+    `Parcel Width E–W : ${bbox.widthM} m`,
+    `Parcel Depth N–S : ${bbox.depthM} m`,
+    `Area             : ${areaM2} m²`,
+    ``,
+    `Zoning District  : ${zDis}`,
+    `Zoning Category  : ${zCat}`,
+    ``,
+    `(Oriented bbox   : ${obb.longM} × ${obb.shortM} m @ ${obb.angleDeg.toFixed(0)}°)`,
+  ].join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = panel.querySelector('.copybtn');
+    if (btn) { btn.textContent = '✓  Copied!'; setTimeout(() => btn.textContent='📋  Copy Params for V04', 2000); }
+  });
+}
+
+// ═══════════════════════════════════════════
+// Map click
+// ═══════════════════════════════════════════
+map.on('click', async ({ latlng: { lat, lng } }) => {
+
+  // Clear old layers
+  [parcelLayer, zoningLayer, clickDot].forEach(l => l && map.removeLayer(l));
+  parcelLayer = zoningLayer = clickDot = null;
+
+  // Click indicator
+  clickDot = L.circleMarker([lat, lng], {
+    radius: 5, color: '#1458cc', fillColor: '#1458cc', fillOpacity: .9, weight: 2,
+  }).addTo(map);
+
+  showLoading();
+
+  try {
+    // Fire both queries in parallel
+    const [parcelGJ, zoningGJ] = await Promise.all([
+      queryPoint(PARCEL_URL, lat, lng),
+      queryPoint(ZONING_URL, lat, lng),
+    ]);
+
+    if (!parcelGJ.features?.length) {
+      showError('No parcel found at this location. Try clicking on a building lot.');
+      return;
+    }
+
+    const parcel = parcelGJ.features[0];
+    const zoning = zoningGJ.features?.[0] || null;
+    const zDis   = zoning?.properties?.zoning_dis || null;
+
+    // Draw zoning polygon first (behind parcel)
+    if (zoning) {
+      zoningLayer = L.geoJSON(zoning, {
+        style: {
+          color: '#94a3b8', weight: 1,
+          fillColor: zoneColor(zDis), fillOpacity: 0.20,
+        },
+      }).addTo(map);
+    }
+
+    // Draw parcel polygon on top
+    parcelLayer = L.geoJSON(parcel, {
+      style: {
+        color: '#1458cc', weight: 2.5,
+        fillColor: '#5090f8', fillOpacity: 0.30,
+      },
+    }).addTo(map);
+
+    // Fit to parcel
+    map.fitBounds(parcelLayer.getBounds(), { padding: [60, 60], maxZoom: 19 });
+
+    showResult(parcel, zoning);
+
+  } catch (err) {
+    showError(`API error: ${err.message}`);
+  }
+});
+</script>
+</body>
+</html>
