@@ -70,3 +70,65 @@ Records are appended after each session. Most recent entry is at the bottom.
 - Decide on next direction for the opening-tool prototypes (verify BCBC data, or pick a prototype to build on)
 - If continuing the map tool: test the actual "Copy Params for V04" → paste-into-V04 workflow end-to-end
 
+---
+
+## 2026-09-18 (session 3)
+
+**Completed**
+- Opened and reviewed `Map/Version_03/bcbc_map_v3.html` — adds local GeoJSON zoning overlay, point-in-polygon lookup, colour-coded districts, oriented bounding box, and loading overlay. File structure: HTML + separate `vancouver_zoning_wgs84.geojson` (2.5 MB).
+- Diagnosed why V03 failed from `file://`: browser blocks `fetch()` calls to local files (CORS restriction).
+- Created `Map/Version_04/bcbc_map_v4.html`: embedded the 2.5 MB GeoJSON directly into the HTML as an inline JavaScript variable. No `fetch()`, no server needed — double-click to open.
+- Fixed basemap tile issue: OSM blocked requests from `file://` (usage policy) → CartoDB also now requires API key → switched to **Esri World Street Map** (`server.arcgisonline.com`), which is public, no key required, and consistent with the ArcGIS parcel API already used in the tool.
+- Confirmed V4 works: 1621 zoning districts loaded, parcel click returns address / zoning / dimensions correctly.
+
+**Key decisions**
+- Esri tile layer chosen as the permanent basemap for V4 — no key, works from file://, same data source as the parcel query.
+- GeoJSON embedding strategy chosen over local server: simpler workflow, no terminal commands needed before each session.
+- V03 kept as reference for the "separate file + server" approach.
+
+**Current state**
+- `Map/Version_04/bcbc_map_v4.html` — fully self-contained, double-click to open, all features working ✓
+- Map series: V01 (OSM fix) → V02 (layer switcher) → V03 (local GeoJSON, needs server) → V04 (embedded GeoJSON, standalone) ✓
+- Opening-tool prototypes (V01–V04) untouched this session.
+
+**Unresolved**
+- "Copy Params for V04" → paste-into-opening-tool workflow still untested end-to-end.
+- No decision yet on next direction for the opening-tool prototypes.
+- ⚠ BCBC table data in opening-tool V04 still unverified against BCBC 2024 PDF.
+
+**Next session: suggested starting point**
+- Test "Copy Params for V04" button in Map V4, paste result into opening-tool V4 sliders — confirm the hand-off works
+- Or: decide on next development direction (BCBC data verification, or next visual feature for opening-tool V4)
+
+---
+
+## 2026-09-18 (session 4)
+
+**Completed**
+- Created `Unprotected_Opening_Tool/01_Prototypes/Version_05/index.html` — a single self-contained HTML file merging Map V4 and Parcel Checker V4 into a two-tab layout.
+- Tab 1 (Map): full Leaflet map with embedded GeoJSON zoning overlay and Esri basemap; parcel click loads address, zoning, and bounding-box dimensions in the side panel.
+- Tab 2 (Parcel Checker): full BCBC compliance checker with isometric axonometric view, four elevation cards, all sliders.
+- Bridge behaviour: selecting a parcel on the map auto-imports Parcel Width E-W and Depth N-S into Tab 2's sliders and switches to Tab 2 automatically. A green banner confirms the import (address + dimensions).
+- "← Back to Map" button at the top of Tab 2's sidebar returns to the map; Leaflet `invalidateSize()` fires on return so tiles stay correct.
+- Committed as `770c223`.
+
+**Key decisions**
+- Parcel Width/Depth are the only values auto-imported from the map; building size, height, occupancy, and neighbour setbacks remain manual in Tab 2.
+- `importToChecker()` is injected directly after `showResult()` in the map's click handler, using `lastData.bbox` (already set by showResult) — no changes to showResult itself.
+- File size ≈ 2.55 MB (GeoJSON embedded). Open by double-clicking in Chrome/Edge — in-app browser cannot handle files this large.
+- "Parcel Checker" tool files are in `01_Prototypes/Parcel Checker/Version_04/` (not `Version_04/` directly as noted in earlier sessions).
+
+**Current state**
+- `Version_05/index.html` — fully functional two-tab merged tool ✓
+- Map series: V01 → V02 → V03 → V04 (standalone) → V05 (merged with Checker)
+- Parcel Checker series: V01 → V02 → V03 → V04 (isometric) → V05 (embedded in merged tool)
+
+**Unresolved**
+- ⚠ BCBC table data still unverified against BCBC 2024 PDF — all values carried from V01.
+- The "Copy to Clipboard" button in the map panel is now secondary to auto-import but still present.
+- No mobile layout tested (file is desktop-first).
+
+**Next session: suggested starting point**
+- Open `Version_05/index.html` in Chrome, click a parcel, confirm auto-jump and slider fill work end-to-end.
+- Decide whether to verify BCBC table data (check Tables 3.2.3.1-B/C/D/E in BCBC 2024 PDF).
+
