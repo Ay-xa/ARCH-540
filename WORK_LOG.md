@@ -228,3 +228,26 @@ Records are appended after each session. Most recent entry is at the bottom.
 **Next session: suggested starting point**
 - Chrome 打开 `Version_05/wwr-tool.html`：试标签页、分区面板、合并后的建议列表；用 Tab + Enter 试图层按钮和「采纳」。
 - 候选方向：办公室配置表；相邻关系；格子键盘操作。
+
+---
+
+## 2026-09-24（session 4；Version_05 第二轮：平面图合并 + 信息图层）
+
+**Completed**
+- 用户验证第一轮通过（采纳按钮键盘可用）。写第二轮方案（合并两张平面图、信息图层可开关），用户要求直接在 V05 做并记入 PLAN_v05.md；方案并入该文件，撤掉临时的 Version_06 文件夹。
+- 实施：「室内分区」与「平面与日照方位」合并为一张米制坐标的「平面」（建筑随朝向旋转；罗盘环、日照弧线、净得失色带、窗与挑檐、立面标签、房间带边线各为信息图层，原生复选框开关，状态记在 localStorage）；关掉日照方位后图自动放大；剖面与所选立面详情并排。自检 70 项；数值与界面文本摘要与 V04 一致；截图更新。
+- 修了两个实施中的回归：状态对象少一个逗号导致整页脚本不加载（用 Edge 无头 `--enable-logging=stderr` 拿到行号）；新的两列规则覆盖窄屏单列规则。
+
+**Key decisions**
+- 一张图、一个坐标系（米），旋转组与世界坐标分层；信息图层关掉即不输出元素，方便自检断言。
+- 记忆只记图层开关，不记任何设计参数；无 localStorage 时静默用默认值。
+
+**Current state**
+- `Version_05/` 为最新可用版本（A+B+C + 两轮界面整理）。待用户在 Chrome 验证第二轮。
+
+**Unresolved**
+- 手机宽度下格子约 10–12 px；朝向偏转 45° 附近立面标签可能靠近罗盘文字。
+
+**Next session: suggested starting point**
+- Chrome 打开 `Version_05/wwr-tool.html`：开关各信息图层，看关掉日照方位后的放大效果，刷新页面确认开关被记住。
+- 候选方向：办公室配置表；相邻关系；格子键盘操作。
