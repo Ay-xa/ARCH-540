@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rhino Live Link</title>
+<style>
+  :root {
+    --bg: #f4f4f1;
+    --panel: #ffffff;
+    --ink: #1f2430;
+    --muted: #6b7280;
+    --line: #e3e5e0;
+    --accent: #2f6fd6;
+    --ok: #2f9e6f;
+    --warn: #d98c1f;
+    --bad: #cc3f3f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  header { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0 0 4px; font-size: 16px; letter-spacing: .2px; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .files { padding: 10px 20px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+  .files b { color: var(--ink); font-weight: 600; }
+  header, .files, section, footer { flex: none; }
+  section { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  section h2 { margin: 0 0 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+  #sliders { overflow-y: auto; flex: 1 1 auto; min-height: 160px; }
+  main canvas { width: 100% !important; height: 100% !important; }
+  .param { margin-bottom: 14px; }
+  .param .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .param label { font-weight: 600; font-size: 13px; }
+  .param input[type=number] { width: 84px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: inherit; text-align: right; }
+  .param input[type=range] { width: 100%; accent-color: var(--accent); }
+  .param .range { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13px; }
+  .toggles label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+  .toggles .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); }
+  footer { padding: 12px 20px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  button { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  main { position: relative; }
+  canvas { display: block; }
+  #hint { position: absolute; right: 14px; bottom: 12px; font-size: 11px; color: var(--muted); background: rgba(255,255,255,.75); padding: 4px 8px; border-radius: 6px; }
+  #busy { position: absolute; left: 14px; top: 12px; font-size: 12px; color: var(--accent); background: rgba(255,255,255,.85); padding: 4px 10px; border-radius: 6px; display: none; }
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    aside { max-height: 46vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <header>
+      <h1>Rhino · Grasshopper Live Link</h1>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">connecting…</span></div>
+    </header>
+    <div class="files">
+      <div>Rhino file: <b id="rhinoFile">–</b></div>
+      <div>Grasshopper: <b id="ghFile">–</b></div>
+    </div>
+    <section id="sliders">
+      <h2>Parameters</h2>
+      <div id="sliderList"><div class="empty">Waiting for Grasshopper sliders…</div></div>
+    </section>
+    <section class="toggles">
+      <h2>Show</h2>
+      <label><input type="checkbox" id="showGh" checked><span class="swatch" style="background:#b9c7d3"></span>Grasshopper preview</label>
+      <label><input type="checkbox" id="showRhino" checked><span class="swatch" style="background:#e8e8e2"></span>Rhino objects (visible layers)</label>
+      <label><input type="checkbox" id="showEdges" checked><span class="swatch" style="background:#4a5563"></span>Edges</label>
+    </section>
+    <footer>
+      <span id="stats">–</span>
+      <button id="fit">Fit view</button>
+    </footer>
+  </aside>
+  <main>
+    <div id="busy">updating Grasshopper…</div>
+    <div id="hint">drag to orbit · right-drag to pan · wheel to zoom</div>
+  </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ------------------------------------------------------------------ scene
+const main = document.querySelector('main');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+main.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#f4f4f1');
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100000);
+camera.up.set(0, 0, 1);
+camera.position.set(220, -260, 180);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+scene.add(new THREE.HemisphereLight('#ffffff', '#c9cbc4', 0.95));
+const sun = new THREE.DirectionalLight('#ffffff', 0.9);
+sun.position.set(300, -200, 500);
+scene.add(sun);
+const fill = new THREE.DirectionalLight('#ffffff', 0.35);
+fill.position.set(-300, 250, 200);
+scene.add(fill);
+
+const grid = new THREE.GridHelper(600, 60, '#d4d6cf', '#e6e7e2');
+grid.rotation.x = Math.PI / 2;
+scene.add(grid);
+
+const groups = { gh: new THREE.Group(), rhino: new THREE.Group() };
+scene.add(groups.gh, groups.rhino);
+const edgeSets = [];
+
+function resize() {
+  const w = main.clientWidth, h = main.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+(function loop() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+})();
+
+// ------------------------------------------------------------------ geometry
+const GH_MESH = '#b9c7d3', GH_LINE = '#1f2430', EDGE = '#4a5563';
+
+function disposeGroup(g) {
+  g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  g.clear();
+}
+
+function buildItems(items, group, source) {
+  for (const it of items) {
+    if (it.type === 'mesh') {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(it.v, 3));
+      geo.setIndex(it.i);
+      geo.computeVertexNormals();
+      const color = it.c || (source === 'gh' ? GH_MESH : '#e8e8e2');
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0, side: THREE.DoubleSide,
+        transparent: source === 'gh', opacity: source === 'gh' ? 0.92 : 1 });
+      group.add(new THREE.Mesh(geo, mat));
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25),
+        new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: 0.55 }));
+      edges.visible = showEdges.checked;
+      edgeSets.push(edges);
+      group.add(edges);
+    } else if (it.type === 'curve') {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(it.p, 3));
+      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: it.c || GH_LINE })));
+    } else if (it.type === 'point') {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(it.p, 3));
+      group.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: it.c || GH_LINE, size: 4, sizeAttenuation: false })));
+    }
+  }
+}
+
+let fitted = false;
+function fitView() {
+  const box = new THREE.Box3();
+  for (const g of Object.values(groups)) if (g.visible) box.expandByObject(g);
+  if (box.isEmpty()) return;
+  const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const radius = Math.max(size.x, size.y, size.z) * 0.9 + 1;
+  const dir = new THREE.Vector3(1, -1.2, 0.75).normalize();
+  camera.position.copy(center).addScaledVector(dir, radius * 2.1);
+  controls.target.copy(center);
+  camera.near = radius / 200; camera.far = radius * 40; camera.updateProjectionMatrix();
+  controls.update();
+}
+
+// ------------------------------------------------------------------ ui
+const dot = document.getElementById('dot'), statusText = document.getElementById('statusText');
+const sliderList = document.getElementById('sliderList');
+const stats = document.getElementById('stats');
+const showGh = document.getElementById('showGh'), showRhino = document.getElementById('showRhino'), showEdges = document.getElementById('showEdges');
+const busy = document.getElementById('busy');
+showGh.onchange = () => groups.gh.visible = showGh.checked;
+showRhino.onchange = () => groups.rhino.visible = showRhino.checked;
+showEdges.onchange = () => edgeSets.forEach(e => e.visible = showEdges.checked);
+document.getElementById('fit').onclick = fitView;
+
+function setStatus(kind, text) { dot.className = 'dot ' + kind; statusText.textContent = text; }
+
+const dragging = new Set();
+const sliderEls = new Map();
+
+function fmt(v, d) { return Number(v).toFixed(Math.min(d, 4)); }
+
+function renderSliders(sliders) {
+  if (!sliders.length) {
+    sliderList.innerHTML = '<div class="empty">No number sliders in the open Grasshopper definition.</div>';
+    sliderEls.clear();
+    return;
+  }
+  const ids = new Set(sliders.map(s => s.id));
+  for (const [id, el] of sliderEls) if (!ids.has(id)) { el.root.remove(); sliderEls.delete(id); }
+  if (sliderList.querySelector('.empty')) sliderList.innerHTML = '';
+
+  sliders.forEach((s, idx) => {
+    let el = sliderEls.get(s.id);
+    const step = Math.pow(10, -s.decimals);
+    if (!el) {
+      const root = document.createElement('div');
+      root.className = 'param';
+      root.innerHTML = `
+        <div class="row"><label></label><input type="number"></div>
+        <input type="range">
+        <div class="range"><span class="min"></span><span class="max"></span></div>`;
+      const range = root.querySelector('input[type=range]'), num = root.querySelector('input[type=number]');
+      el = { root, range, num, label: root.querySelector('label'), min: root.querySelector('.min'), max: root.querySelector('.max') };
+      sliderEls.set(s.id, el);
+      let timer = null;
+      const push = v => { clearTimeout(timer); timer = setTimeout(() => sendValue(s.id, v), 120); };
+      range.addEventListener('pointerdown', () => dragging.add(s.id));
+      range.addEventListener('pointerup', () => dragging.delete(s.id));
+      range.addEventListener('input', () => { num.value = fmt(range.value, s.decimals); push(parseFloat(range.value)); });
+      num.addEventListener('change', () => { range.value = num.value; push(parseFloat(num.value)); });
+    }
+    sliderList.appendChild(el.root);
+    el.label.textContent = s.name;
+    el.range.min = s.min; el.range.max = s.max; el.range.step = step;
+    el.num.min = s.min; el.num.max = s.max; el.num.step = step;
+    el.min.textContent = fmt(s.min, s.decimals); el.max.textContent = fmt(s.max, s.decimals);
+    if (!dragging.has(s.id)) { el.range.value = s.value; el.num.value = fmt(s.value, s.decimals); }
+  });
+}
+
+// ------------------------------------------------------------------ data flow
+let lastVersion = null, inflight = false;
+
+function applyState(state) {
+  lastVersion = state.version;
+  document.getElementById('rhinoFile').textContent = state.rhinoFile;
+  document.getElementById('ghFile').textContent = state.ghFile;
+  renderSliders(state.sliders);
+  edgeSets.length = 0;
+  disposeGroup(groups.gh); disposeGroup(groups.rhino);
+  buildItems(state.gh, groups.gh, 'gh');
+  buildItems(state.rhino, groups.rhino, 'rhino');
+  stats.textContent = `${state.gh.length} Grasshopper · ${state.rhino.length} Rhino · ${state.units}`;
+  if (!fitted && (state.gh.length || state.rhino.length)) { fitView(); fitted = true; }
+  setStatus('ok', 'live · updated ' + new Date().toLocaleTimeString());
+}
+
+async function refresh(force) {
+  if (inflight) return;
+  inflight = true;
+  try {
+    if (!force) {
+      const v = await (await fetch('/api/version')).json();
+      if (v.version === lastVersion) { inflight = false; return; }
+    }
+    const res = await fetch('/api/state');
+    const state = await res.json();
+    if (state.error) throw new Error(state.error);
+    applyState(state);
+  } catch (err) {
+    setStatus('bad', 'Rhino not responding: ' + err.message);
+  } finally { inflight = false; }
+}
+
+async function sendValue(id, value) {
+  busy.style.display = 'block';
+  try {
+    const res = await fetch('/api/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, value }) });
+    const state = await res.json();
+    if (state.error) throw new Error(state.error);
+    applyState(state);
+  } catch (err) {
+    setStatus('bad', 'Could not update slider: ' + err.message);
+  } finally { busy.style.display = 'none'; }
+}
+
+refresh(true);
+setInterval(() => refresh(false), 800);
+</script>
+</body>
+</html>

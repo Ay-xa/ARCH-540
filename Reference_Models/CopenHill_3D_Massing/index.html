@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CopenHill / Amager Bakke — Approximate 3D Massing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #cfe3ef; }
+  #canvas-wrap { position: absolute; inset: 0; }
+  canvas { display: block; }
+
+  #panel {
+    position: absolute; top: 16px; left: 16px; width: 300px;
+    background: rgba(255,255,255,0.94); border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    padding: 16px 18px; box-sizing: border-box;
+    font-size: 13px; color: #222; line-height: 1.5;
+  }
+  #panel h1 { font-size: 16px; margin: 0 0 2px 0; }
+  #panel .sub { font-size: 12px; color: #666; margin-bottom: 10px; }
+  #panel .warn {
+    background: #fff4e0; border: 1px solid #f0c26b; border-radius: 6px;
+    padding: 8px 10px; font-size: 11.5px; color: #7a5300; margin-bottom: 10px;
+  }
+  #panel label { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; user-select: none; }
+  #panel input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+  #panel button {
+    width: 100%; margin-top: 10px; padding: 8px 0; border: none; border-radius: 6px;
+    background: #2b6fb3; color: #fff; font-size: 13px; cursor: pointer;
+  }
+  #panel button:hover { background: #235a92; }
+  #hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 12px;
+    padding: 6px 14px; border-radius: 20px; pointer-events: none;
+  }
+  #loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #cfe3ef; font-size: 14px; color: #345; z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+<div id="loading">Building massing model…</div>
+
+<div id="panel">
+  <h1>CopenHill (Amager Bakke)</h1>
+  <div class="sub">BIG — Bjarke Ingels Group, Copenhagen. Waste-to-energy plant with rooftop ski slope &amp; park.</div>
+  <div class="warn">⚠ Approximate massing only — built from the photo's proportions, not measured drawings. Shapes, heights and grid spacing are estimates, not verified dimensions.</div>
+  <label><input type="checkbox" id="toggle-smoke" checked> Chimney smoke</label>
+  <label><input type="checkbox" id="toggle-roof" checked> Green roof park strip</label>
+  <label><input type="checkbox" id="toggle-slope" checked> Ski slope overlay</label>
+  <label><input type="checkbox" id="toggle-context" checked> Site context (water / neighbours)</label>
+  <button id="reset-view">Reset View</button>
+</div>
+
+<div id="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- scene / camera / renderer ----------
+  const wrap = document.getElementById('canvas-wrap');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xcfe3ef);
+  scene.fog = new THREE.Fog(0xcfe3ef, 260, 620);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+  const DEFAULT_CAM_POS = new THREE.Vector3(160, 110, 190);
+  const DEFAULT_TARGET  = new THREE.Vector3(0, 35, 0);
+  camera.position.copy(DEFAULT_CAM_POS);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  wrap.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.copy(DEFAULT_TARGET);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 40;
+  controls.maxDistance = 500;
+  controls.maxPolarAngle = Math.PI * 0.49;
+  controls.update();
+
+  // ---------- lighting ----------
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x4a5a3a, 0.65);
+  scene.add(hemi);
+
+  const sun = new THREE.DirectionalLight(0xfff2da, 1.05);
+  sun.position.set(-140, 180, 120);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -220;
+  sun.shadow.camera.right = 220;
+  sun.shadow.camera.top = 220;
+  sun.shadow.camera.bottom = -220;
+  sun.shadow.camera.near = 10;
+  sun.shadow.camera.far = 500;
+  sun.shadow.bias = -0.0015;
+  scene.add(sun);
+
+  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.25);
+  fill.position.set(120, 80, -140);
+  scene.add(fill);
+
+  // ---------- procedural facade texture (brick / aluminium grid + punched windows) ----------
+  function makeFacadeTexture(cols, rows, baseHex) {
+    const cell = 24;
+    const cv = document.createElement('canvas');
+    cv.width = cols * cell;
+    cv.height = rows * cell;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = baseHex;
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = c * cell, y = r * cell;
+        // grout / grid line
+        ctx.strokeStyle = 'rgba(90,80,60,0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+
+        const roll = Math.random();
+        if (roll < 0.22) {
+          // punched window - darker inset panel
+          const pad = 4;
+          ctx.fillStyle = 'rgba(60,66,72,0.85)';
+          ctx.fillRect(x + pad, y + pad, cell - pad * 2, cell - pad * 2);
+        } else if (roll < 0.30) {
+          // slightly lighter brick variant for texture noise
+          ctx.fillStyle = 'rgba(255,255,255,0.10)';
+          ctx.fillRect(x, y, cell, cell);
+        }
+      }
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 4;
+    return tex;
+  }
+
+  const facadeTexMain = makeFacadeTexture(70, 46, '#d9cfb6');
+  const facadeMaterial = new THREE.MeshStandardMaterial({
+    map: facadeTexMain, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide
+  });
+
+  const facadeTexEnd = makeFacadeTexture(30, 46, '#cfc5ac');
+  const facadeMaterialEnd = new THREE.MeshStandardMaterial({
+    map: facadeTexEnd, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide
+  });
+
+  // ---------- building group ----------
+  const building = new THREE.Group();
+  scene.add(building);
+
+  // Wedge profile (right triangle) extruded along depth.
+  // Local X = length (0 low end -> L tall end), Y = height, extrude along Z = depth.
+  const L = 150;   // length along the ramp
+  const H = 95;    // height at the tall end (roof apex, excluding chimneys)
+  const D = 70;    // building depth (width)
+
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(L, 0);
+  shape.lineTo(L, H);
+  shape.lineTo(0, 0);
+
+  const extrudeSettings = { depth: D, bevelEnabled: false, steps: 1 };
+  const wedgeGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  // Shape is already X = length (0..L), Y = height (0..H); extrude depth runs Z 0..D.
+  // Centre on the origin: X in [-L/2, L/2], Z in [-D/2, D/2].
+  wedgeGeom.translate(-L / 2, 0, -D / 2);
+
+  // Helper: a point on the sloped hypotenuse (t=0 low end, t=1 tall end),
+  // pushed outward along the slope's outward normal by `outward`.
+  const hypLen = Math.sqrt(L * L + H * H);
+  const slopeAngle = Math.atan2(H, L);
+  const nx = -H / hypLen, ny = L / hypLen; // outward normal of the hypotenuse in the X-Y plane
+  function pointOnSlope(t, outward) {
+    outward = outward || 0;
+    return {
+      x: (-L / 2 + t * L) + nx * outward,
+      y: (t * H) + ny * outward
+    };
+  }
+
+  // Assign material groups isn't trivial per-face on ExtrudeGeometry without indexing work,
+  // so we keep one material for the whole envelope (visually consistent brick/aluminium skin).
+  const wedgeMesh = new THREE.Mesh(wedgeGeom, facadeMaterial);
+  wedgeMesh.castShadow = true;
+  wedgeMesh.receiveShadow = true;
+  building.add(wedgeMesh);
+
+  // Low-end base podium (small vertical strip so the low edge doesn't look like a knife edge)
+  const podiumGeom = new THREE.BoxGeometry(3, 4, D);
+  const podium = new THREE.Mesh(podiumGeom, facadeMaterialEnd);
+  podium.position.set(-L / 2 - 1.4, 2, 0);
+  podium.castShadow = true; podium.receiveShadow = true;
+  building.add(podium);
+
+  // ---------- green roof cap along the ridge ----------
+  const roofGroup = new THREE.Group();
+  building.add(roofGroup);
+  {
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x6b8f4e, roughness: 1.0 });
+    const capGeom = new THREE.BoxGeometry(hypLen * 1.02, 1.6, D + 1.2);
+    const cap = new THREE.Mesh(capGeom, roofMat);
+    cap.rotation.z = slopeAngle; // tilt the box's long (X) axis to follow the hypotenuse
+    const p = pointOnSlope(0.5, 0.9);
+    cap.position.set(p.x, p.y, 0);
+    cap.castShadow = true; cap.receiveShadow = true;
+    roofGroup.add(cap);
+  }
+
+  // ---------- ski slope overlay (lighter strip toward the tall end, offset to one side) ----------
+  const slopeGroup = new THREE.Group();
+  building.add(slopeGroup);
+  {
+    const slopeMat = new THREE.MeshStandardMaterial({ color: 0xe9ecef, roughness: 0.95 });
+    const slopeGeom = new THREE.BoxGeometry(hypLen * 0.55, 1.0, D * 0.60);
+    const slope = new THREE.Mesh(slopeGeom, slopeMat);
+    slope.rotation.z = slopeAngle;
+    const p = pointOnSlope(0.62, 2.2);
+    slope.position.set(p.x, p.y, D * 0.16);
+    slope.castShadow = false; slope.receiveShadow = true;
+    slopeGroup.add(slope);
+  }
+
+  // ---------- chimneys ----------
+  const chimneyGroup = new THREE.Group();
+  building.add(chimneyGroup);
+  const chimneyMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f2, roughness: 0.5, metalness: 0.05 });
+  const chimneyTopMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 });
+
+  function makeChimney(x, z, height, radius) {
+    const grp = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.15, height, 20), chimneyMat);
+    shaft.position.y = height / 2;
+    shaft.castShadow = true;
+    grp.add(shaft);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.05, radius * 1.05, height * 0.06, 20), chimneyTopMat);
+    cap.position.y = height + height * 0.03;
+    cap.castShadow = true;
+    grp.add(cap);
+    grp.position.set(x, H, z);
+    return grp;
+  }
+
+  const chimneyA = makeChimney(L / 2 - 10, -D * 0.30, 78, 2.6);   // taller, smoking
+  const chimneyB = makeChimney(L / 2 - 22, D * 0.06, 58, 2.3);    // shorter
+  chimneyGroup.add(chimneyA, chimneyB);
+
+  // ---------- smoke (soft sprite puffs, gently rising) ----------
+  const smokeGroup = new THREE.Group();
+  scene.add(smokeGroup);
+
+  function makeSmokeTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const ctx = cv.getContext('2d');
+    const grad = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(cv);
+  }
+  const smokeTex = makeSmokeTexture();
+  const smokeMat = new THREE.SpriteMaterial({ map: smokeTex, transparent: true, opacity: 0.55, depthWrite: false });
+
+  const smokePuffs = [];
+  const chimneyTopWorld = new THREE.Vector3();
+  chimneyA.children[1].getWorldPosition(chimneyTopWorld); // cap of chimney A
+  const puffOrigin = new THREE.Vector3(chimneyA.position.x, H + 80, chimneyA.position.z);
+
+  for (let i = 0; i < 14; i++) {
+    const s = new THREE.Sprite(smokeMat.clone());
+    const scale = 6 + Math.random() * 6;
+    s.scale.set(scale, scale, 1);
+    s.position.copy(puffOrigin);
+    s.position.y += i * 3.2;
+    s.position.x += (Math.random() - 0.5) * (i * 1.1);
+    s.position.z += (Math.random() - 0.5) * (i * 1.1);
+    s.userData.speed = 0.15 + Math.random() * 0.15;
+    s.userData.drift = (Math.random() - 0.5) * 0.06;
+    s.userData.baseOpacity = 0.5 - i * 0.028;
+    s.material.opacity = Math.max(s.userData.baseOpacity, 0.03);
+    smokePuffs.push(s);
+    smokeGroup.add(s);
+  }
+
+  // ---------- ground / site context ----------
+  const siteGroup = new THREE.Group();
+  scene.add(siteGroup);
+
+  const grassMat = new THREE.MeshStandardMaterial({ color: 0x7fa15c, roughness: 1.0 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), grassMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.05;
+  ground.receiveShadow = true;
+  scene.add(ground); // ground stays regardless of context toggle
+
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x4f7fa3, roughness: 0.3, metalness: 0.1 });
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(260, 900), waterMat);
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(-230, -0.03, 0);
+  water.receiveShadow = true;
+  siteGroup.add(water);
+
+  const neighbourMat = new THREE.MeshStandardMaterial({ color: 0x8a8a86, roughness: 0.9 });
+  const neighbour = new THREE.Mesh(new THREE.BoxGeometry(60, 14, 40), neighbourMat);
+  neighbour.position.set(-95, 7, -70);
+  neighbour.castShadow = true; neighbour.receiveShadow = true;
+  siteGroup.add(neighbour);
+
+  const parkingMat = new THREE.MeshStandardMaterial({ color: 0xa9a9a4, roughness: 1.0 });
+  const parking = new THREE.Mesh(new THREE.PlaneGeometry(110, 90), parkingMat);
+  parking.rotation.x = -Math.PI / 2;
+  parking.position.set(95, 0.01, 40);
+  parking.receiveShadow = true;
+  siteGroup.add(parking);
+
+  // ---------- resize ----------
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ---------- UI wiring ----------
+  document.getElementById('toggle-smoke').addEventListener('change', (e) => {
+    smokeGroup.visible = e.target.checked;
+  });
+  document.getElementById('toggle-roof').addEventListener('change', (e) => {
+    roofGroup.visible = e.target.checked;
+  });
+  document.getElementById('toggle-slope').addEventListener('change', (e) => {
+    slopeGroup.visible = e.target.checked;
+  });
+  document.getElementById('toggle-context').addEventListener('change', (e) => {
+    siteGroup.visible = e.target.checked;
+  });
+  document.getElementById('reset-view').addEventListener('click', () => {
+    camera.position.copy(DEFAULT_CAM_POS);
+    controls.target.copy(DEFAULT_TARGET);
+    controls.update();
+  });
+
+  // ---------- render loop ----------
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+
+    if (smokeGroup.visible) {
+      smokePuffs.forEach((s) => {
+        s.position.y += s.userData.speed;
+        s.position.x += s.userData.drift;
+        s.material.opacity *= 0.997;
+        s.scale.x += dt * 0.6;
+        s.scale.y += dt * 0.6;
+        if (s.material.opacity < 0.02 || s.position.y > H + 150) {
+          s.position.copy(puffOrigin);
+          s.position.x += (Math.random() - 0.5) * 4;
+          s.position.z += (Math.random() - 0.5) * 4;
+          s.scale.set(6 + Math.random() * 6, 6 + Math.random() * 6, 1);
+          s.material.opacity = 0.5;
+        }
+      });
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  animate();
+})();
+</script>
+
+</body>
+</html>

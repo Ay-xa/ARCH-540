@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>窗墙比推敲器 · 温哥华被动房概念阶段</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9ECE8; --panel:#F6F7F4; --ink:#1E2A2F; --muted:#5B686D; --line:#C7CDCA; --line2:#DDE2DF;
+  --day:#B8890F; --dayfill:#E9C54A; --cold:#2F6690; --sun:#D4861A; --heat:#B0283F; --good:#3A7A58;
+  --slab:#9AA4A2; --wall:#6E7a7c; --glass:#5FA8C9;
+  --font:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --num:"Barlow Condensed","Noto Sans SC",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#151A1C; --panel:#1D2427; --ink:#E2E8E6; --muted:#98A5A9; --line:#344140; --line2:#2A3434;
+    --day:#E2B83E; --dayfill:#E2B83E; --cold:#6FA3CF; --sun:#E8A444; --heat:#E0566C; --good:#62B08A;
+    --slab:#5C6868; --wall:#7F8C8E; --glass:#7CC0DE; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151A1C; --panel:#1D2427; --ink:#E2E8E6; --muted:#98A5A9; --line:#344140; --line2:#2A3434;
+  --day:#E2B83E; --dayfill:#E2B83E; --cold:#6FA3CF; --sun:#E8A444; --heat:#E0566C; --good:#62B08A;
+  --slab:#5C6868; --wall:#7F8C8E; --glass:#7CC0DE; color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.55}
+header{padding:22px 24px 10px;max-width:1500px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 22px}
+h1{font-size:22px;font-weight:700;margin:0;letter-spacing:.02em}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.app{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:10px 24px 32px;max-width:1500px;margin:0 auto}
+@media (max-width:900px){.app{grid-template-columns:1fr;padding:10px 12px 28px}header{padding:18px 14px 8px}}
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;align-self:start}
+.controls h2,.main h2{font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--ink)}
+.controls h2:first-child{margin-top:0}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;margin:6px 0}
+.row label{font-size:13px;color:var(--muted)}
+.row output{font-family:var(--num);font-size:16px;font-weight:500;min-width:4.5em;text-align:right}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink);margin:0}
+.fac{border-top:1px solid var(--line2);padding-top:8px;margin-top:10px;cursor:pointer}
+.fac-h{display:flex;justify-content:space-between;align-items:baseline}
+.fac-h b{font-size:14px}
+.fac-h span{font-family:var(--num);color:var(--muted);font-size:14px}
+.fac.sel{border-top:2px solid var(--ink)}
+details{margin-top:14px;border-top:1px solid var(--line2);padding-top:8px}
+summary{cursor:pointer;font-weight:700;font-size:13px}
+.assump{display:grid;grid-template-columns:1fr 78px;gap:6px 8px;margin-top:8px;align-items:center}
+.assump label{font-size:12px;color:var(--muted)}
+.assump input{width:100%;font-family:var(--num);font-size:15px;padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink)}
+.main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.summary{display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline;padding:2px 2px}
+.summary div{display:flex;gap:8px;align-items:baseline}
+.summary span{color:var(--muted);font-size:12.5px}
+.summary b{font-family:var(--num);font-size:22px;font-weight:600}
+.btns{margin-left:auto;display:flex;gap:8px}
+button{font:inherit;font-size:13px;padding:6px 12px;border-radius:4px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+button.solid{background:var(--ink);color:var(--paper)}
+button:focus-visible,input:focus-visible,.fac:focus-visible,tr:focus-visible,.hit:focus-visible{outline:2px solid var(--cold);outline-offset:2px}
+.drawings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.55fr);gap:16px}
+@media (max-width:1150px){.drawings{grid-template-columns:1fr}}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.sheet h2{margin:0 0 4px}
+.sheet .cap{color:var(--muted);font-size:12.5px;margin:0 0 6px}
+svg{display:block;width:100%;height:auto;font-family:var(--font)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{font-size:12px;font-weight:500;color:var(--muted);vertical-align:bottom;line-height:1.35}
+th .d{display:block;font-weight:700;color:var(--ink);font-size:13px}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--num);font-size:18px;font-weight:500}
+td:first-child{font-family:var(--font);font-size:14px;font-weight:700}
+td small{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.2}
+td small.up{color:var(--good)} td small.down{color:var(--heat)}
+tr{cursor:pointer} tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--ink)}
+tbody tr:last-child td{border-bottom:none}
+.dimbar{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.lower{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px}
+@media (max-width:1150px){.lower{grid-template-columns:1fr}}
+.tips{list-style:none;margin:0;padding:0}
+.tips li{padding:8px 0 8px 16px;border-bottom:1px solid var(--line2);position:relative;max-width:78ch}
+.tips li:last-child{border-bottom:none}
+.tips li::before{content:"";position:absolute;left:0;top:14px;width:8px;height:8px;border-radius:50%;background:var(--c)}
+.detail{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.detail dt{color:var(--muted);font-size:13px}
+.detail dd{margin:0;font-family:var(--num);font-size:16px;text-align:right}
+.note{color:var(--muted);font-size:12px;max-width:90ch;margin:0}
+.warn{color:var(--heat);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>窗墙比推敲器</h1>
+  <p>拖动任一立面的窗墙比、窗数或挑檐，同时看到采光、热损失、冬季得热和夏季过热四个结果。按温哥华气候做概念阶段估算。</p>
+</header>
+
+<div class="app">
+  <aside class="controls" aria-label="设计参数">
+    <h2>体块</h2>
+    <div id="bldg"></div>
+    <h2>窗与房间</h2>
+    <div id="win"></div>
+    <h2>各立面</h2>
+    <div id="facs"></div>
+    <details>
+      <summary>计算假设</summary>
+      <div class="assump" id="assump"></div>
+      <p class="note" style="margin-top:8px">默认值为被动房级三玻窗和高性能外墙的典型值。温哥华辐射和采暖度时数为近似值，以后接入 PHPP 气候数据时替换。</p>
+    </details>
+  </aside>
+
+  <main class="main">
+    <div class="summary" id="summary"></div>
+
+    <div class="drawings">
+      <section class="sheet">
+        <h2>平面与日照方位</h2>
+        <p class="cap">点击立面查看剖面。外侧色带表示该立面窗户的冬季净得失。</p>
+        <svg id="plan" viewBox="-200 -200 400 400" role="img" aria-label="建筑平面与冬夏太阳方位"></svg>
+        <div class="legend">
+          <span><i style="background:var(--cold)"></i>窗户净失热</span>
+          <span><i style="background:var(--sun)"></i>窗户净得热</span>
+          <span><i style="background:none;border-top:2px solid var(--sun);height:0"></i>冬至太阳方位</span>
+          <span><i style="background:none;border-top:2px solid var(--heat);height:0"></i>夏至太阳方位</span>
+        </div>
+      </section>
+      <section class="sheet">
+        <h2 id="secTitle">剖面</h2>
+        <p class="cap" id="secCap"></p>
+        <svg id="section" viewBox="0 0 640 300" role="img" aria-label="所选立面的房间剖面"></svg>
+        <div class="legend">
+          <span><i style="background:var(--dayfill);opacity:.55"></i>有效采光进深</span>
+          <span><i style="background:var(--sun);opacity:.5"></i>冬季直射光</span>
+          <span><i style="background:var(--heat);opacity:.4"></i>夏季直射光</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th><span class="d">立面</span>方位角</th>
+          <th><span class="d">窗墙比</span>实际</th>
+          <th><span class="d"><i class="dimbar" style="background:var(--day)"></i>采光系数</span>房间平均 %</th>
+          <th><span class="d"><i class="dimbar" style="background:var(--cold)"></i>窗户热损失</span>kWh / m² 房间·年</th>
+          <th><span class="d"><i class="dimbar" style="background:var(--sun)"></i>冬季净得热</span>kWh / m² 窗·年</th>
+          <th><span class="d"><i class="dimbar" style="background:var(--heat)"></i>夏季得热</span>kWh / m² 房间·夏</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="lower">
+      <section class="sheet">
+        <h2>设计提示</h2>
+        <ul class="tips" id="tips"></ul>
+      </section>
+      <section class="sheet">
+        <h2 id="detTitle">所选立面</h2>
+        <dl class="detail" id="detail"></dl>
+      </section>
+    </div>
+
+    <p class="note">
+      采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。夏季得热为 6 至 8 月透过窗户的太阳辐射，按该侧进深范围的房间面积折算。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。
+    </p>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+// ---------- Climate (Vancouver, approximate) — index 0=N,45=NE,...,315=NW ----------
+const GW=[90,105,185,300,380,300,185,105];   // heating season (Oct–Apr) vertical irradiance kWh/m²
+const GS=[140,230,350,320,290,340,370,240];  // summer (Jun–Aug) kWh/m²
+const DW=[0,0.1,0.35,0.45,0.5,0.45,0.35,0.1]; // direct share, winter
+const DS=[0.2,0.5,0.65,0.65,0.65,0.65,0.65,0.5];
+const PW=[30,25,18,22,20,22,18,25];          // effective profile angle, winter (deg)
+const PS=[40,30,32,45,60,45,32,30];          // effective profile angle, summer
+const DIRS=['北','东北','东','东南','南','西南','西','西北'];
+
+const S={
+  L:20, W:12, floors:3, H:3.0, rot:0,
+  sill:0.6, head:2.4, depth:5,
+  sel:'S',
+  f:{ S:{wwr:.40,n:4,oh:0}, E:{wwr:.20,n:2,oh:0}, N:{wwr:.15,n:2,oh:0}, W:{wwr:.30,n:2,oh:0} },
+  A:{Gt:65, Ug:.60, Uf:.80, psig:.035, fw:.11, g:.50, vt:.65, Uwall:.12, psiI:.04, obs:15}
+};
+let baseline=null;
+const KEYS=['S','E','N','W'];
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rad=d=>d*Math.PI/180;
+const norm=a=>((a%360)+360)%360;
+const f=(x,d=1)=>(x==null||!isFinite(x))?'—':x.toFixed(d);
+const sg=(x,d=0)=>(x==null||!isFinite(x))?'—':(x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d);
+function interp8(arr,az){az=norm(az);const i=Math.floor(az/45),t=(az-i*45)/45;return arr[i%8]*(1-t)+arr[(i+1)%8]*t;}
+function facAz(k){return norm({S:180,E:90,N:0,W:270}[k]+S.rot);}
+function facLen(k){return (k==='S'||k==='N')?S.L:S.W;}
+function dirName(az){return DIRS[Math.round(norm(az)/45)%8];}
+function facName(k){return dirName(facAz(k))+'立面';}
+
+// ---------- Model ----------
+function calc(k,ov){
+  const F=Object.assign({},S.f[k],ov||{}), A=S.A;
+  const len=facLen(k), az=facAz(k), H=S.H, Hc=H-0.3;
+  const head=Math.min(S.head,Hc), sill=Math.min(S.sill,head-0.4), hw=head-sill;
+  let totW=F.wwr*len*H/hw; const maxW=len*0.9, clamped=totW>maxW+1e-9; totW=Math.min(totW,maxW);
+  const n=F.n, wi=n>0?totW/n:0, has=F.wwr>0&&wi>0.05;
+  const gw=Math.max(0,wi-2*A.fw), gh=Math.max(0,hw-2*A.fw);
+  const Aw1=wi*hw, Ag1=gw*gh, Af1=Aw1-Ag1, lg1=(gw>0&&gh>0)?2*(gw+gh):0;
+  const Uw=has?(Ag1*A.Ug+Af1*A.Uf+lg1*A.psig)/Aw1:0;
+  const frameFrac=has?Af1/Aw1:0, P1=2*(wi+hw), N=n*S.floors;
+  const AwT=has?Aw1*N:0, AgT=has?Ag1*N:0, PT=has?P1*N:0;
+  const wwrAct=AwT/(len*H*S.floors);
+  const Gw=interp8(GW,az),Gs=interp8(GS,az),dW=interp8(DW,az),dS=interp8(DS,az),pW=interp8(PW,az),pS=interp8(PS,az);
+  const shade=p=>F.oh>0?clamp((F.oh*Math.tan(rad(p))-0.05)/hw,0,1):0;
+  const shW=shade(pW), shS=shade(pS), fsW=1-dW*shW, fsS=1-dS*shS;
+  const Qgain=AgT*A.g*0.8*Gw*fsW*0.9;
+  const Qloss=has?((Uw-A.Uwall)*AwT+A.psiI*PT)*A.Gt:0;
+  const net=Qgain-Qloss, netPer=AwT>0?net/AwT:null;
+  const Qsum=AgT*A.g*0.8*Gs*fsS;
+  const zoneA=len*S.depth*S.floors, sumPer=Qsum/zoneA, lossPer=Qloss/zoneA;
+  const agPerM=has?Ag1*n/len:0;
+  const alphaTop=F.oh>0?Math.atan((hw/2+0.05)/F.oh)*180/Math.PI:90;
+  const theta=Math.max(0,alphaTop-A.obs);
+  const Asurf=2*S.depth+2*Hc;
+  const DF=A.vt*agPerM*theta*0.9/(Asurf*0.75);
+  const limit=2.5*head, cover=Math.min(1,limit/S.depth);
+  const gap=has?(len-totW)/n:len;
+  const uni=has?clamp(1-Math.max(0,gap-0.5*head)/(1.5*head),0,1):0;
+  const sc={
+    day:has?100*(0.65*Math.min(1,DF/3)+0.25*cover+0.10*uni):0,
+    loss:100*clamp(1-lossPer/20,0,1),
+    gain:netPer==null?null:100*clamp((netPer+40)/100,0,1),
+    heat:100*clamp(1-(sumPer-8)/17,0,1)
+  };
+  return {k,F,len,az,head,sill,hw,totW,clamped,n,wi,has,Uw,frameFrac,AwT,AgT,PT,wwrAct,Gw,Gs,dW,dS,pW,pS,shW,shS,fsW,fsS,
+    Qgain,Qloss,net,netPer,Qsum,sumPer,lossPer,zoneA,DF,theta,alphaTop,limit,cover,gap,uni,sc,Hc};
+}
+function calcAll(){const R={};KEYS.forEach(k=>R[k]=calc(k));
+  const Htot=S.H*S.floors, gross=S.L*S.W*S.floors, TFA=gross*0.85;
+  let Aw=0,Awall=0,net=0,sum=0,dfw=0,lw=0;
+  KEYS.forEach(k=>{const r=R[k];Aw+=r.AwT;Awall+=r.len*Htot;net+=r.net;sum+=r.Qsum;dfw+=r.DF*r.len;lw+=r.len;});
+  const Aenv=2*S.L*S.W+2*Htot*(S.L+S.W), V=S.L*S.W*Htot;
+  R._={wwr:Aw/Awall,net,sumPer:sum/TFA,DF:dfw/lw,AV:Aenv/V,TFA};
+  return R;}
+
+// ---------- Controls ----------
+function slider(host,o){
+  const id='c_'+Math.random().toString(36).slice(2,8);
+  const d=document.createElement('div');d.className='row';
+  d.innerHTML=`<label for="${id}">${o.label}</label><output for="${id}"></output><input id="${id}" type="range" min="${o.min}" max="${o.max}" step="${o.step}">`;
+  const inp=d.querySelector('input'),out=d.querySelector('output');
+  inp.value=o.get();out.textContent=o.fmt(o.get());
+  inp.addEventListener('input',()=>{o.set(parseFloat(inp.value));out.textContent=o.fmt(o.get());render();});
+  host.appendChild(d);return {sync(){inp.value=o.get();out.textContent=o.fmt(o.get());}};
+}
+const bldg=document.getElementById('bldg'),win=document.getElementById('win'),facs=document.getElementById('facs');
+slider(bldg,{label:'长度（南北立面宽）',min:6,max:60,step:1,get:()=>S.L,set:v=>S.L=v,fmt:v=>v+' m'});
+slider(bldg,{label:'进深（东西立面宽）',min:6,max:40,step:1,get:()=>S.W,set:v=>S.W=v,fmt:v=>v+' m'});
+slider(bldg,{label:'层数',min:1,max:12,step:1,get:()=>S.floors,set:v=>S.floors=v,fmt:v=>v+' 层'});
+slider(bldg,{label:'层高',min:2.7,max:4.2,step:0.1,get:()=>S.H,set:v=>S.H=v,fmt:v=>v.toFixed(1)+' m'});
+slider(bldg,{label:'朝向偏转',min:-90,max:90,step:5,get:()=>S.rot,set:v=>S.rot=v,fmt:v=>v===0?'正南':(v>0?'偏西 ':'偏东 ')+Math.abs(v)+'°'});
+slider(win,{label:'窗台高度',min:0,max:1.2,step:0.05,get:()=>S.sill,set:v=>S.sill=v,fmt:v=>v.toFixed(2)+' m'});
+slider(win,{label:'窗头高度',min:1.8,max:3.9,step:0.05,get:()=>S.head,set:v=>S.head=v,fmt:v=>v.toFixed(2)+' m'});
+slider(win,{label:'房间进深（外墙到内墙）',min:3,max:10,step:0.5,get:()=>S.depth,set:v=>S.depth=v,fmt:v=>v.toFixed(1)+' m'});
+
+const facEls={};
+KEYS.forEach(k=>{
+  const box=document.createElement('div');box.className='fac';box.tabIndex=0;
+  box.innerHTML=`<div class="fac-h"><b></b><span></span></div>`;
+  facEls[k]=box;
+  box.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){S.sel=k;render();}});
+  box.addEventListener('focusin',()=>{if(S.sel!==k){S.sel=k;render();}});
+  facs.appendChild(box);
+  slider(box,{label:'窗墙比',min:0,max:0.7,step:0.01,get:()=>S.f[k].wwr,set:v=>S.f[k].wwr=v,fmt:v=>Math.round(v*100)+'%'});
+  slider(box,{label:'每层窗数（越多越分散）',min:1,max:10,step:1,get:()=>S.f[k].n,set:v=>S.f[k].n=v,fmt:v=>v+' 扇'});
+  slider(box,{label:'挑檐深度',min:0,max:1.5,step:0.05,get:()=>S.f[k].oh,set:v=>S.f[k].oh=v,fmt:v=>v===0?'无':v.toFixed(2)+' m'});
+});
+
+const AS=[
+  ['Ug','玻璃 U 值 W/m²K',0.01],['Uf','窗框 U 值 W/m²K',0.01],['fw','窗框宽度 m',0.01],['psig','玻璃边缘 ψ W/mK',0.005],
+  ['psiI','安装热桥 ψ W/mK',0.005],['g','玻璃 g 值',0.01],['vt','可见光透射比',0.01],['Uwall','外墙 U 值 W/m²K',0.01],
+  ['Gt','采暖度时数 kKh/a',1],['obs','对面遮挡角 °',1]
+];
+const ash=document.getElementById('assump');
+AS.forEach(([key,lab,st])=>{
+  const id='a_'+key;const l=document.createElement('label');l.htmlFor=id;l.textContent=lab;
+  const i=document.createElement('input');i.type='number';i.id=id;i.step=st;i.value=S.A[key];i.min=0;
+  i.addEventListener('input',()=>{const v=parseFloat(i.value);if(isFinite(v)&&v>=0){S.A[key]=v;render();}});
+  ash.appendChild(l);ash.appendChild(i);
+});
+
+// ---------- Rendering helpers ----------
+function tint(score){
+  if(score==null) return '';
+  if(score>=60) return `background:color-mix(in srgb,var(--good) ${Math.round((score-60)/40*30+4)}%,transparent)`;
+  if(score<40) return `background:color-mix(in srgb,var(--heat) ${Math.round((40-score)/40*32+4)}%,transparent)`;
+  return '';
+}
+function delta(cur,base,better,d){
+  if(!baseline||base==null||cur==null) return '';
+  const dv=cur-base; if(Math.abs(dv)<Math.pow(10,-d)/2) return '<small>与基准相同</small>';
+  const good=better==='up'?dv>0:dv<0;
+  return `<small class="${good?'up':'down'}">${sg(dv,d)} 相比基准</small>`;
+}
+
+// ---------- Summary ----------
+function renderSummary(R){
+  const o=R._;
+  document.getElementById('summary').innerHTML=`
+    <div><span>整体窗墙比</span><b>${Math.round(o.wwr*100)}%</b></div>
+    <div><span>平均采光系数</span><b>${f(o.DF,1)}%</b></div>
+    <div><span>窗户冬季净得失</span><b>${sg(o.net/1000,1)}</b><span>MWh/年</span></div>
+    <div><span>夏季得热</span><b>${f(o.sumPer,1)}</b><span>kWh/m² 使用面积</span></div>
+    <div><span>体形系数</span><b>${f(o.AV,2)}</b></div>
+    <div class="btns">${baseline?'<button id="clr">清除基准</button>':''}<button class="solid" id="setb">${baseline?'更新对比基准':'设为对比基准'}</button></div>`;
+  document.getElementById('setb').onclick=()=>{const R2=calcAll();baseline={};KEYS.forEach(k=>{const r=R2[k];baseline[k]={DF:r.DF,lossPer:r.lossPer,netPer:r.netPer,sumPer:r.sumPer,wwr:r.wwrAct};});render();};
+  const c=document.getElementById('clr'); if(c) c.onclick=()=>{baseline=null;render();};
+}
+
+// ---------- Table ----------
+function renderTable(R){
+  const tb=document.getElementById('tbody');tb.innerHTML='';
+  KEYS.forEach(k=>{const r=R[k],b=baseline&&baseline[k];
+    const tr=document.createElement('tr');tr.tabIndex=0;if(k===S.sel)tr.className='sel';
+    tr.innerHTML=`
+      <td>${facName(k)}<small>${Math.round(r.az)}°</small></td>
+      <td>${Math.round(r.wwrAct*100)}%${delta(r.wwrAct*100,b&&b.wwr*100,'up',0).replace(/class="(up|down)"/,'')}</td>
+      <td style="${tint(r.sc.day)}">${f(r.DF,1)}${delta(r.DF,b&&b.DF,'up',1)}</td>
+      <td style="${tint(r.sc.loss)}">${f(r.lossPer,1)}${delta(r.lossPer,b&&b.lossPer,'down',1)}</td>
+      <td style="${tint(r.sc.gain)}">${r.netPer==null?'—':sg(r.netPer,0)}${delta(r.netPer,b&&b.netPer,'up',0)}</td>
+      <td style="${tint(r.sc.heat)}">${f(r.sumPer,1)}${delta(r.sumPer,b&&b.sumPer,'down',1)}</td>`;
+    tr.onclick=()=>{S.sel=k;render();};
+    tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}};
+    tb.appendChild(tr);});
+}
+
+// ---------- Tips ----------
+function renderTips(R){
+  const T=[];const add=(c,t,p)=>T.push({c,t,p});
+  const o=R._;
+  if(R.S.cover<1) add('--day',`房间进深 ${f(S.depth,1)} m 超过有效采光进深（约 2.5 × 窗头高 = ${f(R.S.limit,1)} m），靠内一侧会偏暗。可以提高窗头、减小进深，或考虑双侧采光。`,2);
+  if(S.head>R.S.Hc+1e-6) add('--muted',`窗头高度已被限制在吊顶高度 ${f(R.S.Hc,2)} m（层高减 0.3 m）。`,5);
+  KEYS.forEach(k=>{const r=R[k],nm=facName(k),F=r.F;
+    if(!r.has) return;
+    const sw=r.az>=100&&r.az<=300; // sunny side (E→S→W range)
+    const isS=r.az>=135&&r.az<=225, isEW=(r.az>=60&&r.az<135)||(r.az>225&&r.az<=300);
+    if(r.clamped) add('--muted',`${nm}：在窗高 ${f(r.hw,2)} m 下放不下 ${Math.round(F.wwr*100)}% 的窗墙比，已按立面宽度的 90% 计算。提高窗头或降低窗台可以放下更多窗。`,5);
+    if(r.DF<2){
+      const canRaise=S.head<r.Hc-0.2;
+      add('--day',`${nm}：平均采光系数 ${f(r.DF,1)}%，低于 2% 的基本要求。${canRaise?`把窗头从 ${f(r.head,2)} m 提高到 ${f(r.Hc,2)} m，比加宽窗更能把光送进房间深处。`:'可以适当增加窗墙比。'}`,1);
+    }
+    if(r.DF>5&&sw) add('--heat',`${nm}：采光系数 ${f(r.DF,1)}% 已明显超出需要，这个朝向容易眩光，多出的玻璃主要在增加得热和热损失。`,1);
+    if(r.uni<0.6) add('--day',`${nm}：窗间墙约 ${f(r.gap,1)} m，窗与窗之间会出现暗区。增加窗数能改善均匀度，但窗框占比和安装热桥会随之上升。`,3);
+    if(r.frameFrac>0.35) add('--cold',`${nm}：单窗约 ${f(r.wi,2)} × ${f(r.hw,2)} m，窗框占 ${Math.round(r.frameFrac*100)}%，整窗 U 值升到 ${f(r.Uw,2)}（玻璃本身 ${f(S.A.Ug,2)}）。减少窗数、做大单窗能降低热损失。`,2);
+    if(r.netPer!=null&&r.netPer<-15&&r.wwrAct>0.18) add('--cold',`${nm}：每平方米窗每年净损失约 ${f(-r.netPer,0)} kWh，这个朝向的窗主要在散热。在采光满足的前提下可以收小。`,2);
+    if(r.oh>0||F.oh>0){const r0=calc(k,{oh:0});if(r0.DF>0&&r.DF<r0.DF*0.8) add('--day',`${nm}：挑檐让采光系数从 ${f(r0.DF,1)}% 降到 ${f(r.DF,1)}%。可以提高窗头，或把挑檐底面做成浅色来补偿。`,3);}
+    if(r.sc.heat<50){
+      const lvl=r.sumPer<20?'中等':'较高';
+      const tryOh=Math.min(1.5,Math.max(0.6,F.oh+0.4));
+      const h=calc(k,{oh:tryOh});
+      const rs=r.Qsum>0?(1-h.Qsum/r.Qsum)*100:0, rw=r.Qgain>0?(1-h.Qgain/r.Qgain)*100:0;
+      if(isS&&F.oh<1.4) add('--heat',`${nm}：夏季得热 ${f(r.sumPer,1)} kWh/m²，过热风险${lvl}。挑檐加到 ${f(tryOh,2)} m 可减少夏季得热约 ${Math.round(rs)}%，冬季得热只减少约 ${Math.round(rw)}%。`,0);
+      else if(isEW) add('--heat',`${nm}：夏季得热 ${f(r.sumPer,1)} kWh/m²，过热风险${lvl}。这个朝向太阳角度低，${f(tryOh,2)} m 挑檐只能减少约 ${Math.round(rs)}%，更有效的是外置活动遮阳、竖向遮阳板，或减小窗墙比。`,0);
+      else add('--heat',`${nm}：夏季得热 ${f(r.sumPer,1)} kWh/m²，过热风险${lvl}。考虑减小窗墙比或增加外遮阳。`,0);
+    }
+    if(r.netPer!=null&&r.netPer>15&&r.sc.heat>=60&&r.DF<5) add('--sun',`${nm}：每平方米窗冬季净得热约 +${f(r.netPer,0)} kWh，夏季得热也可控，这个立面还有放大窗面积的余地。`,4);
+  });
+  if(!T.length) add('--good','四个维度目前都在合理范围内。可以设为对比基准，再试试其他方案。',9);
+  T.sort((a,b)=>a.p-b.p);
+  document.getElementById('tips').innerHTML=T.map(t=>`<li style="--c:var(${t.c})">${t.t}</li>`).join('');
+}
+
+// ---------- Detail ----------
+function renderDetail(R){
+  const r=R[S.sel];
+  document.getElementById('detTitle').textContent=facName(S.sel)+'（'+Math.round(r.az)+'°）';
+  const rows=r.has?[
+    ['单窗尺寸',`${f(r.wi,2)} × ${f(r.hw,2)} m`],
+    ['窗户总数',`${r.n*S.floors} 扇`],
+    ['窗框占比',`${Math.round(r.frameFrac*100)}%`],
+    ['整窗 U 值',`${f(r.Uw,2)} W/m²K`],
+    ['可见天空角',`${f(r.theta,0)}°`],
+    ['挑檐挡掉的辐射（冬 / 夏）',`${Math.round(r.dW*r.shW*100)}% / ${Math.round(r.dS*r.shS*100)}%`],
+    ['冬季太阳得热',`${f(r.Qgain,0)} kWh`],
+    ['窗户额外热损失',`${f(r.Qloss,0)} kWh`],
+    ['夏季透入辐射',`${f(r.Qsum,0)} kWh`]
+  ]:[['窗墙比','0%，该立面无窗']];
+  document.getElementById('detail').innerHTML=rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('');
+}
+
+// ---------- Plan ----------
+function netClass(r){if(r.netPer==null)return null;const v=r.netPer;
+  if(v<-20)return['var(--cold)',.9];if(v<0)return['var(--cold)',.45];if(v<20)return['var(--sun)',.45];return['var(--sun)',.9];}
+function renderPlan(R){
+  const svg=document.getElementById('plan');
+  const s=205/Math.hypot(S.L,S.W), w=S.L*s, h=S.W*s;
+  const pt=(a,r)=>[r*Math.sin(rad(a)),-r*Math.cos(rad(a))];
+  const arc=(a1,a2,r)=>{const[x1,y1]=pt(a1,r),[x2,y2]=pt(a2,r);return `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${(a2-a1)>180?1:0} 1 ${x2.toFixed(1)},${y2.toFixed(1)}`;};
+  let g=`<circle r="186" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  for(let a=0;a<360;a+=15){const[x1,y1]=pt(a,186),[x2,y2]=pt(a,a%45?181:176);g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line)"/>`;}
+  g+=`<text x="0" y="-190" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" dy="-2">北</text>`;
+  g+=`<path d="${arc(50,310,172)}" fill="none" stroke="var(--heat)" stroke-width="2" opacity=".7"/>`;
+  g+=`<path d="${arc(127,233,162)}" fill="none" stroke="var(--sun)" stroke-width="3"/>`;
+  [[50,'var(--heat)',172],[310,'var(--heat)',172],[127,'var(--sun)',162],[233,'var(--sun)',162]].forEach(([a,c,r])=>{const[x,y]=pt(a,r),[x2,y2]=pt(a,r-14);g+=`<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="2"/>`;});
+  {const[x,y]=pt(180,148);g+=`<text x="${x}" y="${y}" text-anchor="middle" font-size="11" fill="var(--sun)" dy="4">冬至</text>`;
+   const[x2,y2]=pt(0,158);g+=`<text x="${x2}" y="${y2}" text-anchor="middle" font-size="11" fill="var(--heat)" dy="10">夏至日出日落在北侧</text>`;}
+  const E={S:[[-w/2,h/2],[w/2,h/2],[0,1]],N:[[w/2,-h/2],[-w/2,-h/2],[0,-1]],E:[[w/2,h/2],[w/2,-h/2],[1,0]],W:[[-w/2,-h/2],[-w/2,h/2],[-1,0]]};
+  let b=`<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>`;
+  const labels=[];
+  KEYS.forEach(k=>{const r=R[k],[p0,p1,nv]=E[k],F=r.F;
+    const L=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),ux=(p1[0]-p0[0])/L,uy=(p1[1]-p0[1])/L;
+    const ohp=F.oh>0?Math.max(3,F.oh*s):0, b0=ohp+5, b1=b0+10;
+    if(F.oh>0) b+=`<polygon points="${p0[0]},${p0[1]} ${p1[0]},${p1[1]} ${p1[0]+nv[0]*ohp},${p1[1]+nv[1]*ohp} ${p0[0]+nv[0]*ohp},${p0[1]+nv[1]*ohp}" fill="none" stroke="var(--muted)" stroke-dasharray="3 2"/>`;
+    const nc=netClass(r);
+    if(nc) b+=`<polygon points="${p0[0]+nv[0]*b0},${p0[1]+nv[1]*b0} ${p1[0]+nv[0]*b0},${p1[1]+nv[1]*b0} ${p1[0]+nv[0]*b1},${p1[1]+nv[1]*b1} ${p0[0]+nv[0]*b1},${p0[1]+nv[1]*b1}" fill="${nc[0]}" opacity="${nc[1]}"/>`;
+    if(r.has){for(let i=0;i<r.n;i++){const c=(i+.5)/r.n*L,hw=r.wi*s/2*(r.len/r.len);const sx=p0[0]+ux*(c-hw),sy=p0[1]+uy*(c-hw),ex=p0[0]+ux*(c+hw),ey=p0[1]+uy*(c+hw);
+      b+=`<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="var(--glass)" stroke-width="5"/>`;}}
+    if(k===S.sel) b+=`<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="var(--ink)" stroke-width="2" transform="translate(${-nv[0]*5},${-nv[1]*5})"/>`;
+    b+=`<line class="hit" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="26" style="cursor:pointer"/>`;
+    const mx=(p0[0]+p1[0])/2+nv[0]*(b1+14),my=(p0[1]+p1[1])/2+nv[1]*(b1+14);labels.push([k,mx,my]);
+  });
+  let lab='';const cr=Math.cos(rad(S.rot)),sr=Math.sin(rad(S.rot));
+  labels.forEach(([k,x,y])=>{const X=x*cr-y*sr,Y=x*sr+y*cr;lab+=`<text x="${X}" y="${Y}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="${k===S.sel?700:500}" fill="var(--ink)" pointer-events="none">${dirName(facAz(k))}</text>`;});
+  svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+lab;
+  svg.querySelectorAll('.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}});});
+}
+
+// ---------- Section ----------
+function renderSection(R){
+  const r=R[S.sel],F=r.F,svg=document.getElementById('section');
+  const H=S.H,Hc=r.Hc,D=S.depth,head=r.head,sill=r.sill,oh=F.oh,ext=2.6,VW=640;
+  const s=Math.min((VW-40)/(D+ext+0.2),240/(H+0.5));
+  const X=m=>20+(m+ext)*s, Y=h=>22+(H+0.25-h)*s, vbH=Y(-0.25)+38;
+  svg.setAttribute('viewBox',`0 0 ${VW} ${vbH.toFixed(0)}`);
+  document.getElementById('secTitle').textContent='剖面：'+facName(S.sel);
+  document.getElementById('secCap').textContent=`窗台 ${f(sill,2)} m，窗头 ${f(head,2)} m，挑檐 ${oh>0?f(oh,2)+' m':'无'}。光线角度为该朝向的有效太阳剖面角。`;
+  let o=`<defs><linearGradient id="dl" x1="0" x2="1"><stop offset="0" stop-color="var(--dayfill)" stop-opacity=".65"/><stop offset="1" stop-color="var(--dayfill)" stop-opacity=".12"/></linearGradient>
+    <pattern id="dark" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted)" stroke-width="1" opacity=".5"/></pattern>
+    <clipPath id="clipIn"><rect x="${X(-0.4)}" y="${Y(Hc)}" width="${X(D)-X(-0.4)}" height="${Y(0)-Y(Hc)}"/></clipPath>
+    <clipPath id="clipOut"><rect x="0" y="0" width="${X(-0.4)}" height="${Y(0)}"/></clipPath></defs>`;
+  // daylight zone
+  const lim=Math.min(r.limit,D);
+  if(r.has) o+=`<rect x="${X(0)}" y="${Y(0.85)}" width="${X(lim)-X(0)}" height="${Y(0)-Y(0.85)}" fill="url(#dl)"/>`;
+  if(r.limit<D||!r.has){const st=r.has?lim:0;o+=`<rect x="${X(st)}" y="${Y(0.85)}" width="${X(D)-X(st)}" height="${Y(0)-Y(0.85)}" fill="url(#dark)"/>`;}
+  // sun beams
+  function beam(p,d,color,alpha,label){
+    if(!r.has||d<0.05) return '';
+    const t=Math.tan(rad(p));let topY=head;
+    if(oh>0){topY=Math.min(head,head+0.05-oh*t);}
+    if(topY<=sill+0.01) return `<text x="${X(-0.4)-6}" y="${Y(head+0.35)}" text-anchor="end" font-size="11" fill="${color}">${label} 被挑檐完全挡住</text>`;
+    const x0=-0.4,end=(y0)=>{let xe=x0+y0/t,ye=0;if(xe>D){xe=D;ye=y0-(D-x0)*t;}return[xe,ye];};
+    const te=end(topY),be=end(sill);const pts=[[x0,topY],te];
+    if(te[0]>=D-1e-9&&be[0]<D-1e-9) pts.push([D,0]);
+    pts.push(be,[x0,sill]);
+    let q=`<polygon clip-path="url(#clipIn)" points="${pts.map(([a,b])=>X(a)+','+Y(b)).join(' ')}" fill="${color}" opacity="${alpha*Math.min(1,d/0.5)}"/>`;
+    const back=ext;const oyT=topY+(back-0.4)*t,oyB=sill+(back-0.4)*t;
+    q+=`<g clip-path="url(#clipOut)"><line x1="${X(-back)}" y1="${Y(oyT)}" x2="${X(x0)}" y2="${Y(topY)}" stroke="${color}" stroke-width="1.5"/><line x1="${X(-back)}" y1="${Y(oyB)}" x2="${X(x0)}" y2="${Y(sill)}" stroke="${color}" stroke-width="1.5" stroke-dasharray="4 3"/></g>`;
+    const ly=topY+0.45,lx=x0-0.45/t;
+    q+=`<text x="${X(lx)-6}" y="${Y(ly)}" text-anchor="end" font-size="12" font-weight="700" fill="${color}">${label} ${Math.round(p)}°</text>`;
+    const pen=te[1]===0?te[0]:D;
+    q+=`<text x="${X(Math.min(pen,D))}" y="${Y(0)+0.25*s+(label==='夏'?30:15)}" text-anchor="${pen>D-0.8?'end':'middle'}" font-size="11" fill="${color}">${pen>=D-1e-9?label+'季阳光照到内墙':label+'季阳光照入 '+f(Math.max(0,pen),1)+' m'}</text>`;
+    return q;
+  }
+  o+=beam(r.pS,r.dS,'var(--heat)',0.35,'夏');
+  o+=beam(r.pW,r.dW,'var(--sun)',0.45,'冬');
+  if(r.has&&r.dW<0.05) o+=`<text x="${X(D/2)}" y="${Y(Hc-0.25)}" text-anchor="middle" font-size="11" fill="var(--muted)">冬季几乎没有直射光进入</text>`;
+  // obstruction
+  const mid=(sill+head)/2,to=Math.tan(rad(S.A.obs));
+  o+=`<line x1="${X(-0.4)}" y1="${Y(mid)}" x2="${X(-ext)}" y2="${Y(mid+(ext-0.4)*to)}" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
+  o+=`<text x="${X(-ext)+4}" y="${Y(mid+(ext-0.4)*to)-5}" font-size="11" fill="var(--muted)">对面遮挡 ${S.A.obs}°</text>`;
+  // structure
+  o+=`<line x1="${X(-ext)}" y1="${Y(0)}" x2="${X(-0.4)}" y2="${Y(0)}" stroke="var(--muted)"/>`;
+  o+=`<rect x="${X(-0.4)}" y="${Y(0)}" width="${X(D)-X(-0.4)}" height="${0.25*s}" fill="var(--slab)"/>`;
+  o+=`<rect x="${X(-0.4)}" y="${Y(H)}" width="${X(D)-X(-0.4)}" height="${(H-Hc)*s}" fill="var(--slab)"/>`;
+  const wallTopFrom=r.has?head:Hc, wallBotTo=r.has?sill:Hc;
+  o+=`<rect x="${X(-0.4)}" y="${Y(Hc)}" width="${0.4*s}" height="${(Hc-wallTopFrom)*s}" fill="var(--wall)"/>`;
+  o+=`<rect x="${X(-0.4)}" y="${Y(wallBotTo)}" width="${0.4*s}" height="${wallBotTo*s}" fill="var(--wall)"/>`;
+  if(r.has) o+=`<line x1="${X(-0.2)}" y1="${Y(sill)}" x2="${X(-0.2)}" y2="${Y(head)}" stroke="var(--glass)" stroke-width="4"/>`;
+  if(oh>0) o+=`<rect x="${X(-0.4-oh)}" y="${Y(head+0.15)}" width="${oh*s}" height="${0.1*s}" fill="var(--ink)"/>`;
+  o+=`<line x1="${X(D)}" y1="${Y(Hc)}" x2="${X(D)}" y2="${Y(0)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  // dims
+  o+=`<text x="${X(0)+6}" y="${Y(0.85)-6}" font-size="11.5" fill="var(--day)" font-weight="700">${r.has?`有效采光进深 ${f(r.limit,1)} m`:'无窗'}</text>`;
+  o+=`<text x="${X(D)-6}" y="${Y(Hc)+16}" text-anchor="end" font-size="11.5" fill="var(--ink)">房间进深 ${f(D,1)} m</text>`;
+  o+=`<text x="${X(D/2)}" y="${Y(Hc)+34}" text-anchor="middle" font-size="12" fill="var(--ink)">采光系数 <tspan font-family="var(--num)" font-size="16" font-weight="600">${f(r.DF,1)}%</tspan></text>`;
+  svg.innerHTML=o;
+}
+
+function renderFacs(R){
+  KEYS.forEach(k=>{const el=facEls[k];el.classList.toggle('sel',k===S.sel);
+    el.querySelector('b').textContent=facName(k);el.querySelector('.fac-h span').textContent=Math.round(facAz(k))+'°';});
+}
+
+function render(){
+  const R=calcAll();
+  renderSummary(R);renderPlan(R);renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
+}
+render();
+})();
+</script>
+</body>
+</html>
