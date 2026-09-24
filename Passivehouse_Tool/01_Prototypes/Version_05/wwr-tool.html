@@ -186,7 +186,7 @@ tbody tr:last-child td{border-bottom:none}
 .chk input{accent-color:var(--ink);margin:0 5px 0 0;vertical-align:-1px}
 #infoLeg{margin-top:6px}
 #infoLeg:empty{display:none}
-#plan .hit{cursor:pointer}
+#plan .hit,#plan .flab{cursor:pointer;outline:none}
 @media (min-width:1151px){.drawings{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}}   /* 剖面 / 详情两列，窄屏仍单列 */
 </style>
 </head>
@@ -1057,22 +1057,22 @@ function renderPlan(R){
     if(I.net&&nc) b+=`<polygon class="net" points="${n2(p0[0]+nv[0]*b0)},${n2(p0[1]+nv[1]*b0)} ${n2(p1[0]+nv[0]*b0)},${n2(p1[1]+nv[1]*b0)} ${n2(p1[0]+nv[0]*b1)},${n2(p1[1]+nv[1]*b1)} ${n2(p0[0]+nv[0]*b1)},${n2(p0[1]+nv[1]*b1)}" fill="${nc[0]}" opacity="${nc[1]}"/>`;
     if(I.win&&r.has){for(let i=0;i<r.n;i++){const c=(i+.5)/r.n*L,hw=r.wi/2;const sx=p0[0]+ux*(c-hw),sy=p0[1]+uy*(c-hw),ex=p0[0]+ux*(c+hw),ey=p0[1]+uy*(c+hw);
       b+=`<line class="win" x1="${n2(sx)}" y1="${n2(sy)}" x2="${n2(ex)}" y2="${n2(ey)}" stroke="var(--glass)" stroke-width="0.28"/>`;}}
-    if(k===S.sel) b+=`<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="var(--ink)" stroke-width="0.22"/>`;
-    // 立面点击区：建筑边线外 0–1.2 m 的透明带（不占室内格子）
-    b+=`<line class="hit" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="1.2" transform="translate(${n2(nv[0]*0.6)},${n2(nv[1]*0.6)})"/>`;
+    // 所选立面只靠标签加粗表示，不在边线上画高亮线（会盖住窗线）
+    // 立面点击区：建筑边线外 0–1.2 m 的透明带（不占室内格子）；不可聚焦，避免浏览器沿点击区画出大块焦点框。键盘选立面用侧栏标签页或指标表
+    b+=`<line class="hit" data-k="${k}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="1.2" transform="translate(${n2(nv[0]*0.6)},${n2(nv[1]*0.6)})"/>`;
     labels.push([k,(p0[0]+p1[0])/2+nv[0]*(I.net?1.6:1.0),(p0[1]+p1[1])/2+nv[1]*(I.net?1.6:1.0)]);
   });
   // ---- 世界坐标：立面标签（位置随转，文字水平）----
   let lab='';
   if(I.labels){const cr=Math.cos(rad(S.rot)),sr=Math.sin(rad(S.rot)),lw=fs*6.4,lh=fs*1.6;
     labels.forEach(([k,x,y])=>{const X=x*cr-y*sr,Y=x*sr+y*cr,on=k===S.sel;
-      lab+=`<g class="flab" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}"><rect x="${n2(X-lw/2)}" y="${n2(Y-lh/2)}" width="${n2(lw)}" height="${n2(lh)}" rx="${n2(fs*0.3)}" fill="var(--panel)" stroke="${on?'var(--ink)':'var(--line)'}" stroke-width="${n2((on?0.15:0.08)*fs)}"/><text x="${n2(X)}" y="${n2(Y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs)}" font-weight="${on?700:500}" fill="var(--ink)">${dirName(facAz(k))} ${Math.round(facAz(k))}° · ${Math.round(S.f[k].wwr*100)}%</text></g>`;});}
+      lab+=`<g class="flab" data-k="${k}"><rect x="${n2(X-lw/2)}" y="${n2(Y-lh/2)}" width="${n2(lw)}" height="${n2(lh)}" rx="${n2(fs*0.3)}" fill="var(--panel)" stroke="${on?'var(--ink)':'var(--line)'}" stroke-width="${n2((on?0.24:0.08)*fs)}"/><text x="${n2(X)}" y="${n2(Y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs)}" font-weight="${on?700:500}" fill="var(--ink)">${dirName(facAz(k))} ${Math.round(facAz(k))}° · ${Math.round(S.f[k].wwr*100)}%</text></g>`;});}
   // ---- 指北针（始终显示，固定朝上）----
   const nr=fs*1.7, nx=V/2-nr-0.2, ny=V/2-nr-0.2;
   const north=`<g class="north" transform="translate(${n2(nx)},${n2(ny)}) scale(${n2(fs)})"><circle r="1.7" fill="var(--panel)" stroke="var(--line)" stroke-width="0.1"/><path d="M0,-1.3 L0.55,0.7 L0,0.3 L-0.55,0.7 Z" fill="var(--ink)"/><text x="0" y="-1.85" text-anchor="middle" font-size="0.9" font-weight="700" fill="var(--ink)">北</text></g>`;
   svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+lab+north;
   svg.querySelectorAll('.cell').forEach(el=>el.addEventListener('click',()=>{const c=GRID.cells[+el.dataset.idx];S.cell=(S.cell&&S.cell.i===c.i&&S.cell.j===c.j)?null:{i:c.i,j:c.j};render();}));
-  svg.querySelectorAll('.flab,.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}});});
+  svg.querySelectorAll('.flab,.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});});
 }
 
 // ---------- Section ----------
