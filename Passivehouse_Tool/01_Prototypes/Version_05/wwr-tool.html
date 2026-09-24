@@ -132,6 +132,53 @@ tbody tr:last-child td{border-bottom:none}
 .advice li small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .advice li button{flex:none;white-space:nowrap}
 .advice li.done{color:var(--muted)}
+/* ---------- Version_05：界面整理 ---------- */
+/* 2 左侧栏桌面端固定，栏内滚动 */
+@media (min-width:901px){.controls{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto;overscroll-behavior:contain}}
+/* 5b 气候按钮不换行 + 说明小字 */
+.seg button{white-space:nowrap}
+.climnote{font-size:11.5px;color:var(--muted);margin:4px 0 0;line-height:1.4}
+/* 1 各立面标签页 */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);margin-top:4px}
+.tabs [role=tab]{border:0;border-radius:0;background:transparent;padding:6px 2px 7px;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;position:relative;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs [role=tab][aria-selected=true]{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+.tabs .t-name{white-space:nowrap}
+.tabs .t-wwr{font-family:var(--num);font-size:14px;font-weight:500;color:var(--ink)}
+.tabs .t-dot{position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--heat)}
+[role=tabpanel]{padding-top:4px}
+[role=tabpanel] .fac{border-top:0;margin-top:0;padding-top:0;cursor:default}
+[role=tabpanel] .fac-h{display:none}
+/* 3 室内分区面板 */
+.zone{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:1150px){.zone{grid-template-columns:1fr}}
+.zone-main{min-width:0}
+.zone-side .optrow{margin-top:0}
+.zone-side .gridleg{flex-wrap:wrap;margin-top:10px}
+.zone-side .cellbox{margin-top:10px}
+#zonePlan{max-height:640px;margin:0 auto}
+#zonePlan .cell{cursor:pointer}
+#zonePlan .flab{cursor:pointer}
+/* 4 设计建议：标题行 + 筛选 */
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.sheet-h h2{margin:0}
+.seg.filter{grid-template-columns:repeat(2,auto);display:inline-grid}
+.seg.filter button{padding:4px 10px}
+.advice li.tip>span{color:var(--ink)}
+.advice li.tip small{display:none}
+/* 5c 汇总行：竖排小卡，≥1280 px 一行 */
+.summary{gap:8px 20px;align-items:stretch}
+.summary .stat{display:flex;flex-direction:column;gap:0;align-items:flex-start;min-width:0}
+.summary .stat>span:first-child{font-size:12px}
+.summary .stat b{line-height:1.15}
+.summary .stat .sub{font-size:11px;line-height:1.25;max-width:17ch;margin-top:2px}
+.summary .btns{align-self:center}
+@media (min-width:1280px){.summary{flex-wrap:nowrap}.summary .btns{flex:none}}
+/* 5d 计算方法说明折叠 */
+.methods{border-top:1px solid var(--line2);padding-top:8px;margin-top:0}
+.methods summary{font-size:13px}
+.methods h3{font-size:12.5px;font-weight:700;margin:10px 0 3px;color:var(--ink)}
+.methods .note{margin:0}
+.detail{max-width:640px}
 </style>
 </head>
 <body>
@@ -144,6 +191,7 @@ tbody tr:last-child td{border-bottom:none}
   <aside class="controls" aria-label="设计参数">
     <h2>气候数据</h2>
     <div class="seg" id="climSeg" role="group" aria-label="选择气候数据"></div>
+    <p class="climnote">机场站、港口站为当下典型年；2080 年为机场站按 SSP5-8.5 移位的预测。</p>
     <p class="climinfo" id="climInfo"></p>
     <h2>体块</h2>
     <div id="bldg"></div>
@@ -165,13 +213,27 @@ tbody tr:last-child td{border-bottom:none}
   <main class="main">
     <div class="summary" id="summary"></div>
 
+    <section class="sheet zone" id="zoneSheet">
+      <div class="zone-main">
+        <h2>室内分区</h2>
+        <p class="cap">标准层楼层平面，随朝向偏转旋转。点击格子查看它对每种功能的分数；点击边上的立面名称选中该立面。</p>
+        <svg id="zonePlan" viewBox="0 0 100 100" role="img" aria-label="楼层平面网格与分区"></svg>
+      </div>
+      <div class="zone-side" id="zoneSide">
+        <div class="optrow">
+          <label id="layerLabel">平面图层</label>
+          <div class="seg small five" role="group" aria-labelledby="layerLabel" id="layerSeg"></div>
+        </div>
+        <div class="gridleg" id="gridLeg"></div>
+        <div class="cellbox" id="cellBox" hidden></div>
+      </div>
+    </section>
+
     <div class="drawings">
       <section class="sheet">
         <h2>平面与日照方位</h2>
-        <p class="cap">点击立面查看剖面。外侧色带表示该立面窗户的冬季净得失。室内方格为侧栏所选的条件图层（标准层，随朝向一起转）。</p>
+        <p class="cap">点击立面查看剖面。外侧色带表示该立面窗户的冬季净得失。</p>
         <svg id="plan" viewBox="-200 -200 400 400" role="img" aria-label="建筑平面与冬夏太阳方位"></svg>
-        <div class="gridleg" id="gridLeg"></div>
-        <div class="cellbox" id="cellBox" hidden></div>
         <div class="legend">
           <span><i style="background:var(--cold)"></i>窗户净失热</span>
           <span><i style="background:var(--sun)"></i>窗户净得热</span>
@@ -206,26 +268,36 @@ tbody tr:last-child td{border-bottom:none}
     </div>
 
     <section class="sheet" id="adviceSheet">
-      <h2>分区建议</h2>
-      <p class="cap">根据每个立面后面的主要功能，检查这面墙的窗是否合适。建议只显示，不会自动修改；点「采纳」才改动该立面的一个参数（等同于拖一次滑块），之后分区和建议会重算，但不会连锁执行任何建议。</p>
+      <div class="sheet-h">
+        <h2>设计建议</h2>
+        <div class="seg small filter" role="radiogroup" aria-label="建议范围" id="tipFilter">
+          <button type="button" role="radio" data-v="all">全部</button><button type="button" role="radio" data-v="sel">仅所选立面</button>
+        </div>
+      </div>
+      <p class="cap">带「采纳」的建议来自分区结果：按每个立面后面的主要功能检查这面窗是否合适，点「采纳」才改动该立面的一个参数（等同于拖一次滑块），之后分区和建议会重算，但不会连锁执行任何建议。其余为提示，仅供参考。</p>
       <ul class="tips advice" id="advice"></ul>
     </section>
 
-    <div class="lower">
-      <section class="sheet">
-        <h2>设计提示</h2>
-        <ul class="tips" id="tips"></ul>
-      </section>
-      <section class="sheet">
-        <h2 id="detTitle">所选立面</h2>
-        <dl class="detail" id="detail"></dl>
-      </section>
-    </div>
+    <section class="sheet">
+      <h2 id="detTitle">所选立面</h2>
+      <dl class="detail" id="detail"></dl>
+    </section>
 
-    <p class="note">
-      采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。过热频率由每个立面房间的逐小时单节点热平衡模拟得出：热容 × 温度变化 = 太阳得热 + 内部得热 − 传热与通风散热，全年 8760 小时，统计室内高于 25 °C 的小时占比，对照被动房判据（≤10%，建议 ≤5%）。热质量三档和开窗通风换气次数为估计值；屋面按外墙 U 值、地面传热忽略；采暖季室温不低于 20 °C。“高温时段得热”（室外 >22 °C 小时的透入辐射）保留在详情面板作参考。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。三组气象数据中，机场站当下与 2080 年预测同源，太阳辐射完全相同，差异只反映气温变化；港口站与它们的差异混有站点和数据集方法的差异，不能直接当作气候变化解读。
-      室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。分区建议按每个立面房间带内的主导功能，用同一张配置表的区间判断这面窗是否过热、过暗或多余，建议的数值由试算得到；只有点「采纳」才会改动参数。
-    </p>
+    <details class="methods">
+      <summary>计算方法说明</summary>
+      <h3>采光</h3>
+      <p class="note">采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。</p>
+      <h3>热损失与冬季得热</h3>
+      <p class="note">热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。</p>
+      <h3>过热模拟</h3>
+      <p class="note">过热频率由每个立面房间的逐小时单节点热平衡模拟得出：热容 × 温度变化 = 太阳得热 + 内部得热 − 传热与通风散热，全年 8760 小时，统计室内高于 25 °C 的小时占比，对照被动房判据（≤10%，建议 ≤5%）。热质量三档和开窗通风换气次数为估计值；屋面按外墙 U 值、地面传热忽略；采暖季室温不低于 20 °C。“高温时段得热”（室外 >22 °C 小时的透入辐射）保留在详情面板作参考。</p>
+      <h3>室内分区</h3>
+      <p class="note">室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。</p>
+      <h3>设计建议</h3>
+      <p class="note">分区建议按每个立面房间带内的主导功能，用同一张配置表的区间判断这面窗是否过热、过暗或多余，建议的数值由试算得到；只有点「采纳」才会改动参数。</p>
+      <h3>数据来源与局限</h3>
+      <p class="note">这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。三组气象数据中，机场站当下与 2080 年预测同源，太阳辐射完全相同，差异只反映气温变化；港口站与它们的差异混有站点和数据集方法的差异，不能直接当作气候变化解读。</p>
+    </details>
   </main>
 </div>
 
@@ -298,6 +370,7 @@ const DIRS=['北','东北','东','东南','南','西南','西','西北'];
 const S={
   clim:'apNow', GtManual:false, mass:'mid', vent:'win',
   grid:1.0, layer:'zone', cell:null, // 室内分区：网格尺寸 m、平面图层（none / DF / Wx / Hx / zone）、所选格子 {i,j}
+  tipFilter:'all',                   // 设计建议筛选：all 全部 / sel 仅所选立面（Version_05）
   L:20, W:12, floors:3, H:3.0, rot:0,
   sill:0.6, head:2.4, depth:5,
   sel:'S',
@@ -451,7 +524,9 @@ slider(win,{label:'房间进深（外墙到内墙）',min:3,max:10,step:0.5,get:
 function buildClim(){
   // 只建一次按钮，之后 updateClim() 只改状态，键盘焦点不会丢失
   const seg=document.getElementById('climSeg');
-  seg.innerHTML=Object.keys(CLIM).map(k=>`<button type="button" data-k="${k}">${CLIM[k].label}</button>`).join('');
+  // Version_05：按钮只用短标签（CLIM 数据不变；完整标签仍用于说明与基准显示）
+  const CLIM_SHORT={apNow:'机场站',hbNow:'港口站',f2080:'2080 年'};
+  seg.innerHTML=Object.keys(CLIM).map(k=>`<button type="button" data-k="${k}" title="${CLIM[k].label}">${CLIM_SHORT[k]||CLIM[k].label}</button>`).join('');
   seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>setClim(b.dataset.k)));
 }
 function setClim(k){
@@ -552,12 +627,15 @@ function updateGridLegend(G){
 function buildZoning(){
   const host=document.getElementById('zoning');
   slider(host,{label:'网格尺寸',min:0.5,max:2,step:0.5,get:()=>S.grid,set:v=>S.grid=v,fmt:v=>v.toFixed(1)+' m'});
-  const row=document.createElement('div');row.className='optrow';
-  row.innerHTML=`<label>平面图层</label><div class="seg small five" role="group" aria-label="平面图层" id="layerSeg">${Object.keys(LAYERS).map(k=>`<button type="button" data-v="${k}">${LAYERS[k].label}</button>`).join('')}</div>`;
-  row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{S.layer=b.dataset.v;render();}));
-  host.appendChild(row);
+  // Version_05：图层按钮挂在「室内分区」面板右列的 #layerSeg（HTML 里已有），侧栏只留网格尺寸和占比信息
+  const seg=document.getElementById('layerSeg');
+  seg.innerHTML=Object.keys(LAYERS).map(k=>`<button type="button" data-v="${k}">${LAYERS[k].label}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{S.layer=b.dataset.v;render();}));
   const info=document.createElement('p');info.className='zoneinfo';info.id='zoneInfo';host.appendChild(info);
+  // 设计建议筛选（Version_05）
+  document.querySelectorAll('#tipFilter button').forEach(b=>b.addEventListener('click',()=>{S.tipFilter=b.dataset.v;render();}));
 }
+function updateTipFilter(){document.querySelectorAll('#tipFilter button').forEach(b=>{const on=b.dataset.v===S.tipFilter;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1;});}
 function updateZoning(){
   document.querySelectorAll('#layerSeg button').forEach(b=>{const on=b.dataset.v===S.layer;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
   const info=document.getElementById('zoneInfo');
@@ -702,14 +780,24 @@ function zoningAdvice(R){
 }
 function adoptAdvice(a){   // 只改该立面的一个参数并同步滑块，然后正常重算；不会自动执行其它建议
   Object.keys(a.ov).forEach(fld=>{S.f[a.k][fld]=a.ov[fld];if(facSync[a.k]&&facSync[a.k][fld])facSync[a.k][fld].sync();});
+  S.sel=a.k;   // Version_05：切到被修改的立面标签，让用户看到滑块变化
   render();
 }
 function renderAdvice(R){
+  // Version_05：合并「分区建议」与「设计提示」为一个列表。可采纳项在前；同一立面上，与可采纳项问题类别相同或动作相同的提示被去掉；
+  // 筛选「仅所选立面」时显示该立面的条目和无立面的全局提示。ADVICE 仍只存可采纳项（自检用）。
   ADVICE=zoningAdvice(R);
-  const ul=document.getElementById('advice');
-  if(!CFG){ul.innerHTML='<li style="--c:var(--muted)"><span>未加载 zoning-config.js，无法生成建议。</span></li>';return;}
-  if(!ADVICE.length){ul.innerHTML='<li style="--c:var(--good)"><span>各立面的窗与其后面的功能目前没有明显矛盾。</span></li>';return;}
-  ul.innerHTML=ADVICE.map((a,i)=>`<li style="--c:var(${a.p===0?'--heat':a.p===1?'--day':'--cold'})"><span>${a.text}<small>预计：${a.eff}</small></span><button type="button" class="adopt" data-i="${i}">采纳</button></li>`).join('');
+  TIPS_RAW=renderTips(R).map(tagTip);
+  const adv=ADVICE.map(a=>Object.assign({},a,adviceTopic(a)));
+  TIPS_DROPPED=[];
+  const tips=TIPS_RAW.filter(t=>{const dup=!!t.k&&adv.some(a=>a.k===t.k&&(a.topic===t.topic||(!!t.action&&a.action===t.action)));if(dup)TIPS_DROPPED.push(t);return !dup;});
+  const show=x=>S.tipFilter==='all'||x.k==null||x.k===S.sel;
+  const ul=document.getElementById('advice');let html='';
+  if(!CFG) html+='<li class="tip" style="--c:var(--muted)"><span>未加载 zoning-config.js，无法生成分区建议。</span></li>';
+  adv.forEach((a,i)=>{if(!show(a))return;html+=`<li data-k="${a.k}" data-topic="${a.topic}" style="--c:var(${a.p===0?'--heat':a.p===1?'--day':'--cold'})"><span>${a.text}<small>预计：${a.eff}</small></span><button type="button" class="adopt" data-i="${i}" aria-label="采纳：${facName(a.k)}">采纳</button></li>`;});
+  tips.filter(show).forEach(t=>{html+=`<li class="tip" data-k="${t.k||''}" data-topic="${t.topic}" style="--c:var(${t.c})"><span>${t.t}</span></li>`;});
+  if(!html) html=`<li class="tip" style="--c:var(--good)"><span>${S.tipFilter==='sel'?'所选立面目前没有建议或提示。':'各立面的窗与其后面的功能目前没有明显矛盾。'}</span></li>`;
+  ul.innerHTML=html;
   ul.querySelectorAll('.adopt').forEach(b=>b.addEventListener('click',()=>adoptAdvice(ADVICE[+b.dataset.i])));
 }
 
@@ -728,13 +816,24 @@ function updateCool(){
   const T={mass:MASS,vent:VENT};document.querySelectorAll('#cool .hint').forEach(h=>{const k=h.dataset.hint;h.textContent='· '+(T[k][S[k]].hint||'');});
 }
 
-const facEls={}, facSync={};
+// Version_05：各立面改为标签页。四个滑块面板保留（facSync 不变），同一时间只显示 S.sel 对应的那个；
+// 标签只建一次，之后 updateFacTabs() 只改属性和文字，键盘焦点不会丢失。←/→ 切换并立即选中，Home/End 到首尾。
+const facEls={}, facSync={}, facTabs={};
+const tablist=document.createElement('div');tablist.className='tabs';tablist.setAttribute('role','tablist');tablist.setAttribute('aria-label','各立面');tablist.id='facTabs';
+facs.appendChild(tablist);
 KEYS.forEach(k=>{
-  const box=document.createElement('div');box.className='fac';box.tabIndex=0;
+  const tab=document.createElement('button');tab.type='button';tab.setAttribute('role','tab');tab.id='tab-'+k;tab.setAttribute('aria-controls','pane-'+k);
+  tab.innerHTML=`<span class="t-name"></span><span class="t-wwr"></span><span class="t-dot" hidden></span>`;
+  tab.addEventListener('click',()=>{S.sel=k;render();});
+  tab.addEventListener('keydown',e=>{const i=KEYS.indexOf(k);let j=null;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')j=(i+1)%KEYS.length;else if(e.key==='ArrowLeft'||e.key==='ArrowUp')j=(i+KEYS.length-1)%KEYS.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=KEYS.length-1;
+    if(j==null)return;e.preventDefault();S.sel=KEYS[j];render();facTabs[KEYS[j]].focus();});
+  facTabs[k]=tab;tablist.appendChild(tab);
+});
+KEYS.forEach(k=>{
+  const box=document.createElement('div');box.className='fac';box.setAttribute('role','tabpanel');box.id='pane-'+k;box.setAttribute('aria-labelledby','tab-'+k);
   box.innerHTML=`<div class="fac-h"><b></b><span></span></div>`;
   facEls[k]=box;
-  box.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){S.sel=k;render();}});
-  box.addEventListener('focusin',()=>{if(S.sel!==k){S.sel=k;render();}});
   facs.appendChild(box);
   // Version_04：保存滑块句柄，采纳建议后同步滑块显示（不改计算）
   facSync[k]={
@@ -775,13 +874,14 @@ function delta(cur,base,better,d){
 // ---------- Summary ----------
 function renderSummary(R){
   const o=R._;
+  // Version_05：竖排小卡（标签 / 数字 / 小注），≥1280 px 一行放下；文字与数字不变，体形系数排在基准之前
   document.getElementById('summary').innerHTML=`
-    <div><span>整体窗墙比</span><b>${Math.round(o.wwr*100)}%</b></div>
-    <div><span>平均采光系数</span><b>${f(o.DF,1)}%</b></div>
-    <div><span>窗户冬季净得失</span><b>${sg(o.net/1000,1)}</b><span>MWh/年</span></div>
-    <div><span>过热频率</span><b>${f(o.ovh,1)}%</b><span>室内 &gt;25 °C 小时占全年，判据 ≤${OVH_LIMIT}%</span></div>
-    ${baseline?`<div><span>基准</span><b style="font-size:14px">${CLIM[baseline._clim]?CLIM[baseline._clim].label:''}${baseline._clim!==S.clim?'（跨气候对比）':''}</b></div>`:''}
-    <div><span>体形系数</span><b>${f(o.AV,2)}</b></div>
+    <div class="stat"><span>整体窗墙比</span><b>${Math.round(o.wwr*100)}%</b></div>
+    <div class="stat"><span>平均采光系数</span><b>${f(o.DF,1)}%</b></div>
+    <div class="stat"><span>窗户冬季净得失</span><b>${sg(o.net/1000,1)}</b><span class="sub">MWh/年</span></div>
+    <div class="stat"><span>过热频率</span><b>${f(o.ovh,1)}%</b><span class="sub">室内 &gt;25 °C 小时占全年，判据 ≤${OVH_LIMIT}%</span></div>
+    <div class="stat"><span>体形系数</span><b>${f(o.AV,2)}</b></div>
+    ${baseline?`<div class="stat"><span>基准</span><b style="font-size:14px">${CLIM[baseline._clim]?CLIM[baseline._clim].label:''}${baseline._clim!==S.clim?'（跨气候对比）':''}</b></div>`:''}
     <div class="btns">${baseline?'<button id="clr">清除基准</button>':''}<button class="solid" id="setb">${baseline?'更新对比基准':'设为对比基准'}</button></div>`;
   document.getElementById('setb').onclick=()=>{const R2=calcAll();baseline={_clim:S.clim};KEYS.forEach(k=>{const r=R2[k];baseline[k]={DF:r.DF,lossPer:r.lossPer,netPer:r.netPer,hotPer:r.hotPer,ovh:r.ovh,wwr:r.wwrAct};});render();};
   const c=document.getElementById('clr'); if(c) c.onclick=()=>{baseline=null;render();};
@@ -838,8 +938,32 @@ function renderTips(R){
   });
   if(!T.length) add('--good','四个维度目前都在合理范围内。可以设为对比基准，再试试其他方案。',9);
   T.sort((a,b)=>a.p-b.p);
-  document.getElementById('tips').innerHTML=T.map(t=>`<li style="--c:var(${t.c})">${t.t}</li>`).join('');
+  return T;   // Version_05：只返回条目，由 renderAdvice() 合并、去重、筛选后写入 DOM（文字不变）
 }
+// Version_05：给每条提示标注立面 k、问题类别 topic、动作 action（按文字特征识别，规则见 PLAN_v05.md §4.2）。不改提示文字。
+function tagTip(t){
+  const m=t.t.match(/^(.+?立面)：/); const k=m?KEYS.find(x=>facName(x)===m[1])||null:null;
+  const s=t.t; let topic='other',action='';
+  if(/室内 >25 °C 约/.test(s)){topic='overheat';action=/挑檐加到/.test(s)?'overhang':(/减小窗墙比/.test(s)&&/太阳角度低/.test(s)?'shrink':'shade');}
+  else if(/允许开窗通风/.test(s)){topic='overheat-vent';action='vent';}
+  else if(/混凝土楼板露出来/.test(s)){topic='overheat-mass';action='mass';}
+  else if(/低于 2% 的基本要求/.test(s)){topic='daylight-low';action='enlarge';}
+  else if(/已明显超出需要/.test(s)){topic='daylight-high';action='shrink';}
+  else if(/每年净损失约/.test(s)){topic='loss';action='shrink';}
+  else if(/还有放大窗面积的余地/.test(s)){topic='opportunity';action='enlarge';}
+  else if(/窗间墙约/.test(s)){topic='uniformity';action='more-windows';}
+  else if(/窗框占/.test(s)){topic='frame';action='fewer-windows';}
+  else if(/挑檐让采光系数/.test(s)){topic='overhang-daylight';action='raise-head';}
+  else if(/放不下/.test(s)){topic='clamped';}
+  else if(/房间进深/.test(s)||/窗头高度已被限制/.test(s)){topic='global';}
+  return Object.assign({},t,{k,topic,action});
+}
+function adviceTopic(a){   // 可采纳建议的问题类别与动作
+  if(a.p===0) return {topic:'overheat',action:a.ov.oh!=null?'overhang':'shrink'};
+  if(a.p===1) return {topic:'daylight-low',action:'enlarge'};
+  return {topic:'loss',action:'shrink'};
+}
+let TIPS_RAW=[], TIPS_DROPPED=[];
 
 // ---------- Detail ----------
 function renderDetail(R){
@@ -882,7 +1006,7 @@ function renderPlan(R){
    const[x2,y2]=pt(0,158);g+=`<text x="${x2}" y="${y2}" text-anchor="middle" font-size="11" fill="var(--heat)" dy="10">夏至日出日落在北侧</text>`;}
   const E={S:[[-w/2,h/2],[w/2,h/2],[0,1]],N:[[w/2,-h/2],[-w/2,-h/2],[0,-1]],E:[[w/2,h/2],[w/2,-h/2],[1,0]],W:[[-w/2,-h/2],[-w/2,h/2],[-1,0]]};
   let b=`<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>`;
-  b+=gridSvg(GRID,s);   // 室内分区图层（在建筑矩形之上、窗线之下）
+  // Version_05：方格图层移到独立的「室内分区」面板（renderZonePlan），这里只保留日照方位与立面净得失
   const labels=[];
   KEYS.forEach(k=>{const r=R[k],[p0,p1,nv]=E[k],F=r.F;
     const L=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),ux=(p1[0]-p0[0])/L,uy=(p1[1]-p0[1])/L;
@@ -901,8 +1025,38 @@ function renderPlan(R){
   labels.forEach(([k,x,y])=>{const X=x*cr-y*sr,Y=x*sr+y*cr;lab+=`<text x="${X}" y="${Y}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="${k===S.sel?700:500}" fill="var(--ink)" pointer-events="none">${dirName(facAz(k))}</text>`;});
   svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+lab;
   svg.querySelectorAll('.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}});});
-  // 室内分区：点击格子显示条件值、各功能分数和解释；再点同一格取消
+}
+
+// ---------- 室内分区面板（Version_05）----------
+// 独立的大比例楼层平面：建筑随朝向旋转（与日照图一致），viewBox 按对角线留足空间；四边外侧标注立面名称与方位角（可点击选中立面）；
+// 方格着色沿用 gridSvg()；右下角小指北针固定朝上（建筑转、北不转）。只读 GRID / ZONES / S，不做任何计算。
+function renderZonePlan(R){
+  const svg=document.getElementById('zonePlan'); if(!GRID){svg.innerHTML='';return;}
+  const diag=Math.hypot(S.L,S.W), pad=2.2, V=diag+2*pad, s=1;   // 单位：m
+  svg.setAttribute('viewBox',`${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
+  const w=S.L, h=S.W;
+  let b=`<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" fill="var(--panel)" stroke="var(--ink)" stroke-width="0.12"/>`;
+  b+=gridSvg(GRID,s).replace(/stroke-width="[^"]*"/g,m=>m.replace(/[\d.]+/,x=>(+x*0.06).toFixed(3)));
+  // 窗线（与日照图相同的几何）
+  const E={S:[[-w/2,h/2],[w/2,h/2],[0,1]],N:[[w/2,-h/2],[-w/2,-h/2],[0,-1]],E:[[w/2,h/2],[w/2,-h/2],[1,0]],W:[[-w/2,-h/2],[-w/2,h/2],[-1,0]]};
+  const labels=[];
+  KEYS.forEach(k=>{const r=R[k],[p0,p1,nv]=E[k];const L=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),ux=(p1[0]-p0[0])/L,uy=(p1[1]-p0[1])/L;
+    if(r.has){for(let i=0;i<r.n;i++){const c=(i+.5)/r.n*L,hw=r.wi/2;const sx=p0[0]+ux*(c-hw),sy=p0[1]+uy*(c-hw),ex=p0[0]+ux*(c+hw),ey=p0[1]+uy*(c+hw);
+      b+=`<line x1="${sx.toFixed(2)}" y1="${sy.toFixed(2)}" x2="${ex.toFixed(2)}" y2="${ey.toFixed(2)}" stroke="var(--glass)" stroke-width="0.28"/>`;}}
+    if(k===S.sel) b+=`<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="var(--ink)" stroke-width="0.22"/>`;
+    labels.push([k,(p0[0]+p1[0])/2+nv[0]*1.0,(p0[1]+p1[1])/2+nv[1]*1.0]);
+  });
+  // 立面标签：随建筑旋转定位，但文字保持水平。字号按面板实际像素宽度换算，保证约 12 px（手机上不会缩成小字）
+  const pxPerM=(svg.clientWidth||700)/V, fs=Math.max(0.5,12/pxPerM), lw=fs*6.4, lh=fs*1.6;
+  let lab='';const cr=Math.cos(rad(S.rot)),sr=Math.sin(rad(S.rot));
+  labels.forEach(([k,x,y])=>{const X=x*cr-y*sr,Y=x*sr+y*cr,on=k===S.sel;
+    lab+=`<g class="flab" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}"><rect x="${(X-lw/2).toFixed(2)}" y="${(Y-lh/2).toFixed(2)}" width="${lw.toFixed(2)}" height="${lh.toFixed(2)}" rx="${(fs*0.3).toFixed(2)}" fill="var(--panel)" stroke="${on?'var(--ink)':'var(--line)'}" stroke-width="${(on?0.15:0.08)*fs}"/><text x="${X.toFixed(2)}" y="${Y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" font-size="${fs.toFixed(2)}" font-weight="${on?700:500}" fill="var(--ink)">${dirName(facAz(k))} ${Math.round(facAz(k))}° · ${Math.round(S.f[k].wwr*100)}%</text></g>`;});
+  // 指北针（固定朝上，建筑转、北不转）
+  const nr=fs*1.7, nx=V/2-nr-0.2, ny=V/2-nr-0.2;
+  const north=`<g transform="translate(${nx.toFixed(2)},${ny.toFixed(2)}) scale(${fs.toFixed(2)})"><circle r="1.7" fill="var(--panel)" stroke="var(--line)" stroke-width="0.1"/><path d="M0,-1.3 L0.55,0.7 L0,0.3 L-0.55,0.7 Z" fill="var(--ink)"/><text x="0" y="-1.85" text-anchor="middle" font-size="0.9" font-weight="700" fill="var(--ink)">北</text></g>`;
+  svg.innerHTML=`<g transform="rotate(${S.rot})">${b}</g>${lab}${north}`;
   svg.querySelectorAll('.cell').forEach(el=>el.addEventListener('click',()=>{const c=GRID.cells[+el.dataset.idx];S.cell=(S.cell&&S.cell.i===c.i&&S.cell.j===c.j)?null:{i:c.i,j:c.j};render();}));
+  svg.querySelectorAll('.flab').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}});});
 }
 
 // ---------- Section ----------
@@ -923,7 +1077,12 @@ function renderSection(R){
   if(r.has) o+=`<rect x="${X(0)}" y="${Y(0.85)}" width="${X(lim)-X(0)}" height="${Y(0)-Y(0.85)}" fill="url(#dl)"/>`;
   if(r.limit<D||!r.has){const st=r.has?lim:0;o+=`<rect x="${X(st)}" y="${Y(0.85)}" width="${X(D)-X(st)}" height="${Y(0)-Y(0.85)}" fill="url(#dark)"/>`;}
   // sun beams
-  function beam(p,d,color,alpha,label,word){
+  // Version_05：两条光线的角度标注太近（< 14 px）时，后画的「冬」标注下移 14 px（只动文字，不动光线）
+  const labelY=p=>{if(!r.has)return null;const t=Math.tan(rad(p));let topY=head;if(oh>0)topY=Math.min(head,head+0.05-oh*t);return topY<=sill+0.01?null:Y(topY+0.45);};
+  const yH=r.dH>=0.05?labelY(r.pH):null, yW=r.dW>=0.05?labelY(r.pW):null;
+  const dyW=(yH!=null&&yW!=null&&Math.abs(yH-yW)<14)?14:0;
+  function beam(p,d,color,alpha,label,word,dy){
+    dy=dy||0;
     if(!r.has||d<0.05) return '';
     const t=Math.tan(rad(p));let topY=head;
     if(oh>0){topY=Math.min(head,head+0.05-oh*t);}
@@ -936,13 +1095,13 @@ function renderSection(R){
     const back=ext;const oyT=topY+(back-0.4)*t,oyB=sill+(back-0.4)*t;
     q+=`<g clip-path="url(#clipOut)"><line x1="${X(-back)}" y1="${Y(oyT)}" x2="${X(x0)}" y2="${Y(topY)}" stroke="${color}" stroke-width="1.5"/><line x1="${X(-back)}" y1="${Y(oyB)}" x2="${X(x0)}" y2="${Y(sill)}" stroke="${color}" stroke-width="1.5" stroke-dasharray="4 3"/></g>`;
     const ly=topY+0.45,lx=x0-0.45/t;
-    q+=`<text x="${X(lx)-6}" y="${Y(ly)}" text-anchor="end" font-size="12" font-weight="700" fill="${color}">${label} ${Math.round(p)}°</text>`;
+    q+=`<text x="${X(lx)-6}" y="${Y(ly)+dy}" text-anchor="end" font-size="12" font-weight="700" fill="${color}">${label} ${Math.round(p)}°</text>`;
     const pen=te[1]===0?te[0]:D;
     q+=`<text x="${X(Math.min(pen,D))}" y="${Y(0)+0.25*s+(label==='冬'?15:30)}" text-anchor="${pen>D-0.8?'end':'middle'}" font-size="11" fill="${color}">${pen>=D-1e-9?word+'阳光照到内墙':word+'阳光照入 '+f(Math.max(0,pen),1)+' m'}</text>`;
     return q;
   }
   o+=beam(r.pH,r.dH,'var(--heat)',0.35,'高温','高温时段');
-  o+=beam(r.pW,r.dW,'var(--sun)',0.45,'冬','冬季');
+  o+=beam(r.pW,r.dW,'var(--sun)',0.45,'冬','冬季',dyW);
   if(r.has&&r.dW<0.05) o+=`<text x="${X(D/2)}" y="${Y(Hc-0.25)}" text-anchor="middle" font-size="11" fill="var(--muted)">冬季几乎没有直射光进入</text>`;
   // obstruction
   const mid=(sill+head)/2,to=Math.tan(rad(S.A.obs));
@@ -965,16 +1124,23 @@ function renderSection(R){
   svg.innerHTML=o;
 }
 
-function renderFacs(R){
-  KEYS.forEach(k=>{const el=facEls[k];el.classList.toggle('sel',k===S.sel);
-    el.querySelector('b').textContent=facName(k);el.querySelector('.fac-h span').textContent=Math.round(facAz(k))+'°';});
+function renderFacs(R){   // Version_05：更新标签页（名称、方位角、窗墙比、建议圆点、选中状态）和面板显示
+  KEYS.forEach(k=>{const el=facEls[k],tab=facTabs[k],on=k===S.sel,hasAdv=ADVICE.some(a=>a.k===k);
+    el.classList.toggle('sel',on);el.hidden=!on;
+    el.querySelector('b').textContent=facName(k);el.querySelector('.fac-h span').textContent=Math.round(facAz(k))+'°';
+    tab.querySelector('.t-name').textContent=`${dirName(facAz(k))} ${Math.round(facAz(k))}°`;
+    tab.querySelector('.t-wwr').textContent=Math.round(S.f[k].wwr*100)+'%';
+    tab.querySelector('.t-dot').hidden=!hasAdv;
+    tab.setAttribute('aria-selected',on);tab.tabIndex=on?0:-1;
+    tab.setAttribute('aria-label',`${facName(k)} ${Math.round(facAz(k))}°，窗墙比 ${Math.round(S.f[k].wwr*100)}%${hasAdv?'，有建议':''}`);});
 }
 
 function render(){
   const R=calcAll();
   GRID=gridConditions(R);   // 室内分区：只读 R，不改 R
   ZONES=CFG?assignZones(GRID,CFG):null;
-  updateClim();updateCool();updateZoning();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderTips(R);renderAdvice(R);renderDetail(R);renderFacs(R);
+  // Version_05：renderTips 只返回条目，由 renderAdvice 合并；renderZonePlan 画独立分区面板；renderFacs 更新标签页（需在 renderAdvice 之后，用到 ADVICE）
+  updateClim();updateCool();updateZoning();updateTipFilter();renderSummary(R);renderZonePlan(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderAdvice(R);renderDetail(R);renderFacs(R);
 }
 buildClim();buildCool();buildZoning();
 render();
@@ -1079,10 +1245,54 @@ window.wwrSelfTest=function(){
     S.clim=saveC.clim;S.A.Gt=saveC.Gt;render();
     const t0=performance.now();for(let i=0;i<5;i++)zoningAdvice(calcAll());console.log('zoningAdvice 平均耗时 ms',((performance.now()-t0)/5).toFixed(1));
   }
+  // ---- Version_05：界面自检（标签页同步、去重、采纳后切换、偏转后标签名、键盘）----
+  {
+    const save={sel:S.sel,rot:S.rot,f:JSON.parse(JSON.stringify(S.f)),filter:S.tipFilter};
+    const state=()=>{const tab=document.querySelector('#facTabs [aria-selected="true"]');const row=[...document.querySelectorAll('#tbody tr')].findIndex(tr=>tr.classList.contains('sel'));
+      return {tab:tab?tab.id.slice(4):null,row:row>=0?KEYS[row]:null,det:document.getElementById('detTitle').textContent,sec:document.getElementById('secTitle').textContent,plan:(document.querySelector('#zonePlan .flab rect[stroke="var(--ink)"]')||{}).parentNode};};
+    const consistent=k=>{const s=state();const pl=document.querySelector(`#zonePlan .flab[data-k="${k}"] rect`);return S.sel===k&&s.tab===k&&s.row===k&&s.det.startsWith(facName(k))&&s.sec.includes(facName(k))&&pl&&pl.getAttribute('stroke')==='var(--ink)';};
+    facTabs.E.click(); eq('点标签 E → 四处一致',consistent('E')?1:0,1);
+    document.querySelector('#plan .hit[data-k="W"]').dispatchEvent(new MouseEvent('click',{bubbles:true})); eq('点日照图 W 边 → 四处一致',consistent('W')?1:0,1);
+    document.querySelectorAll('#tbody tr')[KEYS.indexOf('N')].click(); eq('点表格 N 行 → 四处一致',consistent('N')?1:0,1);
+    document.querySelector('#zonePlan .flab[data-k="S"]').dispatchEvent(new MouseEvent('click',{bubbles:true})); eq('点分区面板 S 标签 → 四处一致',consistent('S')?1:0,1);
+    facTabs.S.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true})); eq('键盘 → 从 S 切到 E',S.sel==='E'?1:0,1);
+    facTabs.E.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true})); eq('键盘 Home 切到 S',S.sel==='S'?1:0,1);
+    S.rot=90; render(); eq('偏转 90°：S 标签名为「西 270°」',facTabs.S.querySelector('.t-name').textContent==='西 270°'?1:0,1); S.rot=save.rot; render();
+    // 去重：同一立面 + 同一问题类别只出现一次；被去掉的提示逐条记录
+    const keys=[...document.querySelectorAll('#advice li')].map(li=>li.dataset.k+'|'+li.dataset.topic).filter(x=>!x.startsWith('|')&&!x.startsWith('null|'));
+    eq('合并列表无重复（立面 + 问题类别）',new Set(keys).size===keys.length?1:0,1);
+    console.log('去重删掉的提示',TIPS_DROPPED.length,'条：',TIPS_DROPPED.map(t=>t.t).join(' ‖ '));
+    // 采纳其他立面的建议后切换标签
+    const other=ADVICE.find(a=>a.k!==S.sel);
+    if(other){const k=other.k,fld=Object.keys(other.ov)[0];adoptAdvice(other);eq('采纳其他立面建议 → 标签切到该立面',S.sel===k&&document.getElementById('tab-'+k).getAttribute('aria-selected')==='true'?1:0,1);
+      const inp=facEls[k].querySelectorAll('input[type=range]')[fld==='wwr'?0:fld==='n'?1:2];eq('采纳后滑块显示 = 建议值',+inp.value,other.ov[fld],1e-9);
+      S.f=JSON.parse(JSON.stringify(save.f));KEYS.forEach(x=>Object.keys(facSync[x]).forEach(y=>facSync[x][y].sync()));}
+    // 筛选
+    S.tipFilter='sel';S.sel='N';render();const bad=[...document.querySelectorAll('#advice li')].some(li=>li.dataset.k&&li.dataset.k!=='N');eq('筛选「仅所选立面」只剩该立面与全局条目',bad?0:1,1);
+    S.tipFilter=save.filter;S.sel=save.sel;render();
+    eq('页面无横向滚动',document.documentElement.scrollWidth<=window.innerWidth+1?1:0,1);
+  }
   digest();
+  uiDigest(()=>TIPS_RAW.map(t=>t.t));
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
   return T;
 };
+// 界面文本摘要（只在自检时运行）：汇总行、指标表、四个立面详情、分区占比与格子标签、6 个固定格子的详情、可采纳建议、设计提示（去重前）。
+// 与 V04 的同名函数输出逐字符比对。
+function uiDigest(tipsFn){
+  const nz=s=>s.replace(/\s+/g,' ').trim();
+  const save={clim:S.clim,Gt:S.A.Gt,sel:S.sel,cell:S.cell};const out={};
+  ['apNow','hbNow','f2080'].forEach(c=>{S.clim=c;S.A.Gt=CLIM[c].Gt;S.cell=null;S.sel=save.sel;render();const o={};
+    o.summary=[...document.querySelectorAll('#summary b,#summary span')].map(e=>nz(e.textContent));
+    o.table=[...document.querySelectorAll('#tbody td')].map(e=>nz(e.textContent));
+    o.detail={};KEYS.forEach(k=>{S.sel=k;render();o.detail[k]=nz(document.getElementById('detail').textContent);});S.sel=save.sel;
+    o.zones=ZONES?{shares:ZONES.shares.map(x=>x.toFixed(6)),lab:Array.from(ZONES.lab).join('')}:null;
+    o.cells={};if(GRID&&ZONES){[[0,0],[GRID.nx-1,0],[0,GRID.ny-1],[GRID.nx-1,GRID.ny-1],[Math.floor(GRID.nx/2),GRID.ny-1],[Math.floor(GRID.nx/2),Math.floor(GRID.ny/2)]].forEach(([i,j])=>{S.cell={i,j};render();o.cells[i+','+j]=nz(document.getElementById('cellBox').textContent);});S.cell=null;}
+    render();o.advice=ADVICE.map(a=>a.k+'|'+nz(a.text)+'|'+nz(a.eff));o.tips=tipsFn().map(nz);
+    out[c]=o;});
+  S.clim=save.clim;S.A.Gt=save.Gt;S.sel=save.sel;S.cell=save.cell;render();
+  const s=JSON.stringify(out);window.__uiDigest=s;window.__ui=out;console.log('UIDIGEST_LEN',s.length);
+}
 if(location.search.indexOf('test=1')>=0) window.wwrSelfTest();
 // 数值摘要：默认方案 × 三组气候 × 两组预设的全部 calc() 结果，用于比对 V02 / V03 原有数值是否完全一致
 function digest(){

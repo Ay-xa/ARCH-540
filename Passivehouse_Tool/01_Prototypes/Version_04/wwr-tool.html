@@ -1080,9 +1080,26 @@ window.wwrSelfTest=function(){
     const t0=performance.now();for(let i=0;i<5;i++)zoningAdvice(calcAll());console.log('zoningAdvice 平均耗时 ms',((performance.now()-t0)/5).toFixed(1));
   }
   digest();
+  uiDigest(()=>[...document.querySelectorAll('#tips li')].map(e=>e.textContent));
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
   return T;
 };
+// 界面文本摘要（只在自检时运行）：汇总行、指标表、四个立面详情、分区占比与格子标签、6 个固定格子的详情、可采纳建议、设计提示。
+// 用于 V04 / V05 界面改版后的逐字符比对。tipsFn 由各版本提供去重前的提示文本。
+function uiDigest(tipsFn){
+  const nz=s=>s.replace(/\s+/g,' ').trim();
+  const save={clim:S.clim,Gt:S.A.Gt,sel:S.sel,cell:S.cell};const out={};
+  ['apNow','hbNow','f2080'].forEach(c=>{S.clim=c;S.A.Gt=CLIM[c].Gt;S.cell=null;S.sel=save.sel;render();const o={};
+    o.summary=[...document.querySelectorAll('#summary b,#summary span')].map(e=>nz(e.textContent));
+    o.table=[...document.querySelectorAll('#tbody td')].map(e=>nz(e.textContent));
+    o.detail={};KEYS.forEach(k=>{S.sel=k;render();o.detail[k]=nz(document.getElementById('detail').textContent);});S.sel=save.sel;
+    o.zones=ZONES?{shares:ZONES.shares.map(x=>x.toFixed(6)),lab:Array.from(ZONES.lab).join('')}:null;
+    o.cells={};if(GRID&&ZONES){[[0,0],[GRID.nx-1,0],[0,GRID.ny-1],[GRID.nx-1,GRID.ny-1],[Math.floor(GRID.nx/2),GRID.ny-1],[Math.floor(GRID.nx/2),Math.floor(GRID.ny/2)]].forEach(([i,j])=>{S.cell={i,j};render();o.cells[i+','+j]=nz(document.getElementById('cellBox').textContent);});S.cell=null;}
+    render();o.advice=ADVICE.map(a=>a.k+'|'+nz(a.text)+'|'+nz(a.eff));o.tips=tipsFn().map(nz);
+    out[c]=o;});
+  S.clim=save.clim;S.A.Gt=save.Gt;S.sel=save.sel;S.cell=save.cell;render();
+  const s=JSON.stringify(out);window.__uiDigest=s;window.__ui=out;console.log('UIDIGEST_LEN',s.length);
+}
 if(location.search.indexOf('test=1')>=0) window.wwrSelfTest();
 // 数值摘要：默认方案 × 三组气候 × 两组预设的全部 calc() 结果，用于比对 V02 / V03 原有数值是否完全一致
 function digest(){
