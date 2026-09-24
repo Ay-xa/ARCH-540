@@ -690,8 +690,8 @@ function render(){
 buildClim();buildCool();
 render();
 
-// ---------- 自检：URL 加 ?test=1 后在控制台查看 ----------
-if(location.search.indexOf('test=1')>=0){
+// ---------- 自检：URL 加 ?test=1，或在控制台运行 wwrSelfTest() ----------
+window.wwrSelfTest=function(){
   const T=[],eq=(n,a,b,tol=1e-9)=>T.push({test:n,got:+(+a).toFixed(3),want:b,ok:Math.abs(a-b)<=tol});
   eq('ovhScore(0)=100',ovhScore(0),100); eq('ovhScore(5)=50',ovhScore(OVH_GOOD),50); eq('ovhScore(10)=0',ovhScore(OVH_LIMIT),0); eq('ovhScore(20)=0 不为负',ovhScore(20),0);
   // 模拟手算：人造气象——全年室外恒 30 °C、无太阳、无内部得热 → 室内趋于 30 °C，>25 °C 小时接近全年
@@ -710,7 +710,20 @@ if(location.search.indexOf('test=1')>=0){
   // 手算：南立面无挑檐时 Qhot = AgT·g·0.8·GH(方位)（fsH=1）
   const r1=calc('S',{oh:0}); eq('南立面 Qhot 手算',r1.Qhot,r1.AgT*S.A.g*0.8*interpN(CL().GH,facAz('S')),1e-6);
   eq('hotPer=Qhot/房间面积',r1.hotPer,r1.Qhot/(facLen('S')*S.depth*S.floors),1e-9);
+  digest();
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
+  return T;
+};
+if(location.search.indexOf('test=1')>=0) window.wwrSelfTest();
+// 数值摘要：默认方案 × 三组气候 × 两组预设的全部 calc() 结果，用于比对 V02 / V03 原有数值是否完全一致（只在 ?test=1 时运行）
+function digest(){
+  const save={clim:S.clim,Gt:S.A.Gt,GtManual:S.GtManual,mass:S.mass,vent:S.vent}; const out={};
+  [['apNow','mid','win'],['hbNow','mid','win'],['f2080','mid','win'],['apNow','light','cross'],['hbNow','light','cross'],['f2080','light','cross']].forEach(([c,m,v])=>{
+    S.clim=c; S.A.Gt=CLIM[c].Gt; S.mass=m; S.vent=v; const R=calcAll(); const o={};
+    KEYS.forEach(k=>{const r=R[k],row={};Object.keys(r).forEach(key=>{const x=r[key];if(typeof x==='number'||typeof x==='boolean')row[key]=x;else if(key==='sc'||key==='sim'||key==='F')row[key]=x;});o[k]=row;});
+    o._=R._; out[`${c}|${m}|${v}`]=o;});
+  S.clim=save.clim; S.mass=save.mass; S.vent=save.vent; S.GtManual=save.GtManual; S.A.Gt=save.Gt;
+  const s=JSON.stringify(out); window.__digest=s; console.log('DIGEST_LEN',s.length);
 }
 })();
 </script>
