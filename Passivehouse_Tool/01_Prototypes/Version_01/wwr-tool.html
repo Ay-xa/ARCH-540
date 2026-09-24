@@ -45,6 +45,12 @@ header p{margin:0;color:var(--muted);max-width:62ch}
 .row label{font-size:13px;color:var(--muted)}
 .row output{font-family:var(--num);font-size:16px;font-weight:500;min-width:4.5em;text-align:right}
 .row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink);margin:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 6px;font-size:13px;background:transparent}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.climinfo{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5}
+.climinfo b{font-family:var(--num);font-weight:600;color:var(--ink);font-size:13px}
 .fac{border-top:1px solid var(--line2);padding-top:8px;margin-top:10px;cursor:pointer}
 .fac-h{display:flex;justify-content:space-between;align-items:baseline}
 .fac-h b{font-size:14px}
@@ -101,11 +107,14 @@ tbody tr:last-child td{border-bottom:none}
 <body>
 <header>
   <h1>窗墙比推敲器</h1>
-  <p>拖动任一立面的窗墙比、窗数或挑檐，同时看到采光、热损失、冬季得热和夏季过热四个结果。按温哥华气候做概念阶段估算。</p>
+  <p>拖动任一立面的窗墙比、窗数或挑檐，同时看到采光、热损失、冬季得热和夏季过热四个结果。按温哥华逐小时气象数据做概念阶段估算，可在当下气候和 2080 年预测之间切换。</p>
 </header>
 
 <div class="app">
   <aside class="controls" aria-label="设计参数">
+    <h2>气候数据</h2>
+    <div class="seg" id="climSeg" role="group" aria-label="选择气候数据"></div>
+    <p class="climinfo" id="climInfo"></p>
     <h2>体块</h2>
     <div id="bldg"></div>
     <h2>窗与房间</h2>
@@ -115,7 +124,7 @@ tbody tr:last-child td{border-bottom:none}
     <details>
       <summary>计算假设</summary>
       <div class="assump" id="assump"></div>
-      <p class="note" style="margin-top:8px">默认值为被动房级三玻窗和高性能外墙的典型值。温哥华辐射和采暖度时数为近似值，以后接入 PHPP 气候数据时替换。</p>
+      <p class="note" style="margin-top:8px">默认值为被动房级三玻窗和高性能外墙的典型值。各朝向太阳辐射和采暖度时数由上方所选 EPW 气象文件逐小时累加得出（每 15° 一个朝向）。采暖度时数按 10 至 4 月、室内 20 °C 计，切换气候时会自动更新，也可手动改。</p>
     </details>
   </aside>
 
@@ -172,7 +181,7 @@ tbody tr:last-child td{border-bottom:none}
     </div>
 
     <p class="note">
-      采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。夏季得热为 6 至 8 月透过窗户的太阳辐射，按该侧进深范围的房间面积折算。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。
+      采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。夏季得热为 6 至 8 月透过窗户的太阳辐射，按该侧进深范围的房间面积折算。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。注意两组气象数据来自不同气象站（温哥华港与温哥华国际机场），且 2080 年文件只移位了气温类变量，太阳辐射并未按未来预测调整，因此两者之间辐射的差异反映的是站点差异而非气候变化。
     </p>
   </main>
 </div>
@@ -180,21 +189,38 @@ tbody tr:last-child td{border-bottom:none}
 <script>
 (function(){
 "use strict";
-// ---------- Climate (Vancouver, approximate) — index 0=N,45=NE,...,315=NW ----------
-const GW=[90,105,185,300,380,300,185,105];   // heating season (Oct–Apr) vertical irradiance kWh/m²
-const GS=[140,230,350,320,290,340,370,240];  // summer (Jun–Aug) kWh/m²
-const DW=[0,0.1,0.35,0.45,0.5,0.45,0.35,0.1]; // direct share, winter
-const DS=[0.2,0.5,0.65,0.65,0.65,0.65,0.65,0.5];
-const PW=[30,25,18,22,20,22,18,25];          // effective profile angle, winter (deg)
-const PS=[40,30,32,45,60,45,32,30];          // effective profile angle, summer
+// ---------- Climate: derived from EPW hourly weather files ----------
+// 24 entries per array = vertical facade azimuth 0°,15°,…,345° (0=N, 90=E, 180=S, 270=W).
+// GW/GS: heating season (Oct–Apr) / summer (Jun–Aug) irradiance on a vertical surface, kWh/m² (isotropic sky, albedo 0.2).
+// DW/DS: share of that irradiance that is direct beam. PW/PS: beam-weighted profile angle, deg.
+// Gt: heating degree hours Oct–Apr, base 20 °C, kKh/a. h25/h28: hours per year above 25/28 °C.
+const CLIM={
+  now:{label:'当下',note:'TMYx 2009–2023 典型年，温哥华港 Harbour CS 站（Climate.OneBuilding.org）',station:'Vancouver.Harbour.CS',lat:49.29528,lon:-123.1219,Gt:69.3,
+    Tmean:10.6,Tsummer:18.1,Tmax:30.3,h25:95,h28:21,
+    GW:[125,126,132,145,166,197,237,283,333,384,433,472,494,496,477,442,395,342,288,237,193,160,140,129],
+    GS:[161,162,185,216,249,277,299,314,320,318,310,298,294,305,326,347,360,361,350,329,297,260,219,182],
+    DW:[0.01,0.02,0.06,0.14,0.25,0.37,0.48,0.56,0.63,0.68,0.71,0.74,0.75,0.75,0.74,0.72,0.69,0.64,0.57,0.48,0.36,0.22,0.11,0.04],
+    DS:[0.18,0.19,0.29,0.39,0.47,0.53,0.56,0.58,0.59,0.59,0.58,0.56,0.55,0.57,0.6,0.62,0.64,0.64,0.63,0.6,0.56,0.5,0.4,0.28],
+    PW:[42,50,44,41,39,36,35,34,33,32,31,30,30,29,29,28,28,28,29,30,32,34,36,39],
+    PS:[39,43,41,39,38,38,38,40,43,48,54,60,62,60,53,45,40,36,33,32,32,32,33,34]},
+  f2080:{label:'2080 年预测',note:'CWEC2020 温哥华国际机场站，按 SSP5-8.5 情景移位到 2080 年代（PCIC）。只有气温、湿度、气压被移位，太阳辐射保持 CWEC2020 原值',station:'VANCOUVER INTL A',lat:49.19,lon:-123.18,Gt:46.2,
+    Tmean:15.3,Tsummer:23.1,Tmax:31.6,h25:751,h28:195,
+    GW:[148,148,151,159,173,195,225,260,298,338,378,410,431,437,426,401,366,326,284,244,207,180,162,152],
+    GS:[185,182,192,210,230,249,267,281,291,298,302,305,312,327,347,363,371,369,357,336,306,273,237,206],
+    DW:[0.01,0.01,0.03,0.07,0.15,0.25,0.35,0.44,0.51,0.57,0.61,0.64,0.66,0.66,0.66,0.63,0.6,0.55,0.48,0.4,0.29,0.18,0.09,0.03],
+    DS:[0.09,0.07,0.12,0.2,0.27,0.32,0.37,0.4,0.42,0.43,0.44,0.45,0.46,0.48,0.51,0.54,0.55,0.54,0.53,0.5,0.45,0.38,0.29,0.18],
+    PW:[36,56,50,46,43,39,37,35,34,33,32,32,31,30,29,29,29,29,30,31,32,33,35,38],
+    PS:[42,49,48,45,44,43,44,45,48,52,56,61,63,60,54,47,42,38,36,35,34,35,36,37]}
+};
 const DIRS=['北','东北','东','东南','南','西南','西','西北'];
 
 const S={
+  clim:'now',
   L:20, W:12, floors:3, H:3.0, rot:0,
   sill:0.6, head:2.4, depth:5,
   sel:'S',
   f:{ S:{wwr:.40,n:4,oh:0}, E:{wwr:.20,n:2,oh:0}, N:{wwr:.15,n:2,oh:0}, W:{wwr:.30,n:2,oh:0} },
-  A:{Gt:65, Ug:.60, Uf:.80, psig:.035, fw:.11, g:.50, vt:.65, Uwall:.12, psiI:.04, obs:15}
+  A:{Gt:CLIM.now.Gt, Ug:.60, Uf:.80, psig:.035, fw:.11, g:.50, vt:.65, Uwall:.12, psiI:.04, obs:15}
 };
 let baseline=null;
 const KEYS=['S','E','N','W'];
@@ -204,7 +230,8 @@ const rad=d=>d*Math.PI/180;
 const norm=a=>((a%360)+360)%360;
 const f=(x,d=1)=>(x==null||!isFinite(x))?'—':x.toFixed(d);
 const sg=(x,d=0)=>(x==null||!isFinite(x))?'—':(x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d);
-function interp8(arr,az){az=norm(az);const i=Math.floor(az/45),t=(az-i*45)/45;return arr[i%8]*(1-t)+arr[(i+1)%8]*t;}
+function interpN(arr,az){const n=arr.length,st=360/n;az=norm(az);const i=Math.floor(az/st),t=(az-i*st)/st;return arr[i%n]*(1-t)+arr[(i+1)%n]*t;}
+function CL(){return CLIM[S.clim];}
 function facAz(k){return norm({S:180,E:90,N:0,W:270}[k]+S.rot);}
 function facLen(k){return (k==='S'||k==='N')?S.L:S.W;}
 function dirName(az){return DIRS[Math.round(norm(az)/45)%8];}
@@ -223,7 +250,7 @@ function calc(k,ov){
   const frameFrac=has?Af1/Aw1:0, P1=2*(wi+hw), N=n*S.floors;
   const AwT=has?Aw1*N:0, AgT=has?Ag1*N:0, PT=has?P1*N:0;
   const wwrAct=AwT/(len*H*S.floors);
-  const Gw=interp8(GW,az),Gs=interp8(GS,az),dW=interp8(DW,az),dS=interp8(DS,az),pW=interp8(PW,az),pS=interp8(PS,az);
+  const c=CL(),Gw=interpN(c.GW,az),Gs=interpN(c.GS,az),dW=interpN(c.DW,az),dS=interpN(c.DS,az),pW=interpN(c.PW,az),pS=interpN(c.PS,az);
   const shade=p=>F.oh>0?clamp((F.oh*Math.tan(rad(p))-0.05)/hw,0,1):0;
   const shW=shade(pW), shS=shade(pS), fsW=1-dW*shW, fsS=1-dS*shS;
   const Qgain=AgT*A.g*0.8*Gw*fsW*0.9;
@@ -275,6 +302,14 @@ slider(bldg,{label:'朝向偏转',min:-90,max:90,step:5,get:()=>S.rot,set:v=>S.r
 slider(win,{label:'窗台高度',min:0,max:1.2,step:0.05,get:()=>S.sill,set:v=>S.sill=v,fmt:v=>v.toFixed(2)+' m'});
 slider(win,{label:'窗头高度',min:1.8,max:3.9,step:0.05,get:()=>S.head,set:v=>S.head=v,fmt:v=>v.toFixed(2)+' m'});
 slider(win,{label:'房间进深（外墙到内墙）',min:3,max:10,step:0.5,get:()=>S.depth,set:v=>S.depth=v,fmt:v=>v.toFixed(1)+' m'});
+
+// ---------- Climate toggle ----------
+function renderClim(){
+  const seg=document.getElementById('climSeg'),info=document.getElementById('climInfo'),c=CL();
+  seg.innerHTML=Object.keys(CLIM).map(k=>`<button type="button" data-k="${k}" class="${k===S.clim?'on':''}" aria-pressed="${k===S.clim}">${CLIM[k].label}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.clim=b.dataset.k;S.A.Gt=CL().Gt;const gi=document.getElementById('a_Gt');if(gi)gi.value=S.A.Gt;render();});
+  info.innerHTML=`${c.note}。<br>年均气温 <b>${c.Tmean}</b> °C，夏季（6–8 月）均温 <b>${c.Tsummer}</b> °C，全年超过 25 °C <b>${c.h25}</b> 小时，采暖度时数 <b>${c.Gt}</b> kKh/a。`;
+}
 
 const facEls={};
 KEYS.forEach(k=>{
@@ -409,12 +444,13 @@ function renderPlan(R){
   const s=205/Math.hypot(S.L,S.W), w=S.L*s, h=S.W*s;
   const pt=(a,r)=>[r*Math.sin(rad(a)),-r*Math.cos(rad(a))];
   const arc=(a1,a2,r)=>{const[x1,y1]=pt(a1,r),[x2,y2]=pt(a2,r);return `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${(a2-a1)>180?1:0} 1 ${x2.toFixed(1)},${y2.toFixed(1)}`;};
+  const cosA=Math.sin(rad(23.44))/Math.cos(rad(CL().lat)), aS=Math.acos(clamp(cosA,-1,1))*180/Math.PI, aW=180-aS; // sunrise azimuth at summer / winter solstice
   let g=`<circle r="186" fill="none" stroke="var(--line)" stroke-width="1"/>`;
   for(let a=0;a<360;a+=15){const[x1,y1]=pt(a,186),[x2,y2]=pt(a,a%45?181:176);g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line)"/>`;}
   g+=`<text x="0" y="-190" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" dy="-2">北</text>`;
-  g+=`<path d="${arc(50,310,172)}" fill="none" stroke="var(--heat)" stroke-width="2" opacity=".7"/>`;
-  g+=`<path d="${arc(127,233,162)}" fill="none" stroke="var(--sun)" stroke-width="3"/>`;
-  [[50,'var(--heat)',172],[310,'var(--heat)',172],[127,'var(--sun)',162],[233,'var(--sun)',162]].forEach(([a,c,r])=>{const[x,y]=pt(a,r),[x2,y2]=pt(a,r-14);g+=`<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="2"/>`;});
+  g+=`<path d="${arc(aS,360-aS,172)}" fill="none" stroke="var(--heat)" stroke-width="2" opacity=".7"/>`;
+  g+=`<path d="${arc(aW,360-aW,162)}" fill="none" stroke="var(--sun)" stroke-width="3"/>`;
+  [[aS,'var(--heat)',172],[360-aS,'var(--heat)',172],[aW,'var(--sun)',162],[360-aW,'var(--sun)',162]].forEach(([a,c,r])=>{const[x,y]=pt(a,r),[x2,y2]=pt(a,r-14);g+=`<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="2"/>`;});
   {const[x,y]=pt(180,148);g+=`<text x="${x}" y="${y}" text-anchor="middle" font-size="11" fill="var(--sun)" dy="4">冬至</text>`;
    const[x2,y2]=pt(0,158);g+=`<text x="${x2}" y="${y2}" text-anchor="middle" font-size="11" fill="var(--heat)" dy="10">夏至日出日落在北侧</text>`;}
   const E={S:[[-w/2,h/2],[w/2,h/2],[0,1]],N:[[w/2,-h/2],[-w/2,-h/2],[0,-1]],E:[[w/2,h/2],[w/2,-h/2],[1,0]],W:[[-w/2,-h/2],[-w/2,h/2],[-1,0]]};
@@ -505,7 +541,7 @@ function renderFacs(R){
 
 function render(){
   const R=calcAll();
-  renderSummary(R);renderPlan(R);renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
+  renderClim();renderSummary(R);renderPlan(R);renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
 }
 render();
 })();
