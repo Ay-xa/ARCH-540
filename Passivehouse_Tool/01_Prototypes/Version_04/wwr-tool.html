@@ -126,6 +126,12 @@ tbody tr:last-child td{border-bottom:none}
 .cellbox .sc b{font-family:var(--num);font-weight:600;color:var(--ink);font-size:14px}
 .cellbox p{margin:4px 0 0;color:var(--ink);max-width:70ch}
 .banner{background:color-mix(in srgb,var(--heat) 12%,transparent);border:1px solid var(--heat);border-radius:4px;padding:6px 10px;font-size:12.5px;margin:0 0 8px}
+/* 分区建议（Version_04）：每条建议右侧有「采纳」按钮 */
+.advice li{display:flex;gap:12px;align-items:flex-start;max-width:none}
+.advice li>span{flex:1;max-width:90ch}
+.advice li small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.advice li button{flex:none;white-space:nowrap}
+.advice li.done{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -199,6 +205,12 @@ tbody tr:last-child td{border-bottom:none}
       </table>
     </div>
 
+    <section class="sheet" id="adviceSheet">
+      <h2>分区建议</h2>
+      <p class="cap">根据每个立面后面的主要功能，检查这面墙的窗是否合适。建议只显示，不会自动修改；点「采纳」才改动该立面的一个参数（等同于拖一次滑块），之后分区和建议会重算，但不会连锁执行任何建议。</p>
+      <ul class="tips advice" id="advice"></ul>
+    </section>
+
     <div class="lower">
       <section class="sheet">
         <h2>设计提示</h2>
@@ -212,7 +224,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <p class="note">
       采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。过热频率由每个立面房间的逐小时单节点热平衡模拟得出：热容 × 温度变化 = 太阳得热 + 内部得热 − 传热与通风散热，全年 8760 小时，统计室内高于 25 °C 的小时占比，对照被动房判据（≤10%，建议 ≤5%）。热质量三档和开窗通风换气次数为估计值；屋面按外墙 U 值、地面传热忽略；采暖季室温不低于 20 °C。“高温时段得热”（室外 >22 °C 小时的透入辐射）保留在详情面板作参考。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。三组气象数据中，机场站当下与 2080 年预测同源，太阳辐射完全相同，差异只反映气温变化；港口站与它们的差异混有站点和数据集方法的差异，不能直接当作气候变化解读。
-      室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。
+      室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。分区建议按每个立面房间带内的主导功能，用同一张配置表的区间判断这面窗是否过热、过暗或多余，建议的数值由试算得到；只有点「采纳」才会改动参数。
     </p>
   </main>
 </div>
@@ -646,6 +658,61 @@ function renderCell(){
     `<p>${explainCell(idx,ZONES,CFG)}</p>`;
 }
 
+// ---------- 室内分区 · 阶段 C：双向建议（Version_04，PLAN_zoning.md §8）----------
+// 看每个立面房间带内的主导功能，用配置表里该功能的曲线区间判断这面墙的窗是否合适。建议只显示；「采纳」只改该立面的一个参数。
+// 规则不写功能名称：overheat.dir==='down' 表示怕热的功能，daylight.dir==='up' 表示要光的功能，daylight.dir==='down' 表示不需要光的功能。
+let ADVICE=[];
+function stripDominant(G,Z,k){const cnt=new Array(CFG.functions.length).fill(0);let n=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){cnt[Z.lab[i]]++;n++;}});let b=0;for(let x=1;x<cnt.length;x++)if(cnt[x]>cnt[b])b=x;return {f:b,share:n?cnt[b]/n:0};}
+// 试算：只重算立面 k，其余立面沿用 R；返回该立面的新结果和新分区里它后面的主导功能
+function trial(R,k,ov){const r2=calc(k,ov);const R2=Object.assign({},R,{[k]:r2});const G2=gridConditions(R2);const Z2=assignZones(G2,CFG);return {r:r2,dom:stripDominant(G2,Z2,k)};}
+function zoningAdvice(R){
+  if(!CFG||!ZONES||!GRID) return [];
+  const out=[];
+  KEYS.forEach(k=>{const r=R[k],F=r.F,nm=facName(k);if(!r.has)return;
+    const d=stripDominant(GRID,ZONES,k),fn=CFG.functions[d.f],pct=Math.round(d.share*100);
+    const head=`${nm}：后面 ${pct}% 为${fn.label}。`;
+    const eff=t=>`过热频率 ${f(r.ovh,1)}% → ${f(t.r.ovh,1)}%，采光 ${f(r.DF,1)}% → ${f(t.r.DF,1)}%，冬季净得热 ${sg(r.netPer,0)} → ${sg(t.r.netPer,0)} kWh/m² 窗；采纳后该立面后 ${Math.round(t.dom.share*100)}% 为${CFG.functions[t.dom.f].label}`;
+    const isS=r.az>=135&&r.az<=225;
+    // 规则 1：怕热的功能 + 这面墙过热（高温时段得热超过该功能容忍区间的中点，或过热频率超过建议值）
+    //   南向：挑檐加 0.4 m（0.6–1.5 m）；东西向或挑檐已很深：窗墙比每次减 5%，直到高温时段得热低于容忍下限或窗墙比到 15%
+    const oh=fn.overheat;
+    if(oh&&oh.dir==='down'){const mid=(oh.lo+oh.hi)/2;
+      if(r.hotPer>mid||r.ovh>OVH_GOOD){
+        let ov=null;
+        if(isS&&F.oh<1.4) ov={oh:Math.min(1.5,Math.max(0.6,+(F.oh+0.4).toFixed(2)))};
+        else{let w=F.wwr,best=null;for(let i=0;i<8&&w>0.15+1e-9;i++){w=+(w-0.05).toFixed(2);const t=calc(k,{wwr:w});best={wwr:w,t};if(t.hotPer<=oh.lo)break;}if(best)ov={wwr:best.wwr};}
+        if(ov){const t=trial(R,k,ov);
+          if(t.r.ovh<r.ovh-0.05||t.r.hotPer<r.hotPer-0.05){
+            const act=ov.oh!=null?`挑檐加到 ${f(ov.oh,2)} m`:`窗墙比从 ${Math.round(F.wwr*100)}% 减到 ${Math.round(ov.wwr*100)}%${!isS?'（这个朝向太阳角度低，挑檐作用有限）':''}`;
+            const why=r.hotPer>mid?`这面墙高温时段得热 ${f(r.hotPer,1)} kWh/m²，超过${fn.label}容忍区间 ${oh.lo}–${oh.hi} 的中点，过热频率 ${f(r.ovh,1)}%`:`这面墙过热频率 ${f(r.ovh,1)}%，超过建议值 ${OVH_GOOD}%（${fn.label}怕热）`;
+            out.push({k,ov,p:0,text:`${head}${why}。建议${act}。`,eff:eff(t)});}}}}
+    // 规则 2：要光的功能 + 采光没到该功能的满分线 + 窗户冬季有净得热 → 窗墙比每次加 5%，直到达标、过热频率将超过建议值或到 60%
+    const dl=fn.daylight;
+    if(dl&&dl.dir==='up'&&r.DF<dl.hi&&r.netPer!=null&&r.netPer>0&&F.wwr<0.6-1e-9){
+      let w=F.wwr,best=null;for(let i=0;i<10&&w<0.6-1e-9;i++){w=+(w+0.05).toFixed(2);const t=calc(k,{wwr:w});if(t.ovh>OVH_GOOD)break;best={wwr:w,t};if(t.DF>=dl.hi)break;}
+      if(best){const t=trial(R,k,{wwr:best.wwr});
+        out.push({k,ov:{wwr:best.wwr},p:1,text:`${head}采光系数 ${f(r.DF,1)}%，${fn.label}要 ${dl.hi}% 才满分，而这面窗冬季净得热为正（+${f(r.netPer,0)} kWh/m² 窗）。建议窗墙比从 ${Math.round(F.wwr*100)}% 加到 ${Math.round(best.wwr*100)}%${best.t.DF<dl.hi?'（再大过热频率会超过 5%）':''}。`,eff:eff(t)});}}
+    // 规则 3：不需要光的功能 + 窗墙比 > 15% + 窗户冬季净失热 → 缩到 12%（保留基本采光）
+    if(dl&&dl.dir==='down'&&F.wwr>0.15+1e-9&&r.netPer!=null&&r.netPer<0){
+      const t=trial(R,k,{wwr:0.12});
+      out.push({k,ov:{wwr:0.12},p:2,text:`${head}${fn.label}不需要多少光，而这面窗每平方米每年净失热 ${f(-r.netPer,0)} kWh。建议窗墙比从 ${Math.round(F.wwr*100)}% 缩到 12%，窗户额外热损失从 ${f(r.Qloss,0)} 降到 ${f(t.r.Qloss,0)} kWh/年。`,eff:eff(t)});}
+  });
+  out.sort((a,b)=>a.p-b.p);
+  return out;
+}
+function adoptAdvice(a){   // 只改该立面的一个参数并同步滑块，然后正常重算；不会自动执行其它建议
+  Object.keys(a.ov).forEach(fld=>{S.f[a.k][fld]=a.ov[fld];if(facSync[a.k]&&facSync[a.k][fld])facSync[a.k][fld].sync();});
+  render();
+}
+function renderAdvice(R){
+  ADVICE=zoningAdvice(R);
+  const ul=document.getElementById('advice');
+  if(!CFG){ul.innerHTML='<li style="--c:var(--muted)"><span>未加载 zoning-config.js，无法生成建议。</span></li>';return;}
+  if(!ADVICE.length){ul.innerHTML='<li style="--c:var(--good)"><span>各立面的窗与其后面的功能目前没有明显矛盾。</span></li>';return;}
+  ul.innerHTML=ADVICE.map((a,i)=>`<li style="--c:var(${a.p===0?'--heat':a.p===1?'--day':'--cold'})"><span>${a.text}<small>预计：${a.eff}</small></span><button type="button" class="adopt" data-i="${i}">采纳</button></li>`).join('');
+  ul.querySelectorAll('.adopt').forEach(b=>b.addEventListener('click',()=>adoptAdvice(ADVICE[+b.dataset.i])));
+}
+
 // 夏季散热预设（热质量、开窗通风），只建一次
 function buildCool(){
   const host=document.getElementById('cool');
@@ -661,7 +728,7 @@ function updateCool(){
   const T={mass:MASS,vent:VENT};document.querySelectorAll('#cool .hint').forEach(h=>{const k=h.dataset.hint;h.textContent='· '+(T[k][S[k]].hint||'');});
 }
 
-const facEls={};
+const facEls={}, facSync={};
 KEYS.forEach(k=>{
   const box=document.createElement('div');box.className='fac';box.tabIndex=0;
   box.innerHTML=`<div class="fac-h"><b></b><span></span></div>`;
@@ -669,9 +736,12 @@ KEYS.forEach(k=>{
   box.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){S.sel=k;render();}});
   box.addEventListener('focusin',()=>{if(S.sel!==k){S.sel=k;render();}});
   facs.appendChild(box);
-  slider(box,{label:'窗墙比',min:0,max:0.7,step:0.01,get:()=>S.f[k].wwr,set:v=>S.f[k].wwr=v,fmt:v=>Math.round(v*100)+'%'});
-  slider(box,{label:'每层窗数（越多越分散）',min:1,max:10,step:1,get:()=>S.f[k].n,set:v=>S.f[k].n=v,fmt:v=>v+' 扇'});
-  slider(box,{label:'挑檐深度',min:0,max:1.5,step:0.05,get:()=>S.f[k].oh,set:v=>S.f[k].oh=v,fmt:v=>v===0?'无':v.toFixed(2)+' m'});
+  // Version_04：保存滑块句柄，采纳建议后同步滑块显示（不改计算）
+  facSync[k]={
+    wwr:slider(box,{label:'窗墙比',min:0,max:0.7,step:0.01,get:()=>S.f[k].wwr,set:v=>S.f[k].wwr=v,fmt:v=>Math.round(v*100)+'%'}),
+    n:slider(box,{label:'每层窗数（越多越分散）',min:1,max:10,step:1,get:()=>S.f[k].n,set:v=>S.f[k].n=v,fmt:v=>v+' 扇'}),
+    oh:slider(box,{label:'挑檐深度',min:0,max:1.5,step:0.05,get:()=>S.f[k].oh,set:v=>S.f[k].oh=v,fmt:v=>v===0?'无':v.toFixed(2)+' m'})
+  };
 });
 
 const AS=[
@@ -904,7 +974,7 @@ function render(){
   const R=calcAll();
   GRID=gridConditions(R);   // 室内分区：只读 R，不改 R
   ZONES=CFG?assignZones(GRID,CFG):null;
-  updateClim();updateCool();updateZoning();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
+  updateClim();updateCool();updateZoning();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderTips(R);renderAdvice(R);renderDetail(R);renderFacs(R);
 }
 buildClim();buildCool();buildZoning();
 render();
@@ -992,6 +1062,23 @@ window.wwrSelfTest=function(){
     }
     S.rot=save.rot;
   } else console.log('未加载 zoning-config.js，跳过阶段 B 自检');
+  // ---- 室内分区 · 阶段 C：建议自检（Version_04）----
+  if(CFG){
+    const snap=()=>JSON.stringify(S.f), s0=snap(), before=JSON.parse(s0);
+    render(); render(); eq('不自动应用：两次渲染后 S.f 不变',snap()===s0?1:0,1);
+    const A=ADVICE.slice(); console.log('机场站当下 建议',A.length,'条：',A.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
+    eq('默认方案（机场站当下）有针对西立面的建议',A.some(a=>a.k==='W')?1:0,1);
+    if(A.length){const a=A[0],fld=Object.keys(a.ov)[0];adoptAdvice(a);
+      eq('采纳生效：S.f[k][字段] = 建议值',S.f[a.k][fld],a.ov[fld],1e-9);
+      let others=true;KEYS.forEach(k=>Object.keys(S.f[k]).forEach(x=>{if(k===a.k&&x===fld)return;if(S.f[k][x]!==before[k][x])others=false;}));eq('采纳只改一个参数',others?1:0,1);
+      const s1=snap();render();eq('无连锁：采纳后再渲染 S.f 不变',snap()===s1?1:0,1);
+      S.f=JSON.parse(s0);KEYS.forEach(k=>Object.keys(facSync[k]).forEach(x=>facSync[k][x].sync()));render();}
+    const saveC={clim:S.clim,Gt:S.A.Gt}; S.clim='f2080';S.A.Gt=CLIM.f2080.Gt;render();
+    console.log('2080 年 建议',ADVICE.length,'条：',ADVICE.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
+    eq('2080 年有针对西立面的建议',ADVICE.some(a=>a.k==='W')?1:0,1);
+    S.clim=saveC.clim;S.A.Gt=saveC.Gt;render();
+    const t0=performance.now();for(let i=0;i<5;i++)zoningAdvice(calcAll());console.log('zoningAdvice 平均耗时 ms',((performance.now()-t0)/5).toFixed(1));
+  }
   digest();
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
   return T;
