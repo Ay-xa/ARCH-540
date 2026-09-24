@@ -132,3 +132,37 @@ Records are appended after each session. Most recent entry is at the bottom.
 - Open `Version_05/index.html` in Chrome, click a parcel, confirm auto-jump and slider fill work end-to-end.
 - Decide whether to verify BCBC table data (check Tables 3.2.3.1-B/C/D/E in BCBC 2024 PDF).
 
+
+---
+
+## 2026-09-24（含 09-23 深夜；被动房工具）
+
+**Completed**
+- 定位 `Passivehouse_Tool/01_Prototypes/Version_01/wwr-tool.html`（窗墙比推敲器），把手写的温哥华气候估算值替换为 EPW 逐小时累加结果，加「当下 / 2080」切换；提交并推送（f2f1aa6）。
+- 复制为 `Version_02`，写修改计划 `Version_02/PLAN_v02.md`，经用户确认后分两阶段实施：
+  - 第一阶段：下载并核对机场站 CWEC2020（LOCATION 与 2080 文件一致，三列辐射 8760 小时完全相同）；气候选项改为三个（机场站当下 = 默认、港口站当下、2080 年）；过热指标改为「高温时段得热」（室外 > 22 °C 小时的透入辐射）；修复气候按钮焦点丢失、采暖度时数被静默覆盖、基准未记录气候三个前端问题。
+  - 第二阶段：每个立面房间逐小时单节点热平衡模拟全年室内温度，输出室内 > 25 °C 小时占比，对照被动房判据（≤10%，建议 ≤5%）；新增热质量（轻/中/重）和开窗通风（不开窗/开窗/穿堂风）预设；「计算假设」新增内部得热、卫生换气、热回收效率。
+- 建立可复现的数据管线：`02_Data/EPW/`（三个 EPW + README 记录来源与核对）、`02_Data/clim.json`、`03_Scripts/epw_to_clim.py`（生成）、`inject_clim.py`（写入 HTML 标记区间）、`test_epw_to_clim.py`（15 项手算测试）；页面 `?test=1` 自检 16 项。
+- 全部提交并推送到 GitHub（最新 b727ed9）。Version_01 未改动。
+
+**Key decisions**
+- 高温阈值 22 °C（非 24）：当下样本量更大，2080 对比仍明显。第一阶段评分锚点 4/20 kWh/m² 为过渡刻度，已被第二阶段替换。
+- 机场站 CWEC2020（非 v2）作默认「当下」，因 2080 文件由它移位而来；界面明确只有机场站与 2080 之间的差异才纯粹是气候变化。
+- 手改采暖度时数后切换气候保留手动值并显示「恢复」；跨气候设基准允许但标注。
+- 数值来源分层：过热判据 10%/5% 与内部得热 2.1 W/m² 已在公开资料核对；热质量 30/50/75 Wh/(m²K)、开窗 2/4 次/h、卫生换气 0.3、热回收 0.75、屋面 U 按外墙 = 估计值，界面与代码注释均标明。
+- EPW 源文件从 Google Drive 复制进项目（约 4.8 MB），保证任何电脑可复现。
+
+**Current state**
+- `Version_02/wwr-tool.html`（363 KB，内嵌三组逐小时数据）可双击打开；默认方案在机场站当下南立面过热频率 10.3%（刚超判据），2080 年 31.7%。
+- `Version_01/wwr-tool.html` 保留为「季节总量 + 两气候」版本。
+- 一次完整渲染约 11 ms。
+
+**Unresolved**
+- 热质量三档、开窗换气次数等为估计值，若要用于正式汇报需对照 PHPP 手册 / ISO 13790 核实。
+- 模型局限：单节点不分空气与表面温度；房间只有一个外立面；无活动遮阳；地面传热忽略。
+- 港口站 TMYx 与机场站 CWEC2020 差异混有站点与数据集方法差异，不能当作气候变化解读。
+- 场地遮挡角仍是统一 15°，尚未与地块地图工具（Version_05）联动。
+
+**Next session: suggested starting point**
+- 在 Chrome 双击打开 `Version_02/wwr-tool.html`，切换三组气候和两组预设，检查设计提示是否符合直觉。
+- 候选方向：把过热频率画成逐月 / 逐时热力图；把地块地图的邻近建筑高度接进遮挡角；或对照 PHPP 手册核实热质量档位。
