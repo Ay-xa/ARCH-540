@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="zoning-config.js"></script><!-- 室内分区功能配置表（同目录）；换用途只换这个文件 -->
 <style>
 :root{
   --paper:#E9ECE8; --panel:#F6F7F4; --ink:#1E2A2F; --muted:#5B686D; --line:#C7CDCA; --line2:#DDE2DF;
@@ -114,6 +115,17 @@ tbody tr:last-child td{border-bottom:none}
 .gridleg{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:6px;min-height:18px}
 .gridleg .bar{display:inline-block;width:90px;height:10px;border-radius:2px;border:1px solid var(--line)}
 .gridleg b{font-family:var(--num);font-weight:600;color:var(--ink);font-size:13px}
+.gridleg .sw{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:-2px}
+.zoneinfo{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.6}
+.zoneinfo i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.zoneinfo b{font-family:var(--num);font-weight:600;color:var(--ink);font-size:13px}
+.cellbox{margin-top:8px;border-top:1px solid var(--line2);padding-top:8px;font-size:12.5px;color:var(--muted)}
+.cellbox .sc{display:grid;grid-template-columns:auto 1fr auto;gap:3px 8px;align-items:center;margin:4px 0}
+.cellbox .sc i{display:block;height:6px;border-radius:3px;background:var(--line2);position:relative}
+.cellbox .sc i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p);background:var(--c);border-radius:3px}
+.cellbox .sc b{font-family:var(--num);font-weight:600;color:var(--ink);font-size:14px}
+.cellbox p{margin:4px 0 0;color:var(--ink);max-width:70ch}
+.banner{background:color-mix(in srgb,var(--heat) 12%,transparent);border:1px solid var(--heat);border-radius:4px;padding:6px 10px;font-size:12.5px;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -153,6 +165,7 @@ tbody tr:last-child td{border-bottom:none}
         <p class="cap">点击立面查看剖面。外侧色带表示该立面窗户的冬季净得失。室内方格为侧栏所选的条件图层（标准层，随朝向一起转）。</p>
         <svg id="plan" viewBox="-200 -200 400 400" role="img" aria-label="建筑平面与冬夏太阳方位"></svg>
         <div class="gridleg" id="gridLeg"></div>
+        <div class="cellbox" id="cellBox" hidden></div>
         <div class="legend">
           <span><i style="background:var(--cold)"></i>窗户净失热</span>
           <span><i style="background:var(--sun)"></i>窗户净得热</span>
@@ -199,6 +212,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <p class="note">
       采光系数按 BRE 平均采光系数公式估算（全阴天）；有效采光进深取窗头高度的 2.5 倍。热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。过热频率由每个立面房间的逐小时单节点热平衡模拟得出：热容 × 温度变化 = 太阳得热 + 内部得热 − 传热与通风散热，全年 8760 小时，统计室内高于 25 °C 的小时占比，对照被动房判据（≤10%，建议 ≤5%）。热质量三档和开窗通风换气次数为估计值；屋面按外墙 U 值、地面传热忽略；采暖季室温不低于 20 °C。“高温时段得热”（室外 >22 °C 小时的透入辐射）保留在详情面板作参考。这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。三组气象数据中，机场站当下与 2080 年预测同源，太阳辐射完全相同，差异只反映气温变化；港口站与它们的差异混有站点和数据集方法的差异，不能直接当作气候变化解读。
+      室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。
     </p>
   </main>
 </div>
@@ -271,7 +285,7 @@ const DIRS=['北','东北','东','东南','南','西南','西','西北'];
 
 const S={
   clim:'apNow', GtManual:false, mass:'mid', vent:'win',
-  grid:1.0, layer:'none',            // 室内分区：网格尺寸 m、平面图层（none / DF / Wx / Hx）
+  grid:1.0, layer:'zone', cell:null, // 室内分区：网格尺寸 m、平面图层（none / DF / Wx / Hx / zone）、所选格子 {i,j}
   L:20, W:12, floors:3, H:3.0, rot:0,
   sill:0.6, head:2.4, depth:5,
   sel:'S',
@@ -498,31 +512,138 @@ function gridConditions(R){
 }
 const LAYERS={none:{label:'无'},DF:{label:'采光',unit:'采光系数 %',color:'var(--day)',key:'DF',dec:1},
   Wx:{label:'冬季得热',unit:'冬季太阳得热 kWh/m²·年',color:'var(--sun)',key:'Wx',dec:0},
-  Hx:{label:'夏季过热',unit:'高温时段透入辐射 kWh/m²·年',color:'var(--heat)',key:'Hx',dec:1}};
-let GRID=null;
-// 画当前图层：方格放进平面图的旋转组里，随建筑一起转；透明度按值 / 本层最大值
+  Hx:{label:'夏季过热',unit:'高温时段透入辐射 kWh/m²·年',color:'var(--heat)',key:'Hx',dec:1},
+  zone:{label:'分区',key:'zone'}};
+let GRID=null, ZONES=null;
+// 画当前图层：方格放进平面图的旋转组里，随建筑一起转；条件层透明度按值 / 本层最大值，分区层按功能上色。格子可点击。
 function gridSvg(G,s){
   const Lr=LAYERS[S.layer]; if(!Lr||!Lr.key||!G) return '';
-  const mx=G.max[Lr.key]||0; let o='';
-  G.cells.forEach(c=>{const v=c[Lr.key], a=mx>0?0.06+0.8*v/mx:0.06;
-    o+=`<rect x="${((c.x-c.gx/2)*s).toFixed(2)}" y="${((c.y-c.gy/2)*s).toFixed(2)}" width="${(c.gx*s).toFixed(2)}" height="${(c.gy*s).toFixed(2)}" fill="${Lr.color}" opacity="${a.toFixed(3)}" stroke="var(--paper)" stroke-width="0.4" pointer-events="none"/>`;});
+  const zone=Lr.key==='zone'; if(zone&&!ZONES) return '';
+  const mx=zone?0:(G.max[Lr.key]||0); let o='';
+  G.cells.forEach((c,idx)=>{
+    let fill,a; if(zone){fill=`var(${CFG.functions[ZONES.lab[idx]].color})`;a=0.55;}else{const v=c[Lr.key];fill=Lr.color;a=mx>0?0.06+0.8*v/mx:0.06;}
+    const sel=S.cell&&S.cell.i===c.i&&S.cell.j===c.j;
+    o+=`<rect class="cell" data-idx="${idx}" x="${((c.x-c.gx/2)*s).toFixed(2)}" y="${((c.y-c.gy/2)*s).toFixed(2)}" width="${(c.gx*s).toFixed(2)}" height="${(c.gy*s).toFixed(2)}" fill="${fill}" opacity="${a.toFixed(3)}" stroke="${sel?'var(--ink)':'var(--paper)'}" stroke-width="${sel?2:0.4}" style="cursor:pointer"/>`;});
   return o;
 }
 function updateGridLegend(G){
   const el=document.getElementById('gridLeg'), Lr=LAYERS[S.layer];
   if(!Lr||!Lr.key||!G){el.innerHTML='';return;}
-  el.innerHTML=`<span>${Lr.unit}</span><span>0</span><i class="bar" style="background:linear-gradient(90deg,color-mix(in srgb,${Lr.color} 6%,transparent),color-mix(in srgb,${Lr.color} 86%,transparent))"></i><b>${f(G.max[Lr.key],Lr.dec)}</b><span>网格 ${f(G.gx,2)} × ${f(G.gy,2)} m，${G.cells.length} 格</span>`;
+  const tail=`<span>网格 ${f(G.gx,2)} × ${f(G.gy,2)} m，${G.cells.length} 格</span>`;
+  if(Lr.key==='zone'){
+    if(!ZONES){el.innerHTML='<span class="warn">未加载功能配置表 zoning-config.js，无法分区</span>';return;}
+    el.innerHTML=CFG.functions.map((fn,i)=>`<span><i class="sw" style="background:color-mix(in srgb,var(${fn.color}) 55%,transparent)"></i>${fn.label} <b>${Math.round(ZONES.shares[i]*100)}%</b></span>`).join('')+(ZONES.areaOK?'':'<span class="warn">面积约束未完全满足</span>')+tail;
+    return;
+  }
+  el.innerHTML=`<span>${Lr.unit}</span><span>0</span><i class="bar" style="background:linear-gradient(90deg,color-mix(in srgb,${Lr.color} 6%,transparent),color-mix(in srgb,${Lr.color} 86%,transparent))"></i><b>${f(G.max[Lr.key],Lr.dec)}</b>${tail}`;
 }
 function buildZoning(){
   const host=document.getElementById('zoning');
   slider(host,{label:'网格尺寸',min:0.5,max:2,step:0.5,get:()=>S.grid,set:v=>S.grid=v,fmt:v=>v.toFixed(1)+' m'});
   const row=document.createElement('div');row.className='optrow';
-  row.innerHTML=`<label>平面图层</label><div class="seg small four" role="group" aria-label="平面图层" id="layerSeg">${Object.keys(LAYERS).map(k=>`<button type="button" data-v="${k}">${LAYERS[k].label}</button>`).join('')}</div>`;
+  row.innerHTML=`<label>平面图层</label><div class="seg small five" role="group" aria-label="平面图层" id="layerSeg">${Object.keys(LAYERS).map(k=>`<button type="button" data-v="${k}">${LAYERS[k].label}</button>`).join('')}</div>`;
   row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{S.layer=b.dataset.v;render();}));
   host.appendChild(row);
+  const info=document.createElement('p');info.className='zoneinfo';info.id='zoneInfo';host.appendChild(info);
 }
 function updateZoning(){
   document.querySelectorAll('#layerSeg button').forEach(b=>{const on=b.dataset.v===S.layer;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  const info=document.getElementById('zoneInfo');
+  if(!CFG){info.innerHTML='<span class="warn">未找到 zoning-config.js（应与本文件在同一文件夹），分区功能不可用。</span>';return;}
+  info.innerHTML=`用途：<b style="font-family:var(--font)">${CFG.label}</b><br>`+CFG.functions.map((fn,i)=>`<i style="background:color-mix(in srgb,var(${fn.color}) 55%,transparent)"></i>${fn.label} <b>${ZONES?Math.round(ZONES.shares[i]*100):'—'}%</b>（目标 ${Math.round(fn.area.min*100)}–${Math.round(fn.area.max*100)}）`).join('　')+(ZONES&&!ZONES.areaOK?'<br><span class="warn">面积约束未完全满足</span>':'');
+}
+
+// ---------- 室内分区 · 阶段 B：功能适合度与自动分区（PLAN_zoning.md §5–7）----------
+// 功能配置表来自同目录的 zoning-config.js（window.ZONING_CONFIG）。本段代码只按 functions 数组循环，不出现任何功能名称，
+// 也不引用朝向或立面：东向比西向更适合卧室，只因为东向格子的夏季过热暴露更低。
+let CFG=window.ZONING_CONFIG||null;
+window.wwrSetConfig=function(cfg){CFG=cfg;render();};   // 运行时更换配置表（测试与将来切换用途用）
+const COND={daylight:{key:'DF',label:'采光系数',unit:'%',dec:1},winter:{key:'Wx',label:'冬季得热',unit:' kWh/m²',dec:0},overheat:{key:'Hx',label:'夏季过热暴露',unit:' kWh/m²',dec:1}};
+const ramp=(v,lo,hi)=>{const t=clamp((v-lo)/(hi-lo),0,1);return t*t*(3-2*t);};   // 平滑斜坡 0 → 1（对输入连续可导，减少边界抖动）
+function condScore(v,c){const r=ramp(v,c.lo,c.hi);return 100*(c.dir==='down'?1-r:r);}
+// 一格对一种功能的适合度 0–100：各条件分数按权重平均。只用格子自身的条件值。
+function suitability(cell,fn){let s=0,sw=0;const parts={};
+  Object.keys(COND).forEach(ck=>{const c=fn[ck];if(!c||!(c.w>0)){parts[ck]=null;return;}const v=condScore(cell[COND[ck].key],c);parts[ck]=v;s+=c.w*v;sw+=c.w;});
+  return {score:sw>0?s/sw:0,parts};}
+// 分配算法（§7）：1 空间平滑 → 2 面积水位法 → 3 Potts/ICM 连片 → 4 小块清理 → 5 复核面积。无随机数、无历史依赖，同样输入必得同样输出。
+function assignZones(G,cfg){
+  const F=cfg.functions,nF=F.length,cells=G.cells,n=cells.length,nx=G.nx,ny=G.ny;
+  const total=cells.reduce((a,c)=>a+c.area,0), tol=cells[0].area/total*1.01;   // 面积容差：1 格
+  const raw=F.map(fn=>cells.map(c=>suitability(c,fn)));
+  // 1 空间平滑：半径 smoothRadius（m，与网格尺寸无关）内格子分数的平均
+  const R2=cfg.smoothRadius*cfg.smoothRadius+1e-9, rx=Math.round(cfg.smoothRadius/G.gx), ry=Math.round(cfg.smoothRadius/G.gy);
+  const sm=F.map((fn,f)=>{const o=new Float64Array(n);for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let s=0,c=0;
+    for(let dj=-ry;dj<=ry;dj++){const jj=j+dj;if(jj<0||jj>=ny)continue;for(let di=-rx;di<=rx;di++){const ii=i+di;if(ii<0||ii>=nx)continue;if(di*di*G.gx*G.gx+dj*dj*G.gy*G.gy>R2)continue;s+=raw[f][jj*nx+ii].score;c++;}}
+    o[j*nx+i]=s/c;}return o;});
+  const lam=new Float64Array(nF), lab=new Int16Array(n);
+  const argmax=useLam=>{const out=new Int16Array(n);for(let i=0;i<n;i++){let b=0,bv=-Infinity;for(let f=0;f<nF;f++){const v=sm[f][i]+(useLam?lam[f]:0);if(v>bv){bv=v;b=f;}}out[i]=b;}return out;};
+  const shares=()=>{const a=new Array(nF).fill(0);for(let i=0;i<n;i++)a[lab[i]]+=cells[i].area;return a.map(x=>x/total);};
+  const outOf=(sh,f,t)=>sh[f]<F[f].area.min-t?1:(sh[f]>F[f].area.max+t?-1:0);
+  // 2 面积平衡（水位法）：占比低于下限的功能偏置 λ 上调（扩大），高于上限的下调；步长在方向反转时减半。提高 λ_f 只会让 f 单调扩大，
+  //   在"下限之和 ≤ 1 ≤ 上限之和"时必有解。
+  function balance(){const step=new Array(nF).fill(5),last=new Array(nF).fill(0);
+    for(let it=0;it<300;it++){lab.set(argmax(true));const sh=shares();let ok=true,alive=false;
+      for(let f=0;f<nF;f++){const d=outOf(sh,f,tol);if(!d)continue;ok=false;if(last[f]&&last[f]!==d)step[f]/=2;last[f]=d;if(step[f]>=0.02){lam[f]+=d*step[f];alive=true;}}
+      if(ok||!alive)break;}}
+  // 3 连片平滑（Potts 模型，ICM 迭代）：每格取 (100 − 分数 − λ) + β × (标签不同的四邻数) 最小的功能，正反交替扫描最多 8 轮。
+  //   β 按格边长换算（每米分界线的代价 / 格边长），使结果与网格尺寸无关。
+  const beta=cfg.contiguity/((G.gx+G.gy)/2);
+  function icm(){for(let sweep=0;sweep<8;sweep++){let changed=0;const fwd=sweep%2===0;
+    for(let t=0;t<n;t++){const idx=fwd?t:n-1-t,i=idx%nx,j=(idx-i)/nx;
+      const cnt=new Array(nF).fill(0);let nb=0;
+      if(i>0){cnt[lab[idx-1]]++;nb++;}if(i<nx-1){cnt[lab[idx+1]]++;nb++;}if(j>0){cnt[lab[idx-nx]]++;nb++;}if(j<ny-1){cnt[lab[idx+nx]]++;nb++;}
+      let b=lab[idx],bc=Infinity;for(let f=0;f<nF;f++){const cost=100-sm[f][idx]-lam[f]+beta*(nb-cnt[f]);if(cost<bc-1e-9){bc=cost;b=f;}}
+      if(b!==lab[idx]){lab[idx]=b;changed++;}}
+    if(!changed)break;}}
+  // 4 小块清理：四连通、面积 < minRegion 的孤块并入共享边界最长的相邻功能
+  const nbrs=idx=>{const i=idx%nx,j=(idx-i)/nx,o=[];if(i>0)o.push(idx-1);if(i<nx-1)o.push(idx+1);if(j>0)o.push(idx-nx);if(j<ny-1)o.push(idx+nx);return o;};
+  function cleanup(){for(let pass=0;pass<10;pass++){const comp=new Int32Array(n).fill(-1);const comps=[];let merged=0;
+    for(let s=0;s<n;s++){if(comp[s]>=0)continue;const L=lab[s],stack=[s],m=[];comp[s]=comps.length;
+      while(stack.length){const idx=stack.pop();m.push(idx);nbrs(idx).forEach(q=>{if(comp[q]<0&&lab[q]===L){comp[q]=comps.length;stack.push(q);}});}
+      comps.push(m);}
+    comps.forEach(m=>{const area=m.reduce((a,idx)=>a+cells[idx].area,0);if(area>=cfg.minRegion-1e-9)return;
+      const L=lab[m[0]],cnt=new Array(nF).fill(0);m.forEach(idx=>nbrs(idx).forEach(q=>{if(lab[q]!==L)cnt[lab[q]]++;}));
+      let best=-1,bc=0;for(let f=0;f<nF;f++)if(cnt[f]>bc){bc=cnt[f];best=f;}
+      if(best>=0){m.forEach(idx=>lab[idx]=best);merged++;}});
+    if(!merged)break;}}
+  balance();
+  let sh;
+  for(let outer=0;outer<6;outer++){icm();cleanup();sh=shares();let bad=false;   // 5 复核面积：超出 2% 以上则微调 λ 再来一轮
+    for(let f=0;f<nF;f++){const d=outOf(sh,f,0.02);if(d){bad=true;lam[f]+=d*1.0;}}
+    if(!bad)break;}
+  const areaOK=F.every((fn,f)=>sh[f]>=fn.area.min-0.02&&sh[f]<=fn.area.max+0.02);
+  return {lab,lam:Array.from(lam),shares:sh,raw,sm,smBest:argmax(false),lamBest:argmax(true),areaOK,total};   // smBest：平滑后无偏置的最高分；lamBest：加面积偏置后的最高分
+}
+// 一句话解释：按格子自身分数与竞争功能比较，找"加权贡献"差异最大的条件（各项分数相同、只是权重不同时也能解释）；
+// 若该格自身最高分不是所属功能，说明是空间平滑、面积占比还是连片调整改的。
+function explainCell(idx,Z,cfg){
+  const F=cfg.functions,fi=Z.lab[idx],c=GRID.cells[idx],sc=F.map((fn,i)=>Z.raw[i][idx]);
+  const order=F.map((_,i)=>i).sort((a,b)=>sc[b].score-sc[a].score),cellBest=order[0],g=order.find(i=>i!==fi);
+  const r=x=>Math.round(x), sumW=fn=>Object.keys(COND).reduce((a,ck)=>a+((fn[ck]&&fn[ck].w>0)?fn[ck].w:0),0);
+  const contrib=(i,ck)=>{const p=sc[i].parts[ck];return p==null?0:F[i][ck].w*p/sumW(F[i]);};
+  let s;
+  if(cellBest===fi){
+    s=`${F[fi].label} ${r(sc[fi].score)} 分（次选 ${F[g].label} ${r(sc[g].score)} 分）。`;
+    let main=null,best=-Infinity;
+    Object.keys(COND).forEach(ck=>{const d=contrib(fi,ck)-contrib(g,ck);if(d>best){best=d;main=ck;}});
+    if(main){const C=COND[main],pf=sc[fi].parts[main],pg=sc[g].parts[main],wf=F[fi][main]?F[fi][main].w:0,wg=F[g][main]?F[g][main].w:0;
+      s+=`主要因为${C.label} ${f(c[C.key],C.dec)}${C.unit}（全层最高 ${f(GRID.max[C.key],C.dec)}）：按${F[fi].label}的要求得 ${pf==null?'—':r(pf)} 分（权重 ${wf}），按${F[g].label}的要求得 ${pg==null?'—':r(pg)} 分（权重 ${wg}）。`;}
+  }else{
+    const why=Z.smBest[idx]===fi?'与周围格子取平均后':(Z.lamBest[idx]===fi?'为满足面积占比':'为保持成片');
+    s=`按格子自身条件${F[cellBest].label}得分更高（${F[cellBest].label} ${r(sc[cellBest].score)} 分，${F[fi].label} ${r(sc[fi].score)} 分），${why}被划入${F[fi].label}。`;
+  }
+  return s;
+}
+function renderCell(){
+  const box=document.getElementById('cellBox');
+  const idx=S.cell&&GRID?GRID.cells.findIndex(c=>c.i===S.cell.i&&c.j===S.cell.j):-1;
+  if(idx<0||!CFG||!ZONES){box.hidden=true;box.innerHTML='';return;}
+  const c=GRID.cells[idx],F=CFG.functions;
+  const near=KEYS.map(k=>[k,c.d[k]]).sort((a,b)=>a[1]-b[1]).slice(0,2).map(([k,d])=>`离${facName(k)} ${f(d,1)} m`).join('，');
+  box.hidden=false;
+  box.innerHTML=`<div>所选格子：${near}　·　采光 <b style="color:var(--ink)">${f(c.DF,1)}%</b>，冬季得热 <b style="color:var(--ink)">${f(c.Wx,0)}</b>，夏季过热暴露 <b style="color:var(--ink)">${f(c.Hx,1)}</b> kWh/m²·年</div>`+
+    F.map((fn,i)=>{const s=ZONES.raw[i][idx].score;return `<div class="sc"><span>${fn.label}${ZONES.lab[idx]===i?' ◀':''}</span><i style="--p:${s.toFixed(0)}%;--c:var(${fn.color})"></i><b>${Math.round(s)}</b></div>`;}).join('')+
+    `<p>${explainCell(idx,ZONES,CFG)}</p>`;
 }
 
 // 夏季散热预设（热质量、开窗通风），只建一次
@@ -702,13 +823,16 @@ function renderPlan(R){
     if(r.has){for(let i=0;i<r.n;i++){const c=(i+.5)/r.n*L,hw=r.wi*s/2*(r.len/r.len);const sx=p0[0]+ux*(c-hw),sy=p0[1]+uy*(c-hw),ex=p0[0]+ux*(c+hw),ey=p0[1]+uy*(c+hw);
       b+=`<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="var(--glass)" stroke-width="5"/>`;}}
     if(k===S.sel) b+=`<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="var(--ink)" stroke-width="2" transform="translate(${-nv[0]*5},${-nv[1]*5})"/>`;
-    b+=`<line class="hit" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="26" style="cursor:pointer"/>`;
+    // 立面点击区向外偏移 10，留出室内格子的点击空间（Version_03）
+    b+=`<line class="hit" data-k="${k}" tabindex="0" role="button" aria-label="选择${facName(k)}" x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="transparent" stroke-width="26" style="cursor:pointer" transform="translate(${nv[0]*10},${nv[1]*10})"/>`;
     const mx=(p0[0]+p1[0])/2+nv[0]*(b1+14),my=(p0[1]+p1[1])/2+nv[1]*(b1+14);labels.push([k,mx,my]);
   });
   let lab='';const cr=Math.cos(rad(S.rot)),sr=Math.sin(rad(S.rot));
   labels.forEach(([k,x,y])=>{const X=x*cr-y*sr,Y=x*sr+y*cr;lab+=`<text x="${X}" y="${Y}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="${k===S.sel?700:500}" fill="var(--ink)" pointer-events="none">${dirName(facAz(k))}</text>`;});
   svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+lab;
   svg.querySelectorAll('.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();S.sel=k;render();}});});
+  // 室内分区：点击格子显示条件值、各功能分数和解释；再点同一格取消
+  svg.querySelectorAll('.cell').forEach(el=>el.addEventListener('click',()=>{const c=GRID.cells[+el.dataset.idx];S.cell=(S.cell&&S.cell.i===c.i&&S.cell.j===c.j)?null:{i:c.i,j:c.j};render();}));
 }
 
 // ---------- Section ----------
@@ -779,7 +903,8 @@ function renderFacs(R){
 function render(){
   const R=calcAll();
   GRID=gridConditions(R);   // 室内分区：只读 R，不改 R
-  updateClim();updateCool();updateZoning();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
+  ZONES=CFG?assignZones(GRID,CFG):null;
+  updateClim();updateCool();updateZoning();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderTips(R);renderDetail(R);renderFacs(R);
 }
 buildClim();buildCool();buildZoning();
 render();
@@ -834,6 +959,39 @@ window.wwrSelfTest=function(){
     console.log('gridConditions 平均耗时 ms', ((performance.now()-t0)/10).toFixed(2), '格数', G.cells.length);
     console.log('房间带均值（立面: DF / gainPer / hotPer）', KEYS.map(k=>`${k}: ${f(R[k].DF,2)} / ${f(R[k].Qgain/R[k].zoneA,1)} / ${f(R[k].hotPer,2)}`).join('  '));
   }
+  // ---- 室内分区 · 阶段 B：分区自检（PLAN_zoning.md §9）----
+  if(CFG){
+    const F=CFG.functions, fi=key=>F.findIndex(x=>x.key===key), L=fi('living'), B=fi('bedroom'), V=fi('service');
+    const run=()=>{const G=gridConditions(calcAll());return {G,Z:assignZones(G,CFG)};};
+    const centroid=(G,Z,f)=>{let x=0,y=0,a=0;G.cells.forEach((c,i)=>{if(Z.lab[i]===f){x+=c.x*c.area;y+=c.y*c.area;a+=c.area;}});return a?{x:x/a,y:y/a,a}:null;};
+    const shareIn=(G,Z,k,f)=>{let n=0,m=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){n++;if(Z.lab[i]===f)m++;}});return n?m/n:0;};
+    const nComp=(G,Z,f)=>{const seen=new Uint8Array(Z.lab.length);let cnt=0;for(let s=0;s<Z.lab.length;s++){if(seen[s]||Z.lab[s]!==f)continue;cnt++;const st=[s];seen[s]=1;
+      while(st.length){const idx=st.pop(),i=idx%G.nx,j=(idx-i)/G.nx;[[i-1,j],[i+1,j],[i,j-1],[i,j+1]].forEach(([ii,jj])=>{if(ii<0||ii>=G.nx||jj<0||jj>=G.ny)return;const q=jj*G.nx+ii;if(!seen[q]&&Z.lab[q]===f){seen[q]=1;st.push(q);}});}}return cnt;};
+    const save={rot:S.rot,clim:S.clim,Gt:S.A.Gt};
+    if(L>=0&&B>=0&&V>=0){
+      S.rot=0; const {G,Z}=run();
+      const cl=centroid(G,Z,L), cs=centroid(G,Z,V);
+      eq('正南：客厅质心在南半侧（y > 0）',cl&&cl.y>0?1:0,1);
+      eq('正南：服务区质心在北半侧或中部（y < W/4）',cs&&cs.y<S.W/4?1:0,1);
+      const bw=shareIn(G,Z,'W',B), be=shareIn(G,Z,'E',B);
+      eq('正南：西侧房间带卧室占比 < 东侧',bw<be?1:0,1);
+      console.log('正南默认：占比',F.map((fn,i)=>`${fn.label} ${(Z.shares[i]*100).toFixed(1)}%`).join('，'),'| 卧室占比 西带',bw.toFixed(2),'东带',be.toFixed(2),'| 连通块数',F.map((fn,i)=>`${fn.label} ${nComp(G,Z,i)}`).join('，'),'| λ',Z.lam.map(x=>x.toFixed(1)).join('/'));
+      S.rot=90; const r90=run(); const cl90=centroid(r90.G,r90.Z,L);
+      eq('偏转 90°：客厅质心移到东侧（x > 0）',cl90&&cl90.x>0?1:0,1);
+      let prev=null,maxFlip=0,flips=[]; for(let a=40;a<=50;a++){S.rot=a;const {Z:z}=run();if(prev){let d=0;for(let i=0;i<z.lab.length;i++)if(z.lab[i]!==prev[i])d++;flips.push(d/z.lab.length);maxFlip=Math.max(maxFlip,d/z.lab.length);}prev=z.lab;}
+      eq('40°→50° 逐度扫描：相邻两次改变功能的格子比例 ≤ 5%',maxFlip<=0.05?1:0,1);
+      console.log('逐度翻转比例 %',flips.map(x=>(x*100).toFixed(1)).join(' '),'最大',(maxFlip*100).toFixed(2)+'%');
+      let allOK=true,worst=''; ['apNow','hbNow','f2080'].forEach(c=>[0,30,60,90].forEach(a=>{S.clim=c;S.A.Gt=CLIM[c].Gt;S.rot=a;const {Z:z}=run();if(!z.areaOK){allOK=false;worst+=`${c}@${a}:${z.shares.map(x=>x.toFixed(2)).join('/')} `;}}));
+      eq('面积约束：3 气候 × 4 朝向全部在区间内',allOK?1:0,1); if(worst)console.log('超出区间：',worst);
+      S.clim=save.clim; S.A.Gt=save.Gt; S.rot=0;
+      const cfg2=JSON.parse(JSON.stringify(CFG)); cfg2.functions[L].area={min:0.15,max:0.25};
+      const z2=assignZones(G,cfg2); eq('只改配置：客厅上限 0.25 → 占比 ≤ 0.27',z2.shares[L]<=0.27?1:0,1);
+      const cfg3=JSON.parse(JSON.stringify(CFG)); cfg3.functions[B].overheat.w=0; const z3=assignZones(G,cfg3);
+      let diff=0;for(let i=0;i<Z.lab.length;i++)if(z3.lab[i]!==Z.lab[i])diff++; eq('只改配置：卧室过热权重 0 → 分区改变',diff>0?1:0,1);
+      const t0=performance.now();for(let i=0;i<10;i++)assignZones(G,CFG);console.log('assignZones 平均耗时 ms',((performance.now()-t0)/10).toFixed(2));
+    }
+    S.rot=save.rot;
+  } else console.log('未加载 zoning-config.js，跳过阶段 B 自检');
   digest();
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
   return T;
