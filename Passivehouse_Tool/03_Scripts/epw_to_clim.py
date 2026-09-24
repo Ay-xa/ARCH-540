@@ -14,6 +14,7 @@ epw_to_clim.py — 从 EPW 气象文件生成窗墙比推敲器所用的气候�
 - PW / PS / PH：对应时段直射加权平均剖面角，度。剖面角 = atan(tan(alt)/cos(az−facAz))。
 - Gt：10–4 月、基准 20 °C 的采暖度时数，kKh/a。
 - hH：全年室外 > T_HOT 的小时数；h25 / h28：> 25 / 28 °C 小时数。
+- hourly：逐小时干球温度（°C×10）和 GHI/DNI/DHI（W/m²），供工具第二阶段逐小时模拟室内温度。
 """
 import math, json, os, sys, datetime
 for _s in (sys.stdout, sys.stderr):
@@ -153,12 +154,18 @@ def main():
         path = os.path.join(DATA, 'EPW', fname)
         meta, rows = read_epw(path)
         out = process_rows(rows, meta['lat'], meta['lon'], meta['tz'])
-        out.update(label=label, note=note, station=meta['station'], lat=meta['lat'], lon=meta['lon'], file=fname)
+        out.update(label=label, note=note, station=meta['station'], lat=meta['lat'], lon=meta['lon'], tz=meta['tz'], file=fname)
+        # 逐小时序列（第二阶段室内温度模拟用）：T 为 °C×10 的整数，G/B/D 为 GHI/DNI/DHI 的整数 W/m²；索引 i 对应第 i+1 小时（i//24+1 = 年内第几天）
+        out['hourly'] = dict(T=[round(r['T'] * 10) for r in rows], G=[round(r['ghi']) for r in rows],
+                             B=[round(r['dni']) for r in rows], D=[round(r['dhi']) for r in rows])
         result['sets'][key] = out
         print(f"{key:6s} {meta['station']:22s} Gt {out['Gt']:5.1f}  hH(>{T_HOT:g}) {out['hH']:5d}  h25 {out['h25']:4d}  "
               f"GW[S] {out['GW'][12]}  GS[S] {out['GS'][12]}  GH[S] {out['GH'][12]}  GH[W] {out['GH'][18]}", file=sys.stderr)
     outpath = os.path.join(DATA, 'clim.json')
-    json.dump(result, open(outpath, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    txt = json.dumps(result, ensure_ascii=False, indent=1)
+    import re as _re  # 把逐小时长数组压成一行，便于阅读 diff
+    txt = _re.sub(r'\[\s+((?:-?\d+,\s+)+-?\d+)\s+\]', lambda m: '[' + _re.sub(r'\s+', '', m.group(1)) + ']', txt)
+    open(outpath, 'w', encoding='utf-8').write(txt)
     print('written', os.path.relpath(outpath), file=sys.stderr)
 
 

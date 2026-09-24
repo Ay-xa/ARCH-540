@@ -18,7 +18,7 @@ def js_array(a):
 
 def js_set(key, d):
     lines = [f"  {key}:{{label:{json.dumps(d['label'], ensure_ascii=False)},note:{json.dumps(d['note'], ensure_ascii=False)},",
-             f"    station:{json.dumps(d['station'])},file:{json.dumps(d['file'])},lat:{d['lat']},lon:{d['lon']},",
+             f"    station:{json.dumps(d['station'])},file:{json.dumps(d['file'])},lat:{d['lat']},lon:{d['lon']},tz:{d.get('tz', -8)},",
              f"    Gt:{d['Gt']},Tmean:{d['Tmean']},Tsummer:{d['Tsummer']},Tmax:{d['Tmax']},h25:{d['h25']},h28:{d['h28']},hH:{d['hH']},"]
     for k in ('GW', 'GS', 'GH', 'DW', 'DS', 'DH', 'PW', 'PS', 'PH'):
         lines.append(f"    {k}:{js_array(d[k])},")
@@ -26,10 +26,17 @@ def js_set(key, d):
     return '\n'.join(lines)
 
 
+def js_hourly(key, d):
+    h = d['hourly']
+    return (f"  {key}:{{T:{js_array(h['T'])},\n    G:{js_array(h['G'])},\n"
+            f"    B:{js_array(h['B'])},\n    D:{js_array(h['D'])}}}")
+
+
 def build_block(data):
     m = data['meta']
     order = [k for k in ('apNow', 'hbNow', 'f2080') if k in data['sets']] + [k for k in data['sets'] if k not in ('apNow', 'hbNow', 'f2080')]
     sets = ',\n'.join(js_set(k, data['sets'][k]) for k in order)
+    hourly = ',\n'.join(js_hourly(k, data['sets'][k]) for k in order)
     return (f"{BEGIN}\n"
             f"// 由 03_Scripts/inject_clim.py 从 02_Data/clim.json 生成（{m['generated']}），请勿手改；改数据请重跑 epw_to_clim.py。\n"
             f"// 每个数组 {m['n_dir']} 项 = 立面方位角 0°,15°,…,345°（0=北，90=东，180=南，270=西）。\n"
@@ -38,6 +45,8 @@ def build_block(data):
             f"// hH：全年室外 > T_HOT 小时数；h25/h28：> 25/28 °C 小时数。\n"
             f"const T_HOT={m['T_HOT']:g};\n"
             f"const CLIM={{\n{sets}\n}};\n"
+            f"// HOURLY：逐小时序列，索引 i = 年内第 i+1 小时（第 i//24+1 天）。T 为 °C×10 整数；G/B/D = GHI/DNI/DHI W/m²。供室内温度逐小时模拟。\n"
+            f"const HOURLY={{\n{hourly}\n}};\n"
             f"{END}")
 
 
