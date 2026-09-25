@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="zoning-config.js"></script><!-- 室内分区功能配置表（同目录）；换用途只换这个文件 -->
+<script src="zoning-config.js"></script><!-- 功能适宜度配置表（同目录）；换用途只换这个文件 -->
 <style>
 :root{
   --paper:#E9ECE8; --panel:#F6F7F4; --ink:#1E2A2F; --muted:#5B686D; --line:#C7CDCA; --line2:#DDE2DF;
@@ -188,6 +188,19 @@ tbody tr:last-child td{border-bottom:none}
 #infoLeg:empty{display:none}
 #plan .hit,#plan .flab{cursor:pointer;outline:none}
 @media (min-width:1151px){.drawings{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}}   /* 剖面 / 详情两列，窄屏仍单列 */
+/* ---------- Version_06：功能适宜度图 ---------- */
+.intent{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;margin:2px 0 4px}
+.intent label{font-size:13px;color:var(--muted);white-space:nowrap}
+select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+select:focus-visible{outline:2px solid var(--cold);outline-offset:2px}
+.ref{font-size:12px;color:var(--muted);margin:0 0 6px;line-height:1.4}
+.ref .warn{font-size:12px}
+.zoneinfo .low{color:var(--heat)}
+.zoneinfo .low b{color:var(--heat)}
+#suitRow{margin-top:8px}
+.advice li.guide{color:var(--muted)}
+.advice li.guide::before{display:none}
+.cellbox .lead{margin-top:6px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -202,16 +215,16 @@ tbody tr:last-child td{border-bottom:none}
     <div class="seg" id="climSeg" role="group" aria-label="选择气候数据"></div>
     <p class="climnote">机场站、港口站为当下典型年；2080 年为机场站按 SSP5-8.5 移位的预测。</p>
     <p class="climinfo" id="climInfo"></p>
+    <h2>各立面</h2>
+    <div id="facs"></div>
     <h2>体块</h2>
     <div id="bldg"></div>
     <h2>窗与房间</h2>
     <div id="win"></div>
     <h2>夏季散热</h2>
     <div id="cool"></div>
-    <h2>室内分区</h2>
+    <h2>功能适宜度</h2>
     <div id="zoning"></div>
-    <h2>各立面</h2>
-    <div id="facs"></div>
     <details>
       <summary>计算假设</summary>
       <div class="assump" id="assump"></div>
@@ -225,13 +238,17 @@ tbody tr:last-child td{border-bottom:none}
     <section class="sheet zone" id="zoneSheet">
       <div class="zone-main">
         <h2>平面</h2>
-        <p class="cap">标准层楼层平面，随朝向偏转旋转。点击格子查看它对每种功能的分数；点击立面名称或建筑边线选中该立面。右侧可切换底图和各信息图层。</p>
-        <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="楼层平面：分区、日照方位与立面净得失"></svg>
+        <p class="cap">标准层楼层平面，随朝向偏转旋转。点击格子查看它对每种功能的适合度；点击立面名称或建筑边线选中该立面。右侧可切换底图和各信息图层。适宜度图显示每个位置适合什么、适合到什么程度，不是平面方案。</p>
+        <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="楼层平面：功能适宜度、日照方位与立面净得失"></svg>
       </div>
       <div class="zone-side" id="zoneSide">
         <div class="optrow">
           <label id="layerLabel">底图</label>
           <div class="seg small five" role="group" aria-labelledby="layerLabel" id="layerSeg"></div>
+        </div>
+        <div class="optrow" id="suitRow" hidden>
+          <label for="suitSel">显示</label>
+          <select id="suitSel" aria-label="适宜度视图"></select>
         </div>
         <fieldset class="chk" id="infoLayers">
           <legend>信息图层</legend>
@@ -285,7 +302,7 @@ tbody tr:last-child td{border-bottom:none}
           <button type="button" role="radio" data-v="all">全部</button><button type="button" role="radio" data-v="sel">仅所选立面</button>
         </div>
       </div>
-      <p class="cap">带「采纳」的建议来自分区结果：按每个立面后面的主要功能检查这面窗是否合适，点「采纳」才改动该立面的一个参数（等同于拖一次滑块），之后分区和建议会重算，但不会连锁执行任何建议。其余为提示，仅供参考。</p>
+      <p class="cap">带「采纳」的建议针对你在各立面标签页里指定的「打算放置」功能：用配置表里该功能的区间检查这面窗是否过热、过暗或多余，点「采纳」才改动该立面的一个参数（等同于拖一次滑块），之后适宜度和建议会重算，但不会连锁执行任何建议。未指定功能的立面只有通用提示。其余为提示，仅供参考。</p>
       <ul class="tips advice" id="advice"></ul>
     </section>
 
@@ -297,10 +314,10 @@ tbody tr:last-child td{border-bottom:none}
       <p class="note">热损失为窗户相对于同面积实墙多出的损失，包含窗框和安装热桥。冬季净得热为采暖季太阳得热减去这部分损失。</p>
       <h3>过热模拟</h3>
       <p class="note">过热频率由每个立面房间的逐小时单节点热平衡模拟得出：热容 × 温度变化 = 太阳得热 + 内部得热 − 传热与通风散热，全年 8760 小时，统计室内高于 25 °C 的小时占比，对照被动房判据（≤10%，建议 ≤5%）。热质量三档和开窗通风换气次数为估计值；屋面按外墙 U 值、地面传热忽略；采暖季室温不低于 20 °C。“高温时段得热”（室外 >22 °C 小时的透入辐射）保留在详情面板作参考。</p>
-      <h3>室内分区</h3>
-      <p class="note">室内分区（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；分区按面积占比区间和连片代价分配，无随机数。阈值、权重、占比均为设计判断值。</p>
+      <h3>功能适宜度</h3>
+      <p class="note">功能适宜度（标准层）：每格的采光按离窗距离指数衰减（衰减长度取一个窗头高），房间带内平均值与上表的立面采光系数一致；冬季得热与夏季过热暴露按直射光落点加散射衰减分布，一半按空气混合均匀摊开；房间进深以外不计。每格对每种功能的适合度由 zoning-config.js 中的评分曲线和权重算出，只用格子自身条件，不用朝向规则；再取半径 1.5 m 内格子的平均以去掉单格噪声。标记 needsWindow 的功能（如卧室，参考 BC Housing Design Guidelines 5.4.1.6：每间卧室须有窗）在房间带以外为 0 分。图上显示的是每个位置适合什么、适合到什么程度，以及最高分领先次高分的幅度；这是条件分析，不是平面方案：房间尺寸、交通、相邻关系、分户等平面要求不在计算范围内，由设计者决定。适合面积占比只作反馈，不用于分配。阈值、权重、占比均为设计判断值。</p>
       <h3>设计建议</h3>
-      <p class="note">分区建议按每个立面房间带内的主导功能，用同一张配置表的区间判断这面窗是否过热、过暗或多余，建议的数值由试算得到；只有点「采纳」才会改动参数。</p>
+      <p class="note">带「采纳」的建议按设计者为该立面指定的「打算放置」功能，用同一张配置表的区间判断这面窗是否过热、过暗或多余，建议的数值由试算得到；未指定功能的立面只有通用提示。指定功能在该房间带的平均适合度偏低时（低于 50 分，或落后最适合的功能 15 分以上）给出原因提示。只有点「采纳」才会改动参数。</p>
       <h3>数据来源与局限</h3>
       <p class="note">这些是用于比较方案的概念估算，不能替代 PHPP 计算，也未考虑热质量、夜间通风和活动遮阳。三组气象数据中，机场站当下与 2080 年预测同源，太阳辐射完全相同，差异只反映气温变化；港口站与它们的差异混有站点和数据集方法的差异，不能直接当作气候变化解读。</p>
     </details>
@@ -375,7 +392,9 @@ const DIRS=['北','东北','东','东南','南','西南','西','西北'];
 
 const S={
   clim:'apNow', GtManual:false, mass:'mid', vent:'win',
-  grid:1.0, layer:'zone', cell:null, // 室内分区：网格尺寸 m、平面图层（none / DF / Wx / Hx / zone）、所选格子 {i,j}
+  grid:1.0, layer:'suit', cell:null, // 功能适宜度：网格尺寸 m、平面底图（none / DF / Wx / Hx / suit）、所选格子 {i,j}
+  suitView:'overview',               // 适宜度视图：'overview' 总览，或配置表中某功能的 key（Version_06）
+  intent:{S:null,E:null,N:null,W:null}, // 设计者为每个立面指定的「打算放置」功能 key，null = 未指定（Version_06）
   tipFilter:'all',                   // 设计建议筛选：all 全部 / sel 仅所选立面（Version_05）
   info:{sun:true,net:true,win:true,labels:true,strip:false},  // 平面信息图层开关（第二轮）：日照方位 / 净得失 / 窗与挑檐 / 立面标签 / 房间带边线
   L:20, W:12, floors:3, H:3.0, rot:0,
@@ -600,6 +619,7 @@ function gridConditions(R){
       c.DF+=c.DFk[k]; c.Wx+=c.Wxk[k]; c.Hx+=c.Hxk[k];
     });
   });
+  G.cells.forEach(c=>{c.inStrip=KEYS.some(k=>c.d[k]<=D+1e-9);});   // Version_06：是否在任一房间带内（needsWindow 用）；不改任何数值
   G.max={DF:Math.max(0,...G.cells.map(c=>c.DF)),Wx:Math.max(0,...G.cells.map(c=>c.Wx)),Hx:Math.max(0,...G.cells.map(c=>c.Hx))};
   G.per=P; G.D=D;
   return G;
@@ -607,15 +627,20 @@ function gridConditions(R){
 const LAYERS={none:{label:'无'},DF:{label:'采光',unit:'采光系数 %',color:'var(--day)',key:'DF',dec:1},
   Wx:{label:'冬季得热',unit:'冬季太阳得热 kWh/m²·年',color:'var(--sun)',key:'Wx',dec:0},
   Hx:{label:'夏季过热',unit:'高温时段透入辐射 kWh/m²·年',color:'var(--heat)',key:'Hx',dec:1},
-  zone:{label:'分区',key:'zone'}};
-let GRID=null, ZONES=null;
+  suit:{label:'适宜度',key:'suit'}};
+let GRID=null, SUIT=null;
 // 画当前图层：方格放进平面图的旋转组里，随建筑一起转；条件层透明度按值 / 本层最大值，分区层按功能上色。格子可点击。
 function gridSvg(G,s){
   const Lr=LAYERS[S.layer]; if(!Lr||!Lr.key||!G) return '';
-  const zone=Lr.key==='zone'; if(zone&&!ZONES) return '';
-  const mx=zone?0:(G.max[Lr.key]||0); let o='';
+  const suit=Lr.key==='suit'; if(suit&&!SUIT) return '';
+  // Version_06 适宜度层：总览 = 最高分功能的颜色，深浅按领先幅度；单功能 = 该功能的平滑后分数热力图
+  const fv=suit&&S.suitView!=='overview'?CFG.functions.findIndex(x=>x.key===S.suitView):-1;
+  const mx=suit?0:(G.max[Lr.key]||0); let o='';
   G.cells.forEach((c,idx)=>{
-    let fill,a; if(zone){fill=`var(${CFG.functions[ZONES.lab[idx]].color})`;a=0.55;}else{const v=c[Lr.key];fill=Lr.color;a=mx>0?0.06+0.8*v/mx:0.06;}
+    let fill,a;
+    if(suit){ if(fv>=0){fill=`var(${CFG.functions[fv].color})`;a=0.06+0.80*SUIT.sm[fv][idx]/100;}
+      else{fill=`var(${CFG.functions[SUIT.best[idx]].color})`;a=leadAlpha(SUIT.margin[idx]);} }
+    else{const v=c[Lr.key];fill=Lr.color;a=mx>0?0.06+0.8*v/mx:0.06;}
     const sel=S.cell&&S.cell.i===c.i&&S.cell.j===c.j;
     o+=`<rect class="cell" data-idx="${idx}" x="${((c.x-c.gx/2)*s).toFixed(2)}" y="${((c.y-c.gy/2)*s).toFixed(2)}" width="${(c.gx*s).toFixed(2)}" height="${(c.gy*s).toFixed(2)}" fill="${fill}" opacity="${a.toFixed(3)}" stroke="${sel?'var(--ink)':'var(--paper)'}" stroke-width="${sel?2:0.4}" style="cursor:pointer"/>`;});
   return o;
@@ -625,7 +650,8 @@ function updateInfoLegend(){   // 第二轮：只列出打开的信息图层
   if(I.sun){it.push('<span><i style="background:none;border-top:2px solid var(--sun);height:0"></i>冬至太阳方位</span>','<span><i style="background:none;border-top:2px solid var(--heat);height:0"></i>夏至太阳方位</span>');}
   if(I.net){it.push('<span><i style="background:var(--cold)"></i>窗户净失热</span>','<span><i style="background:var(--sun)"></i>窗户净得热</span>');}
   if(I.win){it.push('<span><i style="background:var(--glass)"></i>窗</span>','<span><i style="background:none;border-top:1px dashed var(--muted);height:0"></i>挑檐</span>');}
-  if(I.strip){it.push('<span><i style="background:none;border-top:1px dashed var(--ink);height:0"></i>房间带边线（进深 '+f(S.depth,1)+' m）</span>');}
+  if(I.strip){it.push('<span><i style="background:none;border-top:1px dashed var(--ink);height:0"></i>房间带边线（进深 '+f(S.depth,1)+' m）</span>');
+    if(CFG)KEYS.forEach(k=>{const fi=intentIdx(k);if(fi>=0)it.push(`<span><i style="background:color-mix(in srgb,var(${CFG.functions[fi].color}) 30%,transparent)"></i>${facName(k)}：${CFG.functions[fi].label}</span>`);});}
   document.getElementById('infoLeg').innerHTML=it.join('');
 }
 function updateGridLegend(G){
@@ -633,9 +659,15 @@ function updateGridLegend(G){
   const el=document.getElementById('gridLeg'), Lr=LAYERS[S.layer];
   if(!Lr||!Lr.key||!G){el.innerHTML='';return;}
   const tail=`<span>网格 ${f(G.gx,2)} × ${f(G.gy,2)} m，${G.cells.length} 格</span>`;
-  if(Lr.key==='zone'){
-    if(!ZONES){el.innerHTML='<span class="warn">未加载功能配置表 zoning-config.js，无法分区</span>';return;}
-    el.innerHTML=CFG.functions.map((fn,i)=>`<span><i class="sw" style="background:color-mix(in srgb,var(${fn.color}) 55%,transparent)"></i>${fn.label} <b>${Math.round(ZONES.shares[i]*100)}%</b></span>`).join('')+(ZONES.areaOK?'':'<span class="warn">面积约束未完全满足</span>')+tail;
+  if(Lr.key==='suit'){
+    if(!SUIT){el.innerHTML='<span class="warn">未加载功能配置表 zoning-config.js，无法计算适宜度</span>';return;}
+    const fv=S.suitView!=='overview'?CFG.functions.findIndex(x=>x.key===S.suitView):-1;
+    if(fv>=0){const fn=CFG.functions[fv];
+      el.innerHTML=`<span>${fn.label}适合度</span><span>0</span><i class="bar" style="background:linear-gradient(90deg,color-mix(in srgb,var(${fn.color}) 6%,transparent),color-mix(in srgb,var(${fn.color}) 86%,transparent))"></i><b>100 分</b>${fn.needsWindow?'<span>房间带以外为 0（须有窗）</span>':''}`+tail;
+    } else {
+      el.innerHTML=CFG.functions.map(fn=>`<span><i class="sw" style="background:color-mix(in srgb,var(${fn.color}) 60%,transparent)"></i>${fn.label}</span>`).join('')+
+        `<span>领先幅度 0</span><i class="bar" style="background:linear-gradient(90deg,color-mix(in srgb,var(--ink) ${Math.round(LEAD_A0*100)}%,transparent),color-mix(in srgb,var(--ink) ${Math.round((LEAD_A0+LEAD_A1)*100)}%,transparent))"></i><b>${LEAD_FULL}+ 分</b><span>颜色越浅，越多功能都合适，由设计者决定</span>`+tail;
+    }
     return;
   }
   el.innerHTML=`<span>${Lr.unit}</span><span>0</span><i class="bar" style="background:linear-gradient(90deg,color-mix(in srgb,${Lr.color} 6%,transparent),color-mix(in srgb,${Lr.color} 86%,transparent))"></i><b>${f(G.max[Lr.key],Lr.dec)}</b>${tail}`;
@@ -647,6 +679,9 @@ function buildZoning(){
   const seg=document.getElementById('layerSeg');
   seg.innerHTML=Object.keys(LAYERS).map(k=>`<button type="button" data-v="${k}">${LAYERS[k].label}</button>`).join('');
   seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{S.layer=b.dataset.v;render();}));
+  // Version_06：适宜度第二级选择（总览 / 各功能），选项由配置表动态生成；原生 select，键盘可用
+  buildSuitSel();
+  document.getElementById('suitSel').addEventListener('change',e=>{S.suitView=e.target.value;render();});
   const info=document.createElement('p');info.className='zoneinfo';info.id='zoneInfo';host.appendChild(info);
   // 设计建议筛选（Version_05）
   document.querySelectorAll('#tipFilter button').forEach(b=>b.addEventListener('click',()=>{S.tipFilter=b.dataset.v;render();}));
@@ -659,18 +694,31 @@ const INFO_KEY='wwr-tool.info.v1';
 function loadInfo(){try{const v=JSON.parse(localStorage.getItem(INFO_KEY)||'null');if(v&&typeof v==='object')Object.keys(S.info).forEach(k=>{if(typeof v[k]==='boolean')S.info[k]=v[k];});}catch(e){}}
 function saveInfo(){try{localStorage.setItem(INFO_KEY,JSON.stringify(S.info));}catch(e){}}
 function updateInfo(){document.querySelectorAll('#infoLayers input').forEach(i=>{i.checked=!!S.info[i.dataset.k];});}
+function buildSuitSel(){
+  const sel=document.getElementById('suitSel'); if(!sel) return;
+  sel.innerHTML=`<option value="overview">总览</option>`+(CFG?CFG.functions.map(fn=>`<option value="${fn.key}">${fn.label}</option>`).join(''):'');
+}
 function updateZoning(){
   document.querySelectorAll('#layerSeg button').forEach(b=>{const on=b.dataset.v===S.layer;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  if(CFG&&S.suitView!=='overview'&&!CFG.functions.some(x=>x.key===S.suitView)) S.suitView='overview';
+  const row=document.getElementById('suitRow'); row.hidden=S.layer!=='suit'||!CFG; document.getElementById('suitSel').value=S.suitView;
   const info=document.getElementById('zoneInfo');
-  if(!CFG){info.innerHTML='<span class="warn">未找到 zoning-config.js（应与本文件在同一文件夹），分区功能不可用。</span>';return;}
-  info.innerHTML=`用途：<b style="font-family:var(--font)">${CFG.label}</b><br>`+CFG.functions.map((fn,i)=>`<i style="background:color-mix(in srgb,var(${fn.color}) 55%,transparent)"></i>${fn.label} <b>${ZONES?Math.round(ZONES.shares[i]*100):'—'}%</b>（目标 ${Math.round(fn.area.min*100)}–${Math.round(fn.area.max*100)}）`).join('　')+(ZONES&&!ZONES.areaOK?'<br><span class="warn">面积约束未完全满足</span>':'');
+  if(!CFG){info.innerHTML='<span class="warn">未找到 zoning-config.js（应与本文件在同一文件夹），功能适宜度不可用。</span>';return;}
+  // Version_06：适合面积 = 平滑后最高分为该功能的格子占整层的比例，只作反馈；低于目标下限标红
+  info.innerHTML=`用途：<b style="font-family:var(--font)">${CFG.label}</b><br>`+CFG.functions.map((fn,i)=>{const sh=SUIT?SUIT.shares[i]:null,low=sh!=null&&sh<fn.area.min-1e-9;
+    return `<span class="${low?'low':''}"><i style="background:color-mix(in srgb,var(${fn.color}) 55%,transparent)"></i>${fn.label} 适合面积 <b>${sh==null?'—':Math.round(sh*100)+'%'}</b>（目标 ${Math.round(fn.area.min*100)}–${Math.round(fn.area.max*100)}${low?'，低于目标':''}）</span>`;}).join('<br>');
 }
 
-// ---------- 室内分区 · 阶段 B：功能适合度与自动分区（PLAN_zoning.md §5–7）----------
+// ---------- 功能适宜度（Version_03 阶段 B 的适合度计算 + Version_06 的显示与反馈；PLAN_zoning.md §5–6、PLAN_v06.md）----------
 // 功能配置表来自同目录的 zoning-config.js（window.ZONING_CONFIG）。本段代码只按 functions 数组循环，不出现任何功能名称，
 // 也不引用朝向或立面：东向比西向更适合卧室，只因为东向格子的夏季过热暴露更低。
 let CFG=window.ZONING_CONFIG||null;
-window.wwrSetConfig=function(cfg){CFG=cfg;render();};   // 运行时更换配置表（测试与将来切换用途用）
+window.wwrSetConfig=function(cfg){CFG=cfg;buildSuitSel();buildIntentSel();if(S.suitView!=='overview'&&!cfg.functions.some(x=>x.key===S.suitView))S.suitView='overview';KEYS.forEach(k=>{if(S.intent[k]&&!cfg.functions.some(x=>x.key===S.intent[k]))S.intent[k]=null;});render();};   // 运行时更换配置表（测试与将来切换用途用）；两处 select 随之重建
+// Version_06：总览视图的领先幅度 → 不透明度：alpha = LEAD_A0 + LEAD_A1 × min(m / LEAD_FULL, 1)。m < LEAD_TIE 视为「多种可能」。取值理由见 PLAN_v06.md §2.2。
+const LEAD_FULL=25, LEAD_TIE=10, LEAD_A0=0.10, LEAD_A1=0.50;
+function leadAlpha(m){return LEAD_A0+LEAD_A1*clamp(m/LEAD_FULL,0,1);}
+// Version_06：指定功能在房间带的平均适合度「明显偏低」：平均 < FIT_LOW，或落后该带最适合功能 ≥ FIT_GAP 分。见 PLAN_v06.md §4.3。
+const FIT_LOW=50, FIT_GAP=15;
 const COND={daylight:{key:'DF',label:'采光系数',unit:'%',dec:1},winter:{key:'Wx',label:'冬季得热',unit:' kWh/m²',dec:0},overheat:{key:'Hx',label:'夏季过热暴露',unit:' kWh/m²',dec:1}};
 const ramp=(v,lo,hi)=>{const t=clamp((v-lo)/(hi-lo),0,1);return t*t*(3-2*t);};   // 平滑斜坡 0 → 1（对输入连续可导，减少边界抖动）
 function condScore(v,c){const r=ramp(v,c.lo,c.hi);return 100*(c.dir==='down'?1-r:r);}
@@ -678,101 +726,86 @@ function condScore(v,c){const r=ramp(v,c.lo,c.hi);return 100*(c.dir==='down'?1-r
 function suitability(cell,fn){let s=0,sw=0;const parts={};
   Object.keys(COND).forEach(ck=>{const c=fn[ck];if(!c||!(c.w>0)){parts[ck]=null;return;}const v=condScore(cell[COND[ck].key],c);parts[ck]=v;s+=c.w*v;sw+=c.w;});
   return {score:sw>0?s/sw:0,parts};}
-// 分配算法（§7）：1 空间平滑 → 2 面积水位法 → 3 Potts/ICM 连片 → 4 小块清理 → 5 复核面积。无随机数、无历史依赖，同样输入必得同样输出。
-function assignZones(G,cfg){
+// Version_06：功能适宜度网格。不再把格子分配给功能：
+//   1 每格每功能原始分 raw（suitability）；2 空间平滑 sm（半径 smoothRadius，与 Version_05 的分配算法第 1 步逐字相同）；
+//   3 needsWindow 功能在房间带以外的格子 raw / sm 置 0（在平滑之后，所以其他格子不受影响）；
+//   4 每格最高分功能 best、次高 second、领先幅度 margin = sm[best] − sm[second]；5 按面积统计"最高分为 f"的占比 shares（只作反馈）。
+function suitGrid(G,cfg){
   const F=cfg.functions,nF=F.length,cells=G.cells,n=cells.length,nx=G.nx,ny=G.ny;
-  const total=cells.reduce((a,c)=>a+c.area,0), tol=cells[0].area/total*1.01;   // 面积容差：1 格
+  const total=cells.reduce((a,c)=>a+c.area,0);
   const raw=F.map(fn=>cells.map(c=>suitability(c,fn)));
-  // 1 空间平滑：半径 smoothRadius（m，与网格尺寸无关）内格子分数的平均
   const R2=cfg.smoothRadius*cfg.smoothRadius+1e-9, rx=Math.round(cfg.smoothRadius/G.gx), ry=Math.round(cfg.smoothRadius/G.gy);
   const sm=F.map((fn,f)=>{const o=new Float64Array(n);for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let s=0,c=0;
     for(let dj=-ry;dj<=ry;dj++){const jj=j+dj;if(jj<0||jj>=ny)continue;for(let di=-rx;di<=rx;di++){const ii=i+di;if(ii<0||ii>=nx)continue;if(di*di*G.gx*G.gx+dj*dj*G.gy*G.gy>R2)continue;s+=raw[f][jj*nx+ii].score;c++;}}
     o[j*nx+i]=s/c;}return o;});
-  const lam=new Float64Array(nF), lab=new Int16Array(n);
-  const argmax=useLam=>{const out=new Int16Array(n);for(let i=0;i<n;i++){let b=0,bv=-Infinity;for(let f=0;f<nF;f++){const v=sm[f][i]+(useLam?lam[f]:0);if(v>bv){bv=v;b=f;}}out[i]=b;}return out;};
-  const shares=()=>{const a=new Array(nF).fill(0);for(let i=0;i<n;i++)a[lab[i]]+=cells[i].area;return a.map(x=>x/total);};
-  const outOf=(sh,f,t)=>sh[f]<F[f].area.min-t?1:(sh[f]>F[f].area.max+t?-1:0);
-  // 2 面积平衡（水位法）：占比低于下限的功能偏置 λ 上调（扩大），高于上限的下调；步长在方向反转时减半。提高 λ_f 只会让 f 单调扩大，
-  //   在"下限之和 ≤ 1 ≤ 上限之和"时必有解。
-  function balance(){const step=new Array(nF).fill(5),last=new Array(nF).fill(0);
-    for(let it=0;it<300;it++){lab.set(argmax(true));const sh=shares();let ok=true,alive=false;
-      for(let f=0;f<nF;f++){const d=outOf(sh,f,tol);if(!d)continue;ok=false;if(last[f]&&last[f]!==d)step[f]/=2;last[f]=d;if(step[f]>=0.02){lam[f]+=d*step[f];alive=true;}}
-      if(ok||!alive)break;}}
-  // 3 连片平滑（Potts 模型，ICM 迭代）：每格取 (100 − 分数 − λ) + β × (标签不同的四邻数) 最小的功能，正反交替扫描最多 8 轮。
-  //   β 按格边长换算（每米分界线的代价 / 格边长），使结果与网格尺寸无关。
-  const beta=cfg.contiguity/((G.gx+G.gy)/2);
-  function icm(){for(let sweep=0;sweep<8;sweep++){let changed=0;const fwd=sweep%2===0;
-    for(let t=0;t<n;t++){const idx=fwd?t:n-1-t,i=idx%nx,j=(idx-i)/nx;
-      const cnt=new Array(nF).fill(0);let nb=0;
-      if(i>0){cnt[lab[idx-1]]++;nb++;}if(i<nx-1){cnt[lab[idx+1]]++;nb++;}if(j>0){cnt[lab[idx-nx]]++;nb++;}if(j<ny-1){cnt[lab[idx+nx]]++;nb++;}
-      let b=lab[idx],bc=Infinity;for(let f=0;f<nF;f++){const cost=100-sm[f][idx]-lam[f]+beta*(nb-cnt[f]);if(cost<bc-1e-9){bc=cost;b=f;}}
-      if(b!==lab[idx]){lab[idx]=b;changed++;}}
-    if(!changed)break;}}
-  // 4 小块清理：四连通、面积 < minRegion 的孤块并入共享边界最长的相邻功能
-  const nbrs=idx=>{const i=idx%nx,j=(idx-i)/nx,o=[];if(i>0)o.push(idx-1);if(i<nx-1)o.push(idx+1);if(j>0)o.push(idx-nx);if(j<ny-1)o.push(idx+nx);return o;};
-  function cleanup(){for(let pass=0;pass<10;pass++){const comp=new Int32Array(n).fill(-1);const comps=[];let merged=0;
-    for(let s=0;s<n;s++){if(comp[s]>=0)continue;const L=lab[s],stack=[s],m=[];comp[s]=comps.length;
-      while(stack.length){const idx=stack.pop();m.push(idx);nbrs(idx).forEach(q=>{if(comp[q]<0&&lab[q]===L){comp[q]=comps.length;stack.push(q);}});}
-      comps.push(m);}
-    comps.forEach(m=>{const area=m.reduce((a,idx)=>a+cells[idx].area,0);if(area>=cfg.minRegion-1e-9)return;
-      const L=lab[m[0]],cnt=new Array(nF).fill(0);m.forEach(idx=>nbrs(idx).forEach(q=>{if(lab[q]!==L)cnt[lab[q]]++;}));
-      let best=-1,bc=0;for(let f=0;f<nF;f++)if(cnt[f]>bc){bc=cnt[f];best=f;}
-      if(best>=0){m.forEach(idx=>lab[idx]=best);merged++;}});
-    if(!merged)break;}}
-  balance();
-  let sh;
-  for(let outer=0;outer<6;outer++){icm();cleanup();sh=shares();let bad=false;   // 5 复核面积：超出 2% 以上则微调 λ 再来一轮
-    for(let f=0;f<nF;f++){const d=outOf(sh,f,0.02);if(d){bad=true;lam[f]+=d*1.0;}}
-    if(!bad)break;}
-  const areaOK=F.every((fn,f)=>sh[f]>=fn.area.min-0.02&&sh[f]<=fn.area.max+0.02);
-  return {lab,lam:Array.from(lam),shares:sh,raw,sm,smBest:argmax(false),lamBest:argmax(true),areaOK,total};   // smBest：平滑后无偏置的最高分；lamBest：加面积偏置后的最高分
+  let affected=0;
+  F.forEach((fn,f)=>{if(!fn.needsWindow)return;cells.forEach((c,i)=>{if(!c.inStrip){raw[f][i]={score:0,parts:{},noWindow:true};sm[f][i]=0;affected++;}});});
+  const best=new Int16Array(n), second=new Int16Array(n).fill(-1), margin=new Float64Array(n), shares=new Array(nF).fill(0);
+  for(let i=0;i<n;i++){let b=-1,bv=-Infinity,g=-1,gv=-Infinity;
+    for(let f=0;f<nF;f++){const v=sm[f][i];if(v>bv){g=b;gv=bv;b=f;bv=v;}else if(v>gv){g=f;gv=v;}}
+    best[i]=b;second[i]=g;margin[i]=g>=0?bv-gv:100;shares[b]+=cells[i].area/total;}
+  return {raw,sm,best,second,margin,shares,affected,total};
 }
-// 一句话解释：按格子自身分数与竞争功能比较，找"加权贡献"差异最大的条件（各项分数相同、只是权重不同时也能解释）；
-// 若该格自身最高分不是所属功能，说明是空间平滑、面积占比还是连片调整改的。
-function explainCell(idx,Z,cfg){
-  const F=cfg.functions,fi=Z.lab[idx],c=GRID.cells[idx],sc=F.map((fn,i)=>Z.raw[i][idx]);
-  const order=F.map((_,i)=>i).sort((a,b)=>sc[b].score-sc[a].score),cellBest=order[0],g=order.find(i=>i!==fi);
+// 房间带（立面 k 后面、进深 D 以内，含转角）对功能 f 的平滑后平均分（面积加权）；stripBest 取最高的功能
+function stripMean(G,SU,k,f){let s=0,a=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){s+=SU.sm[f][i]*c.area;a+=c.area;}});return a?s/a:0;}
+function stripBest(G,SU,k){let b=0,bv=-Infinity;CFG.functions.forEach((fn,f)=>{const v=stripMean(G,SU,k,f);if(v>bv){bv=v;b=f;}});return {f:b,mean:bv};}
+function intentIdx(k){return CFG&&S.intent[k]?CFG.functions.findIndex(x=>x.key===S.intent[k]):-1;}
+// 一句话解释：按格子自身（原始）分数，最高分功能相对次高功能，找"加权贡献"差异最大的条件作为主因；
+// 若平滑后的最高功能与自身最高不同，补一句；needsWindow 功能在房间带以外时说明 0 分的原因。（Version_06：不再有"被划入"的解释）
+function explainCell(idx,SU,cfg){
+  const F=cfg.functions,c=GRID.cells[idx],sc=F.map((fn,i)=>SU.raw[i][idx]);
+  const order=F.map((_,i)=>i).sort((a,b)=>sc[b].score-sc[a].score),fi=order[0],g=order.length>1?order[1]:null;
   const r=x=>Math.round(x), sumW=fn=>Object.keys(COND).reduce((a,ck)=>a+((fn[ck]&&fn[ck].w>0)?fn[ck].w:0),0);
   const contrib=(i,ck)=>{const p=sc[i].parts[ck];return p==null?0:F[i][ck].w*p/sumW(F[i]);};
-  let s;
-  if(cellBest===fi){
-    s=`${F[fi].label} ${r(sc[fi].score)} 分（次选 ${F[g].label} ${r(sc[g].score)} 分）。`;
-    let main=null,best=-Infinity;
+  let s=`${F[fi].label} ${r(sc[fi].score)} 分${g!=null?`（次选 ${F[g].label} ${r(sc[g].score)} 分）`:''}。`;
+  if(g!=null){let main=null,best=-Infinity;
     Object.keys(COND).forEach(ck=>{const d=contrib(fi,ck)-contrib(g,ck);if(d>best){best=d;main=ck;}});
     if(main){const C=COND[main],pf=sc[fi].parts[main],pg=sc[g].parts[main],wf=F[fi][main]?F[fi][main].w:0,wg=F[g][main]?F[g][main].w:0;
-      s+=`主要因为${C.label} ${f(c[C.key],C.dec)}${C.unit}（全层最高 ${f(GRID.max[C.key],C.dec)}）：按${F[fi].label}的要求得 ${pf==null?'—':r(pf)} 分（权重 ${wf}），按${F[g].label}的要求得 ${pg==null?'—':r(pg)} 分（权重 ${wg}）。`;}
-  }else{
-    const why=Z.smBest[idx]===fi?'与周围格子取平均后':(Z.lamBest[idx]===fi?'为满足面积占比':'为保持成片');
-    s=`按格子自身条件${F[cellBest].label}得分更高（${F[cellBest].label} ${r(sc[cellBest].score)} 分，${F[fi].label} ${r(sc[fi].score)} 分），${why}被划入${F[fi].label}。`;
-  }
+      s+=`主要因为${C.label} ${f(c[C.key],C.dec)}${C.unit}（全层最高 ${f(GRID.max[C.key],C.dec)}）：按${F[fi].label}的要求得 ${pf==null?'—':r(pf)} 分（权重 ${wf}），按${F[g].label}的要求得 ${pg==null?'—':r(pg)} 分（权重 ${wg}）。`;}}
+  const nw=F.filter((fn,i)=>sc[i].noWindow).map(fn=>fn.label); if(nw.length) s+=`${nw.join('、')}须有窗，这里在房间带以外：0 分。`;
+  const sb=SU.best[idx]; if(sb!==fi) s+=`与周围格子取平均后，${F[sb].label}（${r(SU.sm[sb][idx])} 分）略高于${F[fi].label}（${r(SU.sm[fi][idx])} 分）。`;
   return s;
 }
 function renderCell(){
   const box=document.getElementById('cellBox');
   const idx=S.cell&&GRID?GRID.cells.findIndex(c=>c.i===S.cell.i&&c.j===S.cell.j):-1;
-  if(idx<0||!CFG||!ZONES){box.hidden=true;box.innerHTML='';return;}
-  const c=GRID.cells[idx],F=CFG.functions;
+  if(idx<0||!CFG||!SUIT){box.hidden=true;box.innerHTML='';return;}
+  const c=GRID.cells[idx],F=CFG.functions,b=SUIT.best[idx],s2=SUIT.second[idx],m=SUIT.margin[idx];
   const near=KEYS.map(k=>[k,c.d[k]]).sort((a,b)=>a[1]-b[1]).slice(0,2).map(([k,d])=>`离${facName(k)} ${f(d,1)} m`).join('，');
   box.hidden=false;
   box.innerHTML=`<div>所选格子：${near}　·　采光 <b style="color:var(--ink)">${f(c.DF,1)}%</b>，冬季得热 <b style="color:var(--ink)">${f(c.Wx,0)}</b>，夏季过热暴露 <b style="color:var(--ink)">${f(c.Hx,1)}</b> kWh/m²·年</div>`+
-    F.map((fn,i)=>{const s=ZONES.raw[i][idx].score;return `<div class="sc"><span>${fn.label}${ZONES.lab[idx]===i?' ◀':''}</span><i style="--p:${s.toFixed(0)}%;--c:var(${fn.color})"></i><b>${Math.round(s)}</b></div>`;}).join('')+
-    `<p>${explainCell(idx,ZONES,CFG)}</p>`;
+    F.map((fn,i)=>{const s=SUIT.raw[i][idx].score;return `<div class="sc"><span>${fn.label}</span><i style="--p:${s.toFixed(0)}%;--c:var(${fn.color})"></i><b>${Math.round(s)}</b></div>`;}).join('')+
+    `<div class="lead">领先幅度（平滑后）：${F[b].label} <b style="color:var(--ink)">${Math.round(SUIT.sm[b][idx])}</b> 分${s2>=0?`，次高 ${F[s2].label} <b style="color:var(--ink)">${Math.round(SUIT.sm[s2][idx])}</b> 分，领先 <b style="color:var(--ink)">${Math.round(m)}</b> 分${m<LEAD_TIE?'（多种可能）':''}`:''}</div>`+
+    `<p>${explainCell(idx,SUIT,CFG)}</p>`;
 }
 
-// ---------- 室内分区 · 阶段 C：双向建议（Version_04，PLAN_zoning.md §8）----------
-// 看每个立面房间带内的主导功能，用配置表里该功能的曲线区间判断这面墙的窗是否合适。建议只显示；「采纳」只改该立面的一个参数。
+// ---------- 针对指定功能的建议（Version_04 的三条规则；Version_06：主导功能改为设计者在标签页里指定的「打算放置」功能）----------
 // 规则不写功能名称：overheat.dir==='down' 表示怕热的功能，daylight.dir==='up' 表示要光的功能，daylight.dir==='down' 表示不需要光的功能。
 let ADVICE=[];
-function stripDominant(G,Z,k){const cnt=new Array(CFG.functions.length).fill(0);let n=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){cnt[Z.lab[i]]++;n++;}});let b=0;for(let x=1;x<cnt.length;x++)if(cnt[x]>cnt[b])b=x;return {f:b,share:n?cnt[b]/n:0};}
-// 试算：只重算立面 k，其余立面沿用 R；返回该立面的新结果和新分区里它后面的主导功能
-function trial(R,k,ov){const r2=calc(k,ov);const R2=Object.assign({},R,{[k]:r2});const G2=gridConditions(R2);const Z2=assignZones(G2,CFG);return {r:r2,dom:stripDominant(G2,Z2,k)};}
+// 试算：只重算立面 k，其余立面沿用 R；返回该立面的新结果和新适宜度下这一侧对功能 fi 的平均适合度
+function trial(R,k,ov,fi){const r2=calc(k,ov);const R2=Object.assign({},R,{[k]:r2});const G2=gridConditions(R2);const S2=suitGrid(G2,CFG);return {r:r2,fit:stripMean(G2,S2,k,fi)};}
+// 指定功能在房间带 k 的适合度评价：平均分、该带最适合的功能、是否偏低（FIT_LOW / FIT_GAP）、主因。
+// 主因 = 让指定功能失分最多的条件：房间带内该条件分数的面积加权平均 p̄，失分 = w × (100 − p̄) / Σw，取最大者。
+// （不与最适合的功能比较：那样得到的是"另一功能为什么赢"，而不是"指定功能为什么差"。）
+function stripFit(k,fi){
+  const F=CFG.functions,cells=GRID.cells,mean=stripMean(GRID,SUIT,k,fi),best=stripBest(GRID,SUIT,k);
+  const low=mean<FIT_LOW||best.mean-mean>=FIT_GAP;
+  const sumW=Object.keys(COND).reduce((a,ck)=>a+((F[fi][ck]&&F[fi][ck].w>0)?F[fi][ck].w:0),0);
+  let why=null,worst=-Infinity;
+  Object.keys(COND).forEach(ck=>{const cf=F[fi][ck];if(!cf||!(cf.w>0))return;let pf=0,v=0,a=0;
+    cells.forEach((c,i)=>{if(c.d[k]>GRID.D+1e-9)return;const rf=SUIT.raw[fi][i].parts[ck];pf+=(rf==null?0:rf)*c.area;v+=c[COND[ck].key]*c.area;a+=c.area;});
+    if(!a)return;pf/=a;v/=a;
+    const loss=cf.w*(100-pf)/sumW;
+    if(loss>worst){worst=loss;why={ck,v,pf,dir:cf.dir,loss};}});
+  return {mean,best,low,why};
+}
 function zoningAdvice(R){
-  if(!CFG||!ZONES||!GRID) return [];
+  if(!CFG||!SUIT||!GRID) return [];
   const out=[];
-  KEYS.forEach(k=>{const r=R[k],F=r.F,nm=facName(k);if(!r.has)return;
-    const d=stripDominant(GRID,ZONES,k),fn=CFG.functions[d.f],pct=Math.round(d.share*100);
-    const head=`${nm}：后面 ${pct}% 为${fn.label}。`;
-    const eff=t=>`过热频率 ${f(r.ovh,1)}% → ${f(t.r.ovh,1)}%，采光 ${f(r.DF,1)}% → ${f(t.r.DF,1)}%，冬季净得热 ${sg(r.netPer,0)} → ${sg(t.r.netPer,0)} kWh/m² 窗；采纳后该立面后 ${Math.round(t.dom.share*100)}% 为${CFG.functions[t.dom.f].label}`;
+  KEYS.forEach(k=>{const r=R[k],F=r.F,nm=facName(k);const fi=intentIdx(k);if(fi<0||!r.has)return;   // 未指定功能的立面不给基于功能的建议
+    const fn=CFG.functions[fi],fit0=stripMean(GRID,SUIT,k,fi);
+    const head=`${nm}：打算放置${fn.label}。`;
+    const eff=t=>`过热频率 ${f(r.ovh,1)}% → ${f(t.r.ovh,1)}%，采光 ${f(r.DF,1)}% → ${f(t.r.DF,1)}%，冬季净得热 ${sg(r.netPer,0)} → ${sg(t.r.netPer,0)} kWh/m² 窗；采纳后这一侧对${fn.label}的适合度 ${Math.round(fit0)} → ${Math.round(t.fit)} 分`;
     const isS=r.az>=135&&r.az<=225;
     // 规则 1：怕热的功能 + 这面墙过热（高温时段得热超过该功能容忍区间的中点，或过热频率超过建议值）
     //   南向：挑檐加 0.4 m（0.6–1.5 m）；东西向或挑檐已很深：窗墙比每次减 5%，直到高温时段得热低于容忍下限或窗墙比到 15%
@@ -782,7 +815,7 @@ function zoningAdvice(R){
         let ov=null;
         if(isS&&F.oh<1.4) ov={oh:Math.min(1.5,Math.max(0.6,+(F.oh+0.4).toFixed(2)))};
         else{let w=F.wwr,best=null;for(let i=0;i<8&&w>0.15+1e-9;i++){w=+(w-0.05).toFixed(2);const t=calc(k,{wwr:w});best={wwr:w,t};if(t.hotPer<=oh.lo)break;}if(best)ov={wwr:best.wwr};}
-        if(ov){const t=trial(R,k,ov);
+        if(ov){const t=trial(R,k,ov,fi);
           if(t.r.ovh<r.ovh-0.05||t.r.hotPer<r.hotPer-0.05){
             const act=ov.oh!=null?`挑檐加到 ${f(ov.oh,2)} m`:`窗墙比从 ${Math.round(F.wwr*100)}% 减到 ${Math.round(ov.wwr*100)}%${!isS?'（这个朝向太阳角度低，挑檐作用有限）':''}`;
             const why=r.hotPer>mid?`这面墙高温时段得热 ${f(r.hotPer,1)} kWh/m²，超过${fn.label}容忍区间 ${oh.lo}–${oh.hi} 的中点，过热频率 ${f(r.ovh,1)}%`:`这面墙过热频率 ${f(r.ovh,1)}%，超过建议值 ${OVH_GOOD}%（${fn.label}怕热）`;
@@ -791,15 +824,30 @@ function zoningAdvice(R){
     const dl=fn.daylight;
     if(dl&&dl.dir==='up'&&r.DF<dl.hi&&r.netPer!=null&&r.netPer>0&&F.wwr<0.6-1e-9){
       let w=F.wwr,best=null;for(let i=0;i<10&&w<0.6-1e-9;i++){w=+(w+0.05).toFixed(2);const t=calc(k,{wwr:w});if(t.ovh>OVH_GOOD)break;best={wwr:w,t};if(t.DF>=dl.hi)break;}
-      if(best){const t=trial(R,k,{wwr:best.wwr});
+      if(best){const t=trial(R,k,{wwr:best.wwr},fi);
         out.push({k,ov:{wwr:best.wwr},p:1,text:`${head}采光系数 ${f(r.DF,1)}%，${fn.label}要 ${dl.hi}% 才满分，而这面窗冬季净得热为正（+${f(r.netPer,0)} kWh/m² 窗）。建议窗墙比从 ${Math.round(F.wwr*100)}% 加到 ${Math.round(best.wwr*100)}%${best.t.DF<dl.hi?'（再大过热频率会超过 5%）':''}。`,eff:eff(t)});}}
     // 规则 3：不需要光的功能 + 窗墙比 > 15% + 窗户冬季净失热 → 缩到 12%（保留基本采光）
     if(dl&&dl.dir==='down'&&F.wwr>0.15+1e-9&&r.netPer!=null&&r.netPer<0){
-      const t=trial(R,k,{wwr:0.12});
+      const t=trial(R,k,{wwr:0.12},fi);
       out.push({k,ov:{wwr:0.12},p:2,text:`${head}${fn.label}不需要多少光，而这面窗每平方米每年净失热 ${f(-r.netPer,0)} kWh。建议窗墙比从 ${Math.round(F.wwr*100)}% 缩到 12%，窗户额外热损失从 ${f(r.Qloss,0)} 降到 ${f(t.r.Qloss,0)} kWh/年。`,eff:eff(t)});}
   });
   out.sort((a,b)=>a.p-b.p);
   return out;
+}
+// Version_06：与功能有关的提示（不可采纳）：指定功能在该房间带适合度偏低（含主因）；某功能的适合面积低于目标下限
+function intentTips(R){
+  const T=[]; if(!CFG||!SUIT||!GRID) return T;
+  const dirWord=d=>d==='down'?'高':'不足';
+  KEYS.forEach(k=>{const fi=intentIdx(k);if(fi<0)return;const fn=CFG.functions[fi],nm=facName(k),ft=stripFit(k,fi);if(!ft.low)return;
+    const C=ft.why?COND[ft.why.ck]:null;
+    T.push({c:'--heat',p:1,k,topic:'intent-fit',action:'',t:`${nm}对${fn.label}的适合度偏低（平均 ${Math.round(ft.mean)} 分${ft.best.f!==fi?`，这一侧最适合${CFG.functions[ft.best.f].label} ${Math.round(ft.best.mean)} 分`:''}）${C?`，主要因为${C.label}${dirWord(ft.why.dir)}（房间带平均 ${f(ft.why.v,C.dec)}${C.unit}，按${fn.label}的要求得 ${Math.round(ft.why.pf)} 分）`:''}。`});
+  });
+  CFG.functions.forEach((fn,i)=>{const sh=SUIT.shares[i];if(sh>=fn.area.min-1e-9)return;
+    let mainCk=null,mw=-1;Object.keys(COND).forEach(ck=>{const c=fn[ck];if(c&&c.w>mw){mw=c.w;mainCk=ck;}});
+    let bk=null,bv=-Infinity;KEYS.forEach(k=>{const v=stripMean(GRID,SUIT,k,i);if(v>bv){bv=v;bk=k;}});
+    T.push({c:'--muted',p:3,k:null,topic:'area-'+fn.key,action:'',t:`整层适合${fn.label}的面积约占 ${Math.round(sh*100)}%，低于目标 ${Math.round(fn.area.min*100)}–${Math.round(fn.area.max*100)}%。${mainCk?`${fn.label}最看重${COND[mainCk].label}；`:''}${bk?`${facName(bk)}房间带对${fn.label}的适合度最高（${Math.round(bv)} 分），可以从这一侧的窗墙比或挑檐入手。`:''}`});
+  });
+  return T;
 }
 function adoptAdvice(a){   // 只改该立面的一个参数并同步滑块，然后正常重算；不会自动执行其它建议
   Object.keys(a.ov).forEach(fld=>{S.f[a.k][fld]=a.ov[fld];if(facSync[a.k]&&facSync[a.k][fld])facSync[a.k][fld].sync();});
@@ -810,13 +858,14 @@ function renderAdvice(R){
   // Version_05：合并「分区建议」与「设计提示」为一个列表。可采纳项在前；同一立面上，与可采纳项问题类别相同或动作相同的提示被去掉；
   // 筛选「仅所选立面」时显示该立面的条目和无立面的全局提示。ADVICE 仍只存可采纳项（自检用）。
   ADVICE=zoningAdvice(R);
-  TIPS_RAW=renderTips(R).map(tagTip);
+  TIPS_RAW=renderTips(R).map(tagTip).concat(intentTips(R)).sort((a,b)=>a.p-b.p);   // Version_06：加入与指定功能有关的提示
   const adv=ADVICE.map(a=>Object.assign({},a,adviceTopic(a)));
   TIPS_DROPPED=[];
   const tips=TIPS_RAW.filter(t=>{const dup=!!t.k&&adv.some(a=>a.k===t.k&&(a.topic===t.topic||(!!t.action&&a.action===t.action)));if(dup)TIPS_DROPPED.push(t);return !dup;});
   const show=x=>S.tipFilter==='all'||x.k==null||x.k===S.sel;
   const ul=document.getElementById('advice');let html='';
-  if(!CFG) html+='<li class="tip" style="--c:var(--muted)"><span>未加载 zoning-config.js，无法生成分区建议。</span></li>';
+  if(!CFG) html+='<li class="tip" style="--c:var(--muted)"><span>未加载 zoning-config.js，无法生成针对功能的建议。</span></li>';
+  else if(KEYS.some(k=>intentIdx(k)<0)) html+='<li class="tip guide" data-k=""><span>为立面指定打算放置的功能后，可获得针对性的窗墙比建议。</span></li>';
   adv.forEach((a,i)=>{if(!show(a))return;html+=`<li data-k="${a.k}" data-topic="${a.topic}" style="--c:var(${a.p===0?'--heat':a.p===1?'--day':'--cold'})"><span>${a.text}<small>预计：${a.eff}</small></span><button type="button" class="adopt" data-i="${i}" aria-label="采纳：${facName(a.k)}">采纳</button></li>`;});
   tips.filter(show).forEach(t=>{html+=`<li class="tip" data-k="${t.k||''}" data-topic="${t.topic}" style="--c:var(${t.c})"><span>${t.t}</span></li>`;});
   if(!html) html=`<li class="tip" style="--c:var(--good)"><span>${S.tipFilter==='sel'?'所选立面目前没有建议或提示。':'各立面的窗与其后面的功能目前没有明显矛盾。'}</span></li>`;
@@ -855,7 +904,9 @@ KEYS.forEach(k=>{
 });
 KEYS.forEach(k=>{
   const box=document.createElement('div');box.className='fac';box.setAttribute('role','tabpanel');box.id='pane-'+k;box.setAttribute('aria-labelledby','tab-'+k);
-  box.innerHTML=`<div class="fac-h"><b></b><span></span></div>`;
+  // Version_06：面板顶部「这一侧打算放置」下拉（选项由配置表生成，见 buildIntentSel）和参考 / 评价小字
+  box.innerHTML=`<div class="fac-h"><b></b><span></span></div><div class="intent"><label for="intent-${k}">这一侧打算放置</label><select id="intent-${k}" data-k="${k}"></select></div><p class="ref" id="ref-${k}"></p>`;
+  box.querySelector('select').addEventListener('change',e=>{S.intent[k]=e.target.value||null;render();});
   facEls[k]=box;
   facs.appendChild(box);
   // Version_04：保存滑块句柄，采纳建议后同步滑块显示（不改计算）
@@ -865,6 +916,13 @@ KEYS.forEach(k=>{
     oh:slider(box,{label:'挑檐深度',min:0,max:1.5,step:0.05,get:()=>S.f[k].oh,set:v=>S.f[k].oh=v,fmt:v=>v===0?'无':v.toFixed(2)+' m'})
   };
 });
+
+function buildIntentSel(){   // 四个面板的下拉：「未指定」+ 配置表各功能；保留当前值
+  KEYS.forEach(k=>{const sel=document.getElementById('intent-'+k);if(!sel)return;
+    sel.innerHTML=`<option value="">未指定</option>`+(CFG?CFG.functions.map(fn=>`<option value="${fn.key}">${fn.label}</option>`).join(''):'');
+    sel.value=S.intent[k]&&CFG&&CFG.functions.some(x=>x.key===S.intent[k])?S.intent[k]:'';});
+}
+buildIntentSel();
 
 const AS=[
   ['Ug','玻璃 U 值 W/m²K',0.01],['Uf','窗框 U 值 W/m²K',0.01],['fw','窗框宽度 m',0.01],['psig','玻璃边缘 ψ W/mK',0.005],
@@ -965,6 +1023,7 @@ function renderTips(R){
 }
 // Version_05：给每条提示标注立面 k、问题类别 topic、动作 action（按文字特征识别，规则见 PLAN_v05.md §4.2）。不改提示文字。
 function tagTip(t){
+  if(t.topic) return t;   // Version_06：intentTips 已带类别
   const m=t.t.match(/^(.+?立面)：/); const k=m?KEYS.find(x=>facName(x)===m[1])||null:null;
   const s=t.t; let topic='other',action='';
   if(/室内 >25 °C 约/.test(s)){topic='overheat';action=/挑檐加到/.test(s)?'overhang':(/减小窗墙比/.test(s)&&/太阳角度低/.test(s)?'shrink':'shade');}
@@ -1016,7 +1075,7 @@ function netClass(r){if(r.netPer==null)return null;const v=r.netPer;
 // ---------- 平面（第二轮：一张图 + 信息图层）----------
 // 一个米制坐标系：建筑与方格、窗线、挑檐轮廓、净得失色带、房间带边线、立面点击区都在旋转组里随朝向转；
 // 罗盘环、日照弧线、立面标签（位置随转、文字水平）、指北针在世界坐标系里。每个信息图层按 S.info 开关，关掉就不输出对应元素。
-// viewBox 按打开的图层定留白：日照方位开 3.6 m（放罗盘环与文字），关 2.2 m（图自动放大）。只读 GRID / ZONES / R / S，不做任何计算。
+// viewBox 按打开的图层定留白：日照方位开 3.6 m（放罗盘环与文字），关 2.2 m（图自动放大）。只读 GRID / SUIT / R / S，不做任何计算。
 function renderPlan(R){
   const svg=document.getElementById('plan'); if(!GRID){svg.innerHTML='';return;}
   const I=S.info, w=S.L, h=S.W, R0=Math.hypot(w,h)/2;
@@ -1047,6 +1106,15 @@ function renderPlan(R){
   if(I.strip){const D=S.depth,sw=n2(fs*0.07);b+='<g class="strip">';
     if(D<h)b+=`<line x1="${-w/2}" y1="${n2(h/2-D)}" x2="${w/2}" y2="${n2(h/2-D)}" stroke="var(--ink)" stroke-width="${sw}" stroke-dasharray="0.5 0.35" opacity=".8"/><line x1="${-w/2}" y1="${n2(-h/2+D)}" x2="${w/2}" y2="${n2(-h/2+D)}" stroke="var(--ink)" stroke-width="${sw}" stroke-dasharray="0.5 0.35" opacity=".8"/>`;
     if(D<w)b+=`<line x1="${n2(w/2-D)}" y1="${-h/2}" x2="${n2(w/2-D)}" y2="${h/2}" stroke="var(--ink)" stroke-width="${sw}" stroke-dasharray="0.5 0.35" opacity=".8"/><line x1="${n2(-w/2+D)}" y1="${-h/2}" x2="${n2(-w/2+D)}" y2="${h/2}" stroke="var(--ink)" stroke-width="${sw}" stroke-dasharray="0.5 0.35" opacity=".8"/>`;
+    // Version_06：已指定功能的房间带填该功能色；转角两侧指定了不同功能时沿对角线一分为二（靠哪面墙的一半归哪面）
+    if(CFG){const Dx=Math.min(D,w/2),Dy=Math.min(D,h/2),col=k=>{const i=intentIdx(k);return i<0?null:`var(${CFG.functions[i].color})`;};
+      const body={S:[-w/2+Dx,h/2-Dy,w-2*Dx,Dy],N:[-w/2+Dx,-h/2,w-2*Dx,Dy],E:[w/2-Dx,-h/2+Dy,Dx,h-2*Dy],W:[-w/2,-h/2+Dy,Dx,h-2*Dy]};
+      const poly=(pts,c,k)=>`<polygon class="ifill" data-k="${k}" points="${pts.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${c}" opacity=".22"/>`;
+      KEYS.forEach(k=>{const c=col(k);if(!c)return;const [x,y,ww,hh]=body[k];if(ww>1e-9&&hh>1e-9)b+=`<rect class="ifill" data-k="${k}" x="${n2(x)}" y="${n2(y)}" width="${n2(ww)}" height="${n2(hh)}" fill="${c}" opacity=".22"/>`;});
+      [{o:[w/2,h/2],i:[w/2-Dx,h/2-Dy],ns:'S',ew:'E'},{o:[-w/2,h/2],i:[-w/2+Dx,h/2-Dy],ns:'S',ew:'W'},{o:[w/2,-h/2],i:[w/2-Dx,-h/2+Dy],ns:'N',ew:'E'},{o:[-w/2,-h/2],i:[-w/2+Dx,-h/2+Dy],ns:'N',ew:'W'}].forEach(({o,i,ns,ew})=>{
+        const cn=col(ns),ce=col(ew);if(!cn&&!ce)return;const pNS=[i[0],o[1]],pEW=[o[0],i[1]];
+        if(cn&&ce&&cn!==ce){b+=poly([o,pNS,i],cn,ns)+poly([o,pEW,i],ce,ew);}
+        else b+=poly([o,pNS,i,pEW],cn||ce,cn?ns:ew);});}
     b+='</g>';}
   const E={S:[[-w/2,h/2],[w/2,h/2],[0,1]],N:[[w/2,-h/2],[-w/2,-h/2],[0,-1]],E:[[w/2,h/2],[w/2,-h/2],[1,0]],W:[[-w/2,-h/2],[-w/2,h/2],[-1,0]]};
   const labels=[];
@@ -1070,7 +1138,13 @@ function renderPlan(R){
   // ---- 指北针（始终显示，固定朝上）----
   const nr=fs*1.7, nx=V/2-nr-0.2, ny=V/2-nr-0.2;
   const north=`<g class="north" transform="translate(${n2(nx)},${n2(ny)}) scale(${n2(fs)})"><circle r="1.7" fill="var(--panel)" stroke="var(--line)" stroke-width="0.1"/><path d="M0,-1.3 L0.55,0.7 L0,0.3 L-0.55,0.7 Z" fill="var(--ink)"/><text x="0" y="-1.85" text-anchor="middle" font-size="0.9" font-weight="700" fill="var(--ink)">北</text></g>`;
-  svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+lab+north;
+  // Version_06：房间带图层里已指定功能的名称（世界坐标，文字水平，放在每条带的中段）
+  let ilab='';
+  if(I.strip&&CFG){const Dx=Math.min(S.depth,w/2),Dy=Math.min(S.depth,h/2),cr=Math.cos(rad(S.rot)),sr=Math.sin(rad(S.rot));
+    const at={S:[0,h/2-Dy/2],N:[0,-h/2+Dy/2],E:[w/2-Dx/2,0],W:[-w/2+Dx/2,0]};
+    KEYS.forEach(k=>{const fi=intentIdx(k);if(fi<0)return;const [x,y]=at[k],X=x*cr-y*sr,Y=x*sr+y*cr,fn=CFG.functions[fi],lw=fs*(fn.label.length+1.2),lh=fs*1.4;
+      ilab+=`<g class="ilab" data-k="${k}"><rect x="${n2(X-lw/2)}" y="${n2(Y-lh/2)}" width="${n2(lw)}" height="${n2(lh)}" rx="${n2(fs*0.25)}" fill="var(--panel)" opacity=".85"/><text x="${n2(X)}" y="${n2(Y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.95)}" font-weight="700" fill="var(${fn.color})">${fn.label}</text></g>`;});}
+  svg.innerHTML=g+`<g transform="rotate(${S.rot})">${b}</g>`+ilab+lab+north;
   svg.querySelectorAll('.cell').forEach(el=>el.addEventListener('click',()=>{const c=GRID.cells[+el.dataset.idx];S.cell=(S.cell&&S.cell.i===c.i&&S.cell.j===c.j)?null:{i:c.i,j:c.j};render();}));
   svg.querySelectorAll('.flab,.hit').forEach(el=>{const k=el.getAttribute('data-k');el.addEventListener('click',()=>{S.sel=k;render();});});
 }
@@ -1148,13 +1222,21 @@ function renderFacs(R){   // Version_05：更新标签页（名称、方位角�
     tab.querySelector('.t-wwr').textContent=Math.round(S.f[k].wwr*100)+'%';
     tab.querySelector('.t-dot').hidden=!hasAdv;
     tab.setAttribute('aria-selected',on);tab.tabIndex=on?0:-1;
-    tab.setAttribute('aria-label',`${facName(k)} ${Math.round(facAz(k))}°，窗墙比 ${Math.round(S.f[k].wwr*100)}%${hasAdv?'，有建议':''}`);});
+    tab.setAttribute('aria-label',`${facName(k)} ${Math.round(facAz(k))}°，窗墙比 ${Math.round(S.f[k].wwr*100)}%${hasAdv?'，有建议':''}`);
+    // Version_06：同步下拉值；未指定时显示参考功能，已指定时显示平均适合度（偏低标红）
+    const sel=el.querySelector('select'),ref=document.getElementById('ref-'+k);
+    if(sel) sel.value=S.intent[k]&&CFG&&CFG.functions.some(x=>x.key===S.intent[k])?S.intent[k]:'';
+    if(!CFG||!SUIT||!GRID){ref.textContent='';}
+    else{const fi=intentIdx(k);
+      if(fi<0){const b=stripBest(GRID,SUIT,k);ref.innerHTML=`参考：这一侧房间带最适合${CFG.functions[b.f].label}（平均 ${Math.round(b.mean)} 分）`;}
+      else{const ft=stripFit(k,fi);ref.innerHTML=`${CFG.functions[fi].label}在这一侧的平均适合度 ${Math.round(ft.mean)} 分${ft.low?'<span class="warn">，偏低</span>':''}`;}}
+  });
 }
 
 function render(){
   const R=calcAll();
-  GRID=gridConditions(R);   // 室内分区：只读 R，不改 R
-  ZONES=CFG?assignZones(GRID,CFG):null;
+  GRID=gridConditions(R);   // 功能适宜度：只读 R，不改 R
+  SUIT=CFG?suitGrid(GRID,CFG):null;
   // Version_05：renderTips 只返回条目，由 renderAdvice 合并；renderPlan 画合并后的平面（第二轮）；renderFacs 更新标签页（需在 renderAdvice 之后，用到 ADVICE）
   updateClim();updateCool();updateZoning();updateTipFilter();updateInfo();renderSummary(R);renderPlan(R);updateGridLegend(GRID);renderCell();renderSection(R);renderTable(R);renderAdvice(R);renderDetail(R);renderFacs(R);
 }
@@ -1211,59 +1293,110 @@ window.wwrSelfTest=function(){
     console.log('gridConditions 平均耗时 ms', ((performance.now()-t0)/10).toFixed(2), '格数', G.cells.length);
     console.log('房间带均值（立面: DF / gainPer / hotPer）', KEYS.map(k=>`${k}: ${f(R[k].DF,2)} / ${f(R[k].Qgain/R[k].zoneA,1)} / ${f(R[k].hotPer,2)}`).join('  '));
   }
-  // ---- 室内分区 · 阶段 B：分区自检（PLAN_zoning.md §9）----
+  // ---- 功能适宜度自检（Version_06：分配结果改为"平滑后最高分"，面积约束改为面积反馈；见 PLAN_v06.md §6）----
   if(CFG){
     const F=CFG.functions, fi=key=>F.findIndex(x=>x.key===key), L=fi('living'), B=fi('bedroom'), V=fi('service');
-    const run=()=>{const G=gridConditions(calcAll());return {G,Z:assignZones(G,CFG)};};
-    const centroid=(G,Z,f)=>{let x=0,y=0,a=0;G.cells.forEach((c,i)=>{if(Z.lab[i]===f){x+=c.x*c.area;y+=c.y*c.area;a+=c.area;}});return a?{x:x/a,y:y/a,a}:null;};
-    const shareIn=(G,Z,k,f)=>{let n=0,m=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){n++;if(Z.lab[i]===f)m++;}});return n?m/n:0;};
-    const nComp=(G,Z,f)=>{const seen=new Uint8Array(Z.lab.length);let cnt=0;for(let s=0;s<Z.lab.length;s++){if(seen[s]||Z.lab[s]!==f)continue;cnt++;const st=[s];seen[s]=1;
-      while(st.length){const idx=st.pop(),i=idx%G.nx,j=(idx-i)/G.nx;[[i-1,j],[i+1,j],[i,j-1],[i,j+1]].forEach(([ii,jj])=>{if(ii<0||ii>=G.nx||jj<0||jj>=G.ny)return;const q=jj*G.nx+ii;if(!seen[q]&&Z.lab[q]===f){seen[q]=1;st.push(q);}});}}return cnt;};
+    const run=()=>{const G=gridConditions(calcAll());return {G,Z:suitGrid(G,CFG)};};
+    const centroid=(G,Z,f)=>{let x=0,y=0,a=0;G.cells.forEach((c,i)=>{if(Z.best[i]===f){x+=c.x*c.area;y+=c.y*c.area;a+=c.area;}});return a?{x:x/a,y:y/a,a}:null;};
+    const shareIn=(G,Z,k,f)=>{let n=0,m=0;G.cells.forEach((c,i)=>{if(c.d[k]<=G.D+1e-9){n++;if(Z.best[i]===f)m++;}});return n?m/n:0;};
     const save={rot:S.rot,clim:S.clim,Gt:S.A.Gt};
     if(L>=0&&B>=0&&V>=0){
       S.rot=0; const {G,Z}=run();
       const cl=centroid(G,Z,L), cs=centroid(G,Z,V);
-      eq('正南：客厅质心在南半侧（y > 0）',cl&&cl.y>0?1:0,1);
-      eq('正南：服务区质心在北半侧或中部（y < W/4）',cs&&cs.y<S.W/4?1:0,1);
+      eq('正南：客厅最高分区域质心在南半侧（y > 0）',cl&&cl.y>0?1:0,1);
+      eq('正南：服务区最高分区域质心在北半侧或中部（y < W/4）',cs&&cs.y<S.W/4?1:0,1);
       const bw=shareIn(G,Z,'W',B), be=shareIn(G,Z,'E',B);
-      eq('正南：西侧房间带卧室占比 < 东侧',bw<be?1:0,1);
-      console.log('正南默认：占比',F.map((fn,i)=>`${fn.label} ${(Z.shares[i]*100).toFixed(1)}%`).join('，'),'| 卧室占比 西带',bw.toFixed(2),'东带',be.toFixed(2),'| 连通块数',F.map((fn,i)=>`${fn.label} ${nComp(G,Z,i)}`).join('，'),'| λ',Z.lam.map(x=>x.toFixed(1)).join('/'));
+      eq('正南：西侧房间带卧室最高分占比 < 东侧',bw<be?1:0,1);
+      console.log('正南默认：适合面积占比',F.map((fn,i)=>`${fn.label} ${(Z.shares[i]*100).toFixed(1)}%`).join('，'),'| 卧室最高分占比 西带',bw.toFixed(2),'东带',be.toFixed(2));
       S.rot=90; const r90=run(); const cl90=centroid(r90.G,r90.Z,L);
-      eq('偏转 90°：客厅质心移到东侧（x > 0）',cl90&&cl90.x>0?1:0,1);
-      let prev=null,maxFlip=0,flips=[]; for(let a=40;a<=50;a++){S.rot=a;const {Z:z}=run();if(prev){let d=0;for(let i=0;i<z.lab.length;i++)if(z.lab[i]!==prev[i])d++;flips.push(d/z.lab.length);maxFlip=Math.max(maxFlip,d/z.lab.length);}prev=z.lab;}
-      eq('40°→50° 逐度扫描：相邻两次改变功能的格子比例 ≤ 5%',maxFlip<=0.05?1:0,1);
+      eq('偏转 90°：客厅最高分区域质心移到东侧（x > 0）',cl90&&cl90.x>0?1:0,1);
+      let prev=null,maxFlip=0,flips=[]; for(let a=40;a<=50;a++){S.rot=a;const {Z:z}=run();if(prev){let d=0;for(let i=0;i<z.best.length;i++)if(z.best[i]!==prev[i])d++;flips.push(d/z.best.length);maxFlip=Math.max(maxFlip,d/z.best.length);}prev=z.best;}
+      eq('40°→50° 逐度扫描：相邻两次改变最高分功能的格子比例 ≤ 5%',maxFlip<=0.05?1:0,1);
       console.log('逐度翻转比例 %',flips.map(x=>(x*100).toFixed(1)).join(' '),'最大',(maxFlip*100).toFixed(2)+'%');
-      let allOK=true,worst=''; ['apNow','hbNow','f2080'].forEach(c=>[0,30,60,90].forEach(a=>{S.clim=c;S.A.Gt=CLIM[c].Gt;S.rot=a;const {Z:z}=run();if(!z.areaOK){allOK=false;worst+=`${c}@${a}:${z.shares.map(x=>x.toFixed(2)).join('/')} `;}}));
-      eq('面积约束：3 气候 × 4 朝向全部在区间内',allOK?1:0,1); if(worst)console.log('超出区间：',worst);
-      S.clim=save.clim; S.A.Gt=save.Gt; S.rot=0;
-      const cfg2=JSON.parse(JSON.stringify(CFG)); cfg2.functions[L].area={min:0.15,max:0.25};
-      const z2=assignZones(G,cfg2); eq('只改配置：客厅上限 0.25 → 占比 ≤ 0.27',z2.shares[L]<=0.27?1:0,1);
-      const cfg3=JSON.parse(JSON.stringify(CFG)); cfg3.functions[B].overheat.w=0; const z3=assignZones(G,cfg3);
-      let diff=0;for(let i=0;i<Z.lab.length;i++)if(z3.lab[i]!==Z.lab[i])diff++; eq('只改配置：卧室过热权重 0 → 分区改变',diff>0?1:0,1);
-      const t0=performance.now();for(let i=0;i<10;i++)assignZones(G,CFG);console.log('assignZones 平均耗时 ms',((performance.now()-t0)/10).toFixed(2));
+      let sumOK=true; ['apNow','hbNow','f2080'].forEach(c=>[0,30,60,90].forEach(a=>{S.clim=c;S.A.Gt=CLIM[c].Gt;S.rot=a;const {Z:z}=run();const sm=z.shares.reduce((x,y)=>x+y,0);if(Math.abs(sm-1)>1e-9||z.shares.some(x=>x<-1e-12||x>1+1e-12))sumOK=false;}));
+      eq('面积反馈：3 气候 × 4 朝向，各功能适合面积占比之和 = 1、各项在 0–1',sumOK?1:0,1);
+      S.clim=save.clim; S.A.Gt=save.Gt; S.rot=0; render();
+      const txt=document.getElementById('zoneInfo').textContent;
+      eq('侧栏显示每种功能的适合面积与目标区间',F.every((fn,i)=>txt.includes(`${fn.label} 适合面积 ${Math.round(SUIT.shares[i]*100)}%`)&&txt.includes(`目标 ${Math.round(fn.area.min*100)}–${Math.round(fn.area.max*100)}`))?1:0,1);
+      const keep=CFG, cfg2=JSON.parse(JSON.stringify(CFG)); cfg2.functions[L].area={min:0.9,max:0.95}; CFG=cfg2; render();
+      eq('只改配置：客厅面积下限 0.9 → 出现"适合面积低于目标"提示',TIPS_RAW.some(t=>t.topic==='area-'+F[L].key)?1:0,1);
+      CFG=keep; render(); eq('改回配置 → 该提示消失',TIPS_RAW.some(t=>t.topic==='area-'+F[L].key)?0:1,1);
+      const cfg3=JSON.parse(JSON.stringify(CFG)); cfg3.functions[B].overheat.w=0; const z3=suitGrid(G,cfg3);
+      let diff=0;for(let i=0;i<Z.best.length;i++)if(z3.best[i]!==Z.best[i])diff++; eq('只改配置：卧室过热权重 0 → 最高分功能改变',diff>0?1:0,1);
+      // needsWindow（PLAN_v06.md §3）
+      const outside=G.cells.filter(c=>!c.inStrip).length;
+      eq('needsWindow：卧室在房间带以外全部 0 分（原始分与平滑分）',G.cells.every((c,i)=>c.inStrip||(Z.raw[B][i].score===0&&Z.sm[B][i]===0))?1:0,1);
+      eq('needsWindow：受影响格数 = 房间带以外格数',Z.affected,outside,0);
+      const cfg4=JSON.parse(JSON.stringify(CFG)); delete cfg4.functions[B].needsWindow; const z4=suitGrid(G,cfg4);
+      let same=true; F.forEach((fn,f)=>G.cells.forEach((c,i)=>{if(!c.inStrip&&f===B)return;if(Math.abs(z4.raw[f][i].score-Z.raw[f][i].score)>1e-12||Math.abs(z4.sm[f][i]-Z.sm[f][i])>1e-12)same=false;}));
+      eq('needsWindow：其余格子、其余功能的分数不受影响',same?1:0,1);
+      eq('needsWindow：去掉该字段后受影响格数为 0',z4.affected,0,0);
+      console.log('needsWindow 受影响格数',Z.affected,'/',G.cells.length);
+      // 总览深浅
+      const al=Array.from(Z.margin).map(leadAlpha); eq('总览：颜色深浅有差异（最深 − 最浅 > 0.1）',Math.max(...al)-Math.min(...al)>0.1?1:0,1);
+      const tie=Array.from(Z.margin).filter(m=>m<LEAD_TIE).length; console.log(`领先幅度 < ${LEAD_TIE} 分（多种可能）的格子占比 ${(100*tie/G.cells.length).toFixed(1)}%（${tie}/${G.cells.length}）；alpha 范围 ${Math.min(...al).toFixed(2)}–${Math.max(...al).toFixed(2)}`);
+      const t0=performance.now();for(let i=0;i<10;i++)suitGrid(G,CFG);console.log('suitGrid 平均耗时 ms',((performance.now()-t0)/10).toFixed(2));
     }
-    S.rot=save.rot;
-  } else console.log('未加载 zoning-config.js，跳过阶段 B 自检');
-  // ---- 室内分区 · 阶段 C：建议自检（Version_04）----
+    S.rot=save.rot; render();
+  } else console.log('未加载 zoning-config.js，跳过功能适宜度自检');
+  // ---- 针对指定功能的建议自检（Version_04 的采纳测试 + Version_06 的指定 / 未指定行为）----
   if(CFG){
+    const F=CFG.functions;
+    const hotF=[...F.keys()].filter(i=>F[i].overheat&&F[i].overheat.dir==='down').sort((a,b)=>F[a].overheat.hi-F[b].overheat.hi)[0];   // 最怕热的功能（不写名字）
+    const saveI=Object.assign({},S.intent), saveInfo2=Object.assign({},S.info);
+    KEYS.forEach(k=>S.intent[k]=null); render();
+    eq('全部未指定：无可采纳建议',ADVICE.length,0,0);
+    eq('全部未指定：不出现基于功能的提示',TIPS_RAW.some(t=>t.topic==='intent-fit')?0:1,1);
+    eq('全部未指定：列表顶部有引导说明',document.querySelector('#advice li.guide')?1:0,1);
+    eq('全部未指定：四个面板显示"参考：…"',KEYS.every(k=>/^参考：/.test(document.getElementById('ref-'+k).textContent))?1:0,1);
+    S.intent.W=F[hotF].key; S.info.strip=true; render();
     const snap=()=>JSON.stringify(S.f), s0=snap(), before=JSON.parse(s0);
     render(); render(); eq('不自动应用：两次渲染后 S.f 不变',snap()===s0?1:0,1);
-    const A=ADVICE.slice(); console.log('机场站当下 建议',A.length,'条：',A.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
-    eq('默认方案（机场站当下）有针对西立面的建议',A.some(a=>a.k==='W')?1:0,1);
-    if(A.length){const a=A[0],fld=Object.keys(a.ov)[0];adoptAdvice(a);
+    const A=ADVICE.slice(); console.log('机场站当下（西立面指定'+F[hotF].label+'）建议',A.length,'条：',A.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
+    eq('西立面指定怕热功能后有针对西立面的建议',A.some(a=>a.k==='W')?1:0,1);
+    {const ft=stripFit('W',hotF),has=TIPS_RAW.some(t=>t.k==='W'&&t.topic==='intent-fit'&&/主要因为/.test(t.t));
+     eq('西立面指定后："适合度偏低"提示的出现与规则一致（平均 <'+FIT_LOW+' 或落后 ≥'+FIT_GAP+'）',has===ft.low?1:0,1);
+     console.log(`机场站当下 西立面对${F[hotF].label}：平均 ${ft.mean.toFixed(1)} 分，最适合${F[ft.best.f].label} ${ft.best.mean.toFixed(1)} 分，差 ${(ft.best.mean-ft.mean).toFixed(1)}，判为偏低：${ft.low}`);}
+    eq('引导说明仍在（还有未指定的立面）',document.querySelector('#advice li.guide')?1:0,1);
+    eq('房间带图层：西侧有指定功能的色块',document.querySelector('#plan .ifill[data-k="W"]')?1:0,1);
+    eq('房间带图层：西侧显示功能名称',(document.querySelector('#plan .ilab[data-k="W"] text')||{}).textContent===F[hotF].label?1:0,1);
+    eq('西立面面板显示平均适合度',/平均适合度 \d+ 分/.test(document.getElementById('ref-W').textContent)?1:0,1);
+    const aw=A.find(a=>a.k==='W');
+    if(aw){const a=aw,fld=Object.keys(a.ov)[0];adoptAdvice(a);
       eq('采纳生效：S.f[k][字段] = 建议值',S.f[a.k][fld],a.ov[fld],1e-9);
       let others=true;KEYS.forEach(k=>Object.keys(S.f[k]).forEach(x=>{if(k===a.k&&x===fld)return;if(S.f[k][x]!==before[k][x])others=false;}));eq('采纳只改一个参数',others?1:0,1);
       const s1=snap();render();eq('无连锁：采纳后再渲染 S.f 不变',snap()===s1?1:0,1);
       S.f=JSON.parse(s0);KEYS.forEach(k=>Object.keys(facSync[k]).forEach(x=>facSync[k][x].sync()));render();}
     const saveC={clim:S.clim,Gt:S.A.Gt}; S.clim='f2080';S.A.Gt=CLIM.f2080.Gt;render();
-    console.log('2080 年 建议',ADVICE.length,'条：',ADVICE.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
+    console.log('2080 年（西立面指定'+F[hotF].label+'）建议',ADVICE.length,'条：',ADVICE.map(a=>`${a.k} ${JSON.stringify(a.ov)}`).join('；'));
     eq('2080 年有针对西立面的建议',ADVICE.some(a=>a.k==='W')?1:0,1);
+    {const ft=stripFit('W',hotF);eq('2080 年 西立面指定怕热功能 → 判为偏低',ft.low?1:0,1);
+     const tip=TIPS_RAW.find(t=>t.k==='W'&&t.topic==='intent-fit');eq('2080 年 有"适合度偏低"提示且写明主因',tip&&/主要因为/.test(tip.t)?1:0,1);
+     eq('2080 年 主因是权重最高的怕热条件（失分最多）',ft.why&&ft.why.ck==='overheat'?1:0,1);
+     console.log('2080 年 偏低提示：',tip?tip.t:'（无）');}
     S.clim=saveC.clim;S.A.Gt=saveC.Gt;render();
-    const t0=performance.now();for(let i=0;i<5;i++)zoningAdvice(calcAll());console.log('zoningAdvice 平均耗时 ms',((performance.now()-t0)/5).toFixed(1));
+    // 键盘 / 原生控件：下拉的 change 事件驱动指定
+    const selE=document.getElementById('intent-E'); selE.value=F[0].key; selE.dispatchEvent(new Event('change',{bubbles:true})); eq('面板下拉 change → S.intent 更新',S.intent.E===F[0].key?1:0,1);
+    selE.value=''; selE.dispatchEvent(new Event('change',{bubbles:true})); eq('面板下拉选回「未指定」→ null',S.intent.E===null?1:0,1);
+    eq('适宜度视图下拉选项数 = 功能数 + 1',document.querySelectorAll('#suitSel option').length,F.length+1,0);
+    eq('面板下拉选项数 = 功能数 + 1',document.querySelectorAll('#intent-S option').length,F.length+1,0);
+    // 临时加入第四种功能：两处下拉与图例自动出现，恢复后消失（不改代码）
+    const cfg5=JSON.parse(JSON.stringify(CFG)); cfg5.functions.push({key:'__test4',label:'测试功能',color:'--good',daylight:{dir:'up',lo:1,hi:3,w:1},winter:{dir:'up',lo:0,hi:20,w:.3},overheat:{dir:'down',lo:3,hi:15,w:.6},area:{min:.05,max:.15},adjacency:[],note:''});
+    const keep5=CFG; S.layer='suit'; S.suitView='overview'; window.wwrSetConfig(cfg5);
+    eq('第四种功能：视图下拉出现',[...document.querySelectorAll('#suitSel option')].some(o=>o.value==='__test4')?1:0,1);
+    eq('第四种功能：四个面板下拉都出现',KEYS.every(k=>[...document.querySelectorAll(`#intent-${k} option`)].some(o=>o.value==='__test4'))?1:0,1);
+    eq('第四种功能：总览图例出现',document.getElementById('gridLeg').textContent.includes('测试功能')?1:0,1);
+    window.wwrSetConfig(keep5);
+    eq('恢复配置：第四种功能消失',[...document.querySelectorAll('#suitSel option,#intent-S option')].some(o=>o.value==='__test4')?0:1,1);
+    Object.assign(S.intent,saveI); Object.assign(S.info,saveInfo2); render();
+    S.intent.W=F[hotF].key; render(); const t0=performance.now();for(let i=0;i<5;i++)zoningAdvice(calcAll());console.log('zoningAdvice 平均耗时 ms',((performance.now()-t0)/5).toFixed(1)); S.intent.W=saveI.W; render();
   }
   // ---- Version_05：界面自检（标签页同步、去重、采纳后切换、偏转后标签名、键盘）----
   {
-    const save={sel:S.sel,rot:S.rot,f:JSON.parse(JSON.stringify(S.f)),filter:S.tipFilter};
+    const save={sel:S.sel,rot:S.rot,f:JSON.parse(JSON.stringify(S.f)),filter:S.tipFilter,intentW:S.intent.W};
+    eq('侧栏：各立面标签页排在体块之前',(document.getElementById('facTabs').compareDocumentPosition(document.getElementById('bldg'))&Node.DOCUMENT_POSITION_FOLLOWING)?1:0,1);
+    eq('侧栏：各立面标签页排在气候数据之后',(document.getElementById('climSeg').compareDocumentPosition(document.getElementById('facTabs'))&Node.DOCUMENT_POSITION_FOLLOWING)?1:0,1);
+    {const hot=[...CFG.functions.keys()].filter(i=>CFG.functions[i].overheat&&CFG.functions[i].overheat.dir==='down').sort((a,b)=>CFG.functions[a].overheat.hi-CFG.functions[b].overheat.hi)[0];S.intent.W=CFG.functions[hot].key;render();}   // 下面的采纳测试需要一条建议
     const state=()=>{const tab=document.querySelector('#facTabs [aria-selected="true"]');const row=[...document.querySelectorAll('#tbody tr')].findIndex(tr=>tr.classList.contains('sel'));
       return {tab:tab?tab.id.slice(4):null,row:row>=0?KEYS[row]:null,det:document.getElementById('detTitle').textContent,sec:document.getElementById('secTitle').textContent,plan:(document.querySelector('#plan .flab rect[stroke="var(--ink)"]')||{}).parentNode};};
     const consistent=k=>{const s=state();const pl=document.querySelector(`#plan .flab[data-k="${k}"] rect`);return S.sel===k&&s.tab===k&&s.row===k&&s.det.startsWith(facName(k))&&s.sec.includes(facName(k))&&pl&&pl.getAttribute('stroke')==='var(--ink)';};
@@ -1286,7 +1419,8 @@ window.wwrSelfTest=function(){
     // 筛选
     S.tipFilter='sel';S.sel='N';render();const bad=[...document.querySelectorAll('#advice li')].some(li=>li.dataset.k&&li.dataset.k!=='N');eq('筛选「仅所选立面」只剩该立面与全局条目',bad?0:1,1);
     S.tipFilter=save.filter;S.sel=save.sel;render();
-    eq('页面无横向滚动',document.documentElement.scrollWidth<=window.innerWidth+1?1:0,1);
+    if(window.innerWidth>0) eq('页面无横向滚动',document.documentElement.scrollWidth<=window.innerWidth+1?1:0,1);
+    else console.log('本环境视口宽度为 0（隐藏面板），跳过"页面无横向滚动"；已另在 375 px 视口下验证 scrollWidth = innerWidth');
     // ---- 第二轮：信息图层 ----
     const saveI=Object.assign({},S.info), vb=()=>+document.getElementById('plan').getAttribute('viewBox').split(' ')[2];
     Object.assign(S.info,{sun:true,net:true,win:true,labels:true,strip:true});render();
@@ -1301,14 +1435,15 @@ window.wwrSelfTest=function(){
     if(storageOK){try{S.info.strip=true;saveInfo();ls=JSON.parse(localStorage.getItem(INFO_KEY));}catch(e){}eq('图层开关写入本地并读回',ls&&ls.strip===true&&ls.net===false?1:0,1);}
     else console.log('本环境无 localStorage（如 data: 快照），跳过"图层开关写入本地并读回"；页面已按默认开关运行');
     eq('每个复选框都有 label 包裹',[...document.querySelectorAll('#infoLayers input')].every(i=>i.closest('label'))?1:0,1);
-    Object.assign(S.info,saveI);saveInfo();S.sel=save.sel;render();
+    Object.assign(S.info,saveI);saveInfo();S.sel=save.sel;S.intent.W=save.intentW;render();
   }
   digest();
   uiDigest(()=>TIPS_RAW.map(t=>t.t));
   console.table(T); console.log(T.every(t=>t.ok)?'SELFTEST ALL PASS':'SELFTEST FAILED '+JSON.stringify(T.filter(t=>!t.ok)));
   return T;
 };
-// 界面文本摘要（只在自检时运行）：汇总行、指标表、四个立面详情、分区占比与格子标签、6 个固定格子的详情、可采纳建议、设计提示（去重前）。
+// 界面文本摘要（只在自检时运行）：汇总行、指标表、四个立面详情、适合面积占比与格子最高分功能、6 个固定格子的详情、可采纳建议、设计提示（去重前）。
+// Version_06：前三部分须与 V05 相同；后四部分随新定位变化。另导出 window.__suit（原始分 / 平滑分）供与 V05 逐格比对。
 // 与 V04 的同名函数输出逐字符比对。
 function uiDigest(tipsFn){
   const nz=s=>s.replace(/\s+/g,' ').trim();
@@ -1317,12 +1452,13 @@ function uiDigest(tipsFn){
     o.summary=[...document.querySelectorAll('#summary b,#summary span')].map(e=>nz(e.textContent));
     o.table=[...document.querySelectorAll('#tbody td')].map(e=>nz(e.textContent));
     o.detail={};KEYS.forEach(k=>{S.sel=k;render();o.detail[k]=nz(document.getElementById('detail').textContent);});S.sel=save.sel;
-    o.zones=ZONES?{shares:ZONES.shares.map(x=>x.toFixed(6)),lab:Array.from(ZONES.lab).join('')}:null;
-    o.cells={};if(GRID&&ZONES){[[0,0],[GRID.nx-1,0],[0,GRID.ny-1],[GRID.nx-1,GRID.ny-1],[Math.floor(GRID.nx/2),GRID.ny-1],[Math.floor(GRID.nx/2),Math.floor(GRID.ny/2)]].forEach(([i,j])=>{S.cell={i,j};render();o.cells[i+','+j]=nz(document.getElementById('cellBox').textContent);});S.cell=null;}
+    o.suit=SUIT?{shares:SUIT.shares.map(x=>x.toFixed(6)),best:Array.from(SUIT.best).join('')}:null;
+    o.cells={};if(GRID&&SUIT){[[0,0],[GRID.nx-1,0],[0,GRID.ny-1],[GRID.nx-1,GRID.ny-1],[Math.floor(GRID.nx/2),GRID.ny-1],[Math.floor(GRID.nx/2),Math.floor(GRID.ny/2)]].forEach(([i,j])=>{S.cell={i,j};render();o.cells[i+','+j]=nz(document.getElementById('cellBox').textContent);});S.cell=null;}
     render();o.advice=ADVICE.map(a=>a.k+'|'+nz(a.text)+'|'+nz(a.eff));o.tips=tipsFn().map(nz);
     out[c]=o;});
   S.clim=save.clim;S.A.Gt=save.Gt;S.sel=save.sel;S.cell=save.cell;render();
   const s=JSON.stringify(out);window.__uiDigest=s;window.__ui=out;console.log('UIDIGEST_LEN',s.length);
+  if(SUIT) window.__suit={raw:SUIT.raw.map(a=>a.map(x=>+x.score.toFixed(9))),sm:SUIT.sm.map(a=>Array.from(a).map(x=>+x.toFixed(9))),inStrip:GRID.cells.map(c=>c.inStrip?1:0)};
 }
 if(location.search.indexOf('test=1')>=0) window.wwrSelfTest();
 // 数值摘要：默认方案 × 三组气候 × 两组预设的全部 calc() 结果，用于比对 V02 / V03 原有数值是否完全一致
