@@ -81,7 +81,8 @@ class Handler(SimpleHTTPRequestHandler):
                 d = read_state()
                 d.update(changes)
                 d["updated_by"] = "tool"
-                d["updated_at"] = datetime.datetime.now().replace(microsecond=0).isoformat()
+                # 带毫秒：GH 只比较这个字符串判断文件变没变，两次写入落在同一秒也不能被当成没变
+                d["updated_at"] = datetime.datetime.now().isoformat(timespec="milliseconds")
                 write_state(d)
             return self._json(200, d)
         except Exception as e:

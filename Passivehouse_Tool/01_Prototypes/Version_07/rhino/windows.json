@@ -1,36 +1,69 @@
 {
   "version": 1,
-  "orientation": "S",
+  "orientation": "W",
   "facade": {
     "layer": "Facade",
-    "width": 12.4,
-    "height": 9.6,
-    "area": 119.04
+    "width": 4.3,
+    "height": 2.85,
+    "area": 12.255
   },
-  "existing_wwr": 0.05,
-  "target_wwr": 0.05,
+  "existing_wwr": 0.2487,
+  "target_wwr": 0.17,
   "scale_mode": "width",
   "min_width": 0.3,
+  "source": {
+    "photo": "facade_photo.webp",
+    "scale": "window height = 2.0 m (user)",
+    "method": "Claude Code visual estimate, no perspective correction; each window scaled by its own height",
+    "date": "2026-09-26"
+  },
   "windows": [
     {
       "id": "W01",
-      "base_x": 1.2,
-      "x": 1.1233,
-      "sill": 0.9,
-      "base_width": 1.5,
-      "width": 1.6533,
-      "height": 1.8
+      "base_x": 0.3,
+      "x": 0.4,
+      "sill": 0.4,
+      "base_width": 0.5,
+      "width": 0.3,
+      "height": 2.0
     },
     {
       "id": "W02",
-      "base_x": 4.0,
-      "x": 3.9234,
-      "sill": 0.9,
-      "base_width": 1.5,
-      "width": 1.6533,
-      "height": 1.8
+      "base_x": 1.0,
+      "x": 1.1,
+      "sill": 0.4,
+      "base_width": 0.5,
+      "width": 0.3,
+      "height": 2.0
+    },
+    {
+      "id": "W03",
+      "base_x": 1.7,
+      "x": 1.8,
+      "sill": 0.4,
+      "base_width": 0.5,
+      "width": 0.3,
+      "height": 2.0
+    },
+    {
+      "id": "W04",
+      "base_x": 2.4,
+      "x": 2.504,
+      "sill": 0.4,
+      "base_width": 0.52,
+      "width": 0.312,
+      "height": 2.0
+    },
+    {
+      "id": "W05",
+      "base_x": 3.22,
+      "x": 3.324,
+      "sill": 0.4,
+      "base_width": 0.52,
+      "width": 0.312,
+      "height": 2.0
     }
   ],
   "updated_by": "gh",
-  "updated_at": "2026-09-26T15:10:23"
+  "updated_at": "2026-09-26T15:33:58.670"
 }
