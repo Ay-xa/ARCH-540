@@ -279,3 +279,36 @@ Records are appended after each session. Most recent entry is at the bottom.
 **Next session: suggested starting point**
 - Chrome 打开 `Version_06/wwr-tool.html`，看总览深浅、指定西立面为卧室、切 2080 年，检查提示是否符合直觉。
 - 定阈值与 needsWindow 判定方式后一行改动 + 重跑自检。
+
+---
+
+## 2026-09-26（Version_07：照片 → Rhino MCP → Grasshopper ↔ WWR 工具 同步链路，prototype 完成第 1–5 步）
+
+**Completed**
+- 用户提供 `PLAN_v07.md`；解读后补了一处不自洽（窗位置也需 `base_x` 存原始值，与 `base_width` 同样处理），用户接受。复制 V06 为 V07。
+- 电脑没有系统 Python，经用户确认用 winget 装了 Python 3.12（仅当前用户）。
+- 第 1 步：手写 `rhino/windows.json`；Rhino 8 由 MCP 自动启动，建 `Facade` 墙面；通过 MCP 搭 Grasshopper 定义 `wwr_sync.gh`（Trigger 0.5 s → 读文件 + 换算 + 生成预览 + 写回 的 Python 3 脚本 → 面板；Toggle → 替换式 bake 脚本）。改文件后 363 ms 写回，窗宽与手算一致。
+- 第 2 步：bake 三次各 2 个对象、无重复；修了「GH 传的是几何编号不是几何」。
+- 第 3 步：`rhino/server.py`（标准库）+ `start_server.bat`；页面加连接状态、「绑定到 Rhino」下拉、「读取 / 同步」按钮、打开自动读取；自检 100 → 106；`digest()` 与 V06 逐字符相同。
+- 第 4 步：60% → 停在几何上限 8.47%，读取后滑块回落 8%。
+- 第 5 步：用户给照片（小木屋效果图，五扇竖长窗）+「窗高 2 m」；目测估计立面 4.3 × 2.85 m、窗 0.50–0.52 × 2.0 m；替换手写文件后全链路复测通过，上限 57.7%、下限 24.9%。
+- 修了时间戳只到秒的问题（同一秒两次写入被 GH 当成没变）：server.py 与 GH 脚本都改为带毫秒。
+- 提交：ec705bc（第 1–3 步）、7349b1e（忽略 .3dmbak）、ef2c0f7（第 4–5 步）。
+
+**Key decisions**
+- 「读文件」与「换算 + 生成」合成一个 GH 脚本；用 `updated_at` 字符串判断变化，写回后记住自己的时间戳避免自触发。
+- 窗面比墙面往外 2 cm 避免重叠闪烁。bake 只在开关由关到开时执行一次。
+- 自检模式（`?test=1`）不自动读取 Rhino，保证 `digest()` 可与 V06 比对。
+- 状态文字放页首标题下；绑定下拉放「各立面」顶部（只有一面墙，一个绑定）。
+
+**Current state**
+- 一切可复现：双击 `Version_07/rhino/start_server.bat` 起服务并开页面；Rhino 打开 `facade.3dm`，Grasshopper 打开 `wwr_sync.gh`。`.claude/launch.json`（内置浏览器起服务用，含本机绝对路径）未入库。
+- 用户结论：prototype 已证明整个流程可行。
+
+**Unresolved**
+- 第 6 步（演示脚本 + 录屏）需用户亲手操作；可先由 Claude 写一页操作清单。
+- MCP 的 Python 3 组件加参数后必须调 `VariableParameterMaintenance()`，否则新输出为空（已记入 memory）。
+- 留到成品：多立面、BCBC `max_wwr`、`scale_mode` 其他分配规则、透视校正、真实尺寸是否回灌热工计算。
+
+**Next session: suggested starting point**
+- 起服务、开 Rhino + GH，按 PLAN_v07 §6 走一遍演示并录屏；或直接开始讨论成品阶段的范围。
