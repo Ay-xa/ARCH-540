@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "orientation": "S",
+  "facade": {
+    "layer": "Facade",
+    "width": 12.4,
+    "height": 9.6,
+    "area": 119.04
+  },
+  "existing_wwr": 0.05,
+  "target_wwr": 0.05,
+  "scale_mode": "width",
+  "min_width": 0.3,
+  "windows": [
+    {
+      "id": "W01",
+      "base_x": 1.2,
+      "x": 1.1233,
+      "sill": 0.9,
+      "base_width": 1.5,
+      "width": 1.6533,
+      "height": 1.8
+    },
+    {
+      "id": "W02",
+      "base_x": 4.0,
+      "x": 3.9234,
+      "sill": 0.9,
+      "base_width": 1.5,
+      "width": 1.6533,
+      "height": 1.8
+    }
+  ],
+  "updated_by": "gh",
+  "updated_at": "2026-09-26T15:10:23"
+}
