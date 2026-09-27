@@ -2,7 +2,7 @@
   "version": 2,
   "orientation": "S",
   "facade": {
-    "width": 9.0,
+    "width": 19.0,
     "floor_height": 3.0,
     "floors": 1,
     "sill": 0.6,
@@ -84,14 +84,14 @@
     }
   ],
   "min_width": 0.3,
-  "target_wwr": 0.3,
-  "existing_wwr": 0.3,
+  "target_wwr": 0.23,
+  "existing_wwr": 0.23,
   "windows": [
     {
       "id": "W01-1",
       "floor": 1,
-      "x": 0.6338,
-      "width": 0.7574,
+      "x": 1.5245,
+      "width": 1.2259,
       "sill": 0.6,
       "z": 0.6,
       "height": 1.8
@@ -99,8 +99,8 @@
     {
       "id": "W02-1",
       "floor": 1,
-      "x": 2.0042,
-      "width": 0.8021,
+      "x": 4.4286,
+      "width": 1.2982,
       "sill": 0.6,
       "z": 0.6,
       "height": 1.8
@@ -108,8 +108,8 @@
     {
       "id": "W03-1",
       "floor": 1,
-      "x": 3.4831,
-      "width": 0.8908,
+      "x": 7.5726,
+      "width": 1.4418,
       "sill": 0.6,
       "z": 0.6,
       "height": 1.8
@@ -117,8 +117,8 @@
     {
       "id": "W04-1",
       "floor": 1,
-      "x": 5.1198,
-      "width": 0.9655,
+      "x": 11.0462,
+      "width": 1.5626,
       "sill": 0.6,
       "z": 0.6,
       "height": 1.8
@@ -126,13 +126,13 @@
     {
       "id": "W05-1",
       "floor": 1,
-      "x": 6.864,
-      "width": 1.0842,
+      "x": 14.7577,
+      "width": 1.7547,
       "sill": 0.6,
       "z": 0.6,
       "height": 1.8
     }
   ],
-  "updated_by": "gh",
-  "updated_at": "2026-09-26T17:13:10.667"
+  "updated_by": "tool",
+  "updated_at": "2026-09-26T17:23:14.649"
 }
