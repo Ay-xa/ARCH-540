@@ -23,17 +23,17 @@
     --slab:#d8d4c8;
     --ground:#dcd9d0;
     --ok:#3d7a4a; --warn:#b07a1e; --bad:#b3413a;
-    --heat:#B0283F;
+    --heat:#B0283F; --day:#B8890F;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
-      --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C;
+      --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E;
     }
   }
   :root[data-theme="dark"]{
     --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
-    --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C;
+    --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E;
   }
   html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
   body{
@@ -104,11 +104,17 @@
   .seg button{border:0;border-radius:0;width:auto;flex:1;padding:5px 8px;background:transparent;color:var(--ink-2)}
   .seg button+button{border-left:1px solid var(--line)}
   .seg button.on{background:var(--ink);color:var(--panel)}
-  .plan{display:flex;flex-direction:column;gap:6px}
-  .plan .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .plan{position:absolute;top:14px;right:14px;width:272px;display:flex;flex-direction:column;gap:6px;
+    background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:8px;padding:12px 14px 10px;z-index:2}
+  .plan .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .plan .row label{font-weight:500;font-size:13px}
+  .plan .segs{display:flex;gap:6px}
+  .plan .segs .seg{flex:1}
+  .plan .seg button{padding:4px 8px;font-size:12px}
   .plan svg{width:100%;height:auto;display:block}
   .plan .leg{display:flex;align-items:center;gap:6px;color:var(--ink-2);font-size:12px}
-  .plan .leg i{flex:1;height:8px;border-radius:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--heat) 6%,transparent),color-mix(in srgb,var(--heat) 86%,transparent))}
+  .plan .leg i{flex:1;height:8px;border-radius:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 6%,transparent),color-mix(in srgb,var(--lc) 86%,transparent))}
+  .plan .cap{font-size:11.5px;line-height:1.35}
   .hint{margin-top:auto;color:var(--ink-2);font-size:12px}
 
   main{flex:1;position:relative;min-width:0}
@@ -119,6 +125,8 @@
     aside{width:100%;flex:0 0 auto;max-height:52%;border-right:0;border-bottom:1px solid var(--line);padding:16px 18px}
     main{flex:1}
     .hint{display:none}
+    .plan{top:8px;right:8px;width:46%;padding:8px 10px}
+    .plan .cap{display:none}
   }
 </style>
 </head>
@@ -295,23 +303,30 @@
     <thead><tr><th>立面</th><th>遮阳率</th><th>过热 无板</th><th>有板</th></tr></thead>
     <tbody id="heatBody"></tbody>
   </table>
-  <div class="plan">
-    <div class="row"><label>标准层平面 · 夏季过热暴露</label>
-      <div class="seg" role="group" aria-label="平面显示"><button type="button" id="planOn" class="on">有板</button><button type="button" id="planOff">无板</button></div>
-    </div>
-    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面：夏季过热暴露热力图"></svg>
-    <div class="leg"><span>0</span><i></i><b id="planMax"></b></div>
-    <div class="cap">颜色越深，高温时段从窗透入的辐射越多（kWh/m²·年，按房间面积）。北朝上；虚线为房间带（进深）；墙外深色短线为第 2 层铝板的投影覆盖段。色阶以无板时的最大值为准，切到「有板」可直接比较。</div>
-  </div>
+  <table class="heat">
+    <thead><tr><th>立面</th><th>视野通透</th><th>采光 无板</th><th>有板</th></tr></thead>
+    <tbody id="dayBody"></tbody>
+  </table>
   <div class="readout">
     <span>整栋 冬季净得热（无板 → 有板）</span><span id="rWinter"></span>
   </div>
-  <div class="cap" id="heatNote">过热 = 全年室内高于 25 °C 的小时占比。被动房判据：≤ 10%，建议 ≤ 5%。计算方法与 Version_06 相同（单节点逐小时热平衡）；铝板按透光系数 = 1 − 遮阳率 折减该面的直射、散射和采光。三维图中红色箭头指北。</div>
+  <div class="cap" id="heatNote">过热 = 全年室内高于 25 °C 的小时占比。被动房判据：≤ 10%，建议 ≤ 5%。计算方法与 Version_06 相同（单节点逐小时热平衡）；铝板按透光系数 = 1 − 遮阳率 折减该面的直射、散射和采光。三维图中红色箭头指北。<br>采光 = 房间带平均采光系数（%），按透光系数一起折减；本工具沿用 Version_06 的口径，3% 记为充足（设计判断值，不是规范）。视野通透 = 窗条上没有被铝板正面投影盖住的长度比，与穿孔率无关。</div>
 
   <div class="hint">拖动旋转 · 滚轮 / 双指缩放 · 双击复位</div>
 </aside>
 
-<main><canvas id="c"></canvas></main>
+<main><canvas id="c"></canvas>
+  <div class="plan" style="--lc:var(--heat)">
+    <div class="row"><label id="planTitle">标准层平面</label></div>
+    <div class="segs">
+        <div class="seg" role="group" aria-label="图层"><button type="button" id="layerHx" class="on">过热</button><button type="button" id="layerDF">采光</button></div>
+        <div class="seg" role="group" aria-label="铝板"><button type="button" id="planOn" class="on">有板</button><button type="button" id="planOff">无板</button></div>
+    </div>
+    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面热力图"></svg>
+    <div class="leg"><span id="planUnit"></span><span>0</span><i></i><b id="planMax"></b></div>
+    <div class="cap" id="planCap"></div>
+  </div>
+</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="../../../Passivehouse_Tool/01_Prototypes/_shared/wwr-climate.js"></script>
@@ -538,14 +553,16 @@
     $('rShade').textContent = fmt(shadePct,1)+' %';
     $('rShadeArea').textContent = fmt(covAll*opaque*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
     drawSection(clear, t, gt, typ, gnd, rc, L);
-    heat({L, W, N, H, gL, gW, typ, gnd, sidePct, spans:shade.spans});
+    const sideCov = shade.length.map((l,k)=> l>0 ? shade.covered[k]/l : 0);
+    heat({L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, spans:shade.spans});
   }
 
   // ---------- overheating via the shared passive-house engine ----------
   function heat(g){
     const body = $('heatBody');
     if(!ENGINE){ body.innerHTML = '<tr><td colspan="4" class="bad">引擎未加载：需要 Passivehouse_Tool/01_Prototypes/_shared/ 与本页在同一仓库里</td></tr>'; $('rWinter').textContent='—'; return; }
-    const {L, W, N, H, gL, gW, typ, gnd, sidePct, spans} = g;
+    const {L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, spans} = g;
+    let drows='', dl=0, d0=0, d1=0;
     const R0={}, R1={}, KEY=['N','E','S','W'];   // side A (−z) → N wall of the engine's box, B (+x) → E, C (+z) → S, D (−x) → W  (positional only)
     const depth = Math.min(P.depth, Math.min(L,W)/2);
     const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A);
@@ -554,6 +571,7 @@
     const win = (S,b)=> b.winH>0.01 ? [{w:S, h:b.winH, sill:b.sill}] : [];
     const run = (S, b, floors, az, screen)=> ENGINE.calcSegment({len:S, az, oh:0, screen, windows:win(S,b)}, Object.assign({floors}, base));
     const cls = v => v<=ENGINE.OVH_GOOD ? 'ok' : v<=ENGINE.OVH_LIMIT ? 'warn' : 'bad';
+    const dcls = v => v>=3 ? 'ok' : v>=2 ? 'warn' : 'bad';   // V06 口径：DF 3% 满分
     let rows='', z=0, o0=0, o1=0, n0=0, n1=0;
     for(let k=0;k<4;k++){
       const az = ENGINE.norm(P.az0 + 90*k);   // A→B→C→D runs clockwise seen from above, so azimuth increases
@@ -570,9 +588,14 @@
       z+=za; o0+=ov0*za; o1+=ov1*za;
       n0+=parts0.reduce((a,r)=>a+r.net,0); n1+=parts1.reduce((a,r)=>a+r.net,0);
       rows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt(sidePct[k],0)} %</td><td class="${cls(ov0)}">${fmt(ov0,1)} %</td><td class="${cls(ov1)}">${fmt(ov1,1)} %</td></tr>`;
+      const df0 = parts0[0].DF, df1 = parts1[0].DF;   // standard floors (ground floor when the building has one floor)
+      dl+=sideLen[k]; d0+=df0*sideLen[k]; d1+=df1*sideLen[k];
+      drows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt((1-sideCov[k])*100,0)} %</td><td class="${dcls(df0)}">${fmt(df0,1)} %</td><td class="${dcls(df1)}">${fmt(df1,1)} %</td></tr>`;
     }
     rows += `<tr class="sum"><td>整栋</td><td></td><td class="${cls(o0/z)}">${fmt(o0/z,1)} %</td><td class="${cls(o1/z)}">${fmt(o1/z,1)} %</td></tr>`;
     body.innerHTML = rows;
+    drows += `<tr class="sum"><td>整栋</td><td></td><td class="${dcls(d0/dl)}">${fmt(d0/dl,1)} %</td><td class="${dcls(d1/dl)}">${fmt(d1/dl,1)} %</td></tr>`;
+    $('dayBody').innerHTML = drows;
     $('rWinter').textContent = fmt(n0,0)+' → '+fmt(n1,0)+' kWh/a';
 
     // plan grid: standard floor box (ground-floor box when the building has one floor)
@@ -583,14 +606,20 @@
   }
 
   // ---------- plan heatmap (V05/V06 平面图的精简版：只保留过热层) ----------
-  let PLAN = null, planMode = 'on';
+  let PLAN = null, planMode = 'on', planLayer = 'Hx';
+  const LAYER = {
+    Hx:{title:'标准层平面 · 夏季过热暴露', unit:'kWh/m²·年', color:'--heat', dec:1,
+        cap:'颜色越深，高温时段从窗透入的辐射越多（按房间面积）。北朝上；虚线为房间带（进深）；墙外深色短线为第 2 层铝板的投影覆盖段。色阶以无板时的最大值为准，切到「有板」可直接比较。'},
+    DF:{title:'标准层平面 · 采光系数', unit:'采光系数 %', color:'--day', dec:1,
+        cap:'颜色越深，采光越好；越往里越暗。铝板按透光系数整体折减该面的采光。色阶以无板时的最大值为准，切到「有板」看变暗了多少。'}
+  };
   function renderPlan(){
     const svg = $('plan'); if(!PLAN){ svg.innerHTML=''; return; }
-    const {G0, G1, box, az0, spans, sideLen} = PLAN, G = planMode==='on'?G1:G0, mx = G0.max.Hx||0;
+    const {G0, G1, box, az0, spans, sideLen} = PLAN, G = planMode==='on'?G1:G0, LY = LAYER[planLayer], mx = G0.max[planLayer]||0;
     const w = box.L, h = box.W, R0 = Math.hypot(w,h)/2, pad = 2.6, V = 2*(R0+pad);
     svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
     const pxPerM = (svg.clientWidth||256)/V, fs = Math.max(0.4, 12/pxPerM), n2 = x=>(+x).toFixed(2);
-    const ink=css('--ink'), ink2=css('--ink-2'), line=css('--line'), panel=css('--panel'), heatC=css('--heat'), acc=css('--accent');
+    const ink=css('--ink'), ink2=css('--ink-2'), line=css('--line'), panel=css('--panel'), heatC=css(LY.color), acc=css('--accent');
     // world: compass ring + north
     let o = `<circle r="${n2(R0+1.6)}" fill="none" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`;
     for(let a=0;a<360;a+=45){ const t=THREE.MathUtils.degToRad(a), r1=R0+1.6, r2=r1-0.35*fs; o+=`<line x1="${n2(r1*Math.sin(t))}" y1="${n2(-r1*Math.cos(t))}" x2="${n2(r2*Math.sin(t))}" y2="${n2(-r2*Math.cos(t))}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
@@ -598,8 +627,8 @@
     // rotated group: side A faces az0 → rotate clockwise by az0 so north is up
     o += `<g transform="rotate(${az0})">`;
     o += `<rect x="${n2(-w/2)}" y="${n2(-h/2)}" width="${n2(w)}" height="${n2(h)}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`;
-    G.cells.forEach(c=>{ const a = mx>0 ? 0.06+0.8*c.Hx/mx : 0.06;
-      o += `<rect x="${n2(c.x-c.gx/2)}" y="${n2(c.y-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${heatC}" opacity="${a.toFixed(3)}" stroke="${panel}" stroke-width="${n2(fs*0.03)}"><title>${fmt(c.Hx,1)} kWh/m²·年</title></rect>`; });
+    G.cells.forEach(c=>{ const v=c[planLayer], a = mx>0 ? 0.06+0.8*v/mx : 0.06;
+      o += `<rect x="${n2(c.x-c.gx/2)}" y="${n2(c.y-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${heatC}" opacity="${a.toFixed(3)}" stroke="${panel}" stroke-width="${n2(fs*0.03)}"><title>${fmt(v,LY.dec)} ${LY.unit}</title></rect>`; });
     const D = box.depth, sw = n2(fs*0.07), da = `${n2(fs*0.4)} ${n2(fs*0.3)}`;
     if(D<h/2){ o += `<line x1="${n2(-w/2)}" y1="${n2(h/2-D)}" x2="${n2(w/2)}" y2="${n2(h/2-D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/><line x1="${n2(-w/2)}" y1="${n2(-h/2+D)}" x2="${n2(w/2)}" y2="${n2(-h/2+D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/>`; }
     if(D<w/2){ o += `<line x1="${n2(w/2-D)}" y1="${n2(-h/2)}" x2="${n2(w/2-D)}" y2="${n2(h/2)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/><line x1="${n2(-w/2+D)}" y1="${n2(-h/2)}" x2="${n2(-w/2+D)}" y2="${n2(h/2)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/>`; }
@@ -618,9 +647,14 @@
       const az = ENGINE.norm(az0+90*k);
       o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.9)}" fill="${ink2}">${ENGINE.dirName(az)}</text>`; });
     svg.innerHTML = o;
-    $('planMax').textContent = fmt(mx,1);
+    $('planMax').textContent = fmt(mx,LY.dec);
+    $('planUnit').textContent = LY.unit; $('planTitle').textContent = LY.title; $('planCap').textContent = LY.cap;
+    document.querySelector('.plan').style.setProperty('--lc', `var(${LY.color})`);
     $('planOn').classList.toggle('on', planMode==='on'); $('planOff').classList.toggle('on', planMode!=='on');
+    $('layerHx').classList.toggle('on', planLayer==='Hx'); $('layerDF').classList.toggle('on', planLayer==='DF');
   }
+  $('layerHx').addEventListener('click', ()=>{ planLayer='Hx'; renderPlan(); });
+  $('layerDF').addEventListener('click', ()=>{ planLayer='DF'; renderPlan(); });
   $('planOn').addEventListener('click', ()=>{ planMode='on'; renderPlan(); });
   $('planOff').addEventListener('click', ()=>{ planMode='off'; renderPlan(); });
 
