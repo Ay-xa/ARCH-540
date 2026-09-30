@@ -23,16 +23,17 @@
     --slab:#d8d4c8;
     --ground:#dcd9d0;
     --ok:#3d7a4a; --warn:#b07a1e; --bad:#b3413a;
+    --heat:#B0283F;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
-      --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35;
+      --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C;
     }
   }
   :root[data-theme="dark"]{
     --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
-    --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35;
+    --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C;
   }
   html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
   body{
@@ -99,6 +100,15 @@
   table.heat tr.sum td{border-top:1px solid var(--line);font-weight:500}
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
   .cap{color:var(--ink-2);font-size:12px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{border:0;border-radius:0;width:auto;flex:1;padding:5px 8px;background:transparent;color:var(--ink-2)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--ink);color:var(--panel)}
+  .plan{display:flex;flex-direction:column;gap:6px}
+  .plan .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .plan svg{width:100%;height:auto;display:block}
+  .plan .leg{display:flex;align-items:center;gap:6px;color:var(--ink-2);font-size:12px}
+  .plan .leg i{flex:1;height:8px;border-radius:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--heat) 6%,transparent),color-mix(in srgb,var(--heat) 86%,transparent))}
   .hint{margin-top:auto;color:var(--ink-2);font-size:12px}
 
   main{flex:1;position:relative;min-width:0}
@@ -285,6 +295,14 @@
     <thead><tr><th>立面</th><th>遮阳率</th><th>过热 无板</th><th>有板</th></tr></thead>
     <tbody id="heatBody"></tbody>
   </table>
+  <div class="plan">
+    <div class="row"><label>标准层平面 · 夏季过热暴露</label>
+      <div class="seg" role="group" aria-label="平面显示"><button type="button" id="planOn" class="on">有板</button><button type="button" id="planOff">无板</button></div>
+    </div>
+    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面：夏季过热暴露热力图"></svg>
+    <div class="leg"><span>0</span><i></i><b id="planMax"></b></div>
+    <div class="cap">颜色越深，高温时段从窗透入的辐射越多（kWh/m²·年，按房间面积）。北朝上；虚线为房间带（进深）；墙外深色短线为第 2 层铝板的投影覆盖段。色阶以无板时的最大值为准，切到「有板」可直接比较。</div>
+  </div>
   <div class="readout">
     <span>整栋 冬季净得热（无板 → 有板）</span><span id="rWinter"></span>
   </div>
@@ -441,7 +459,7 @@
     // ---- secondary facade: perforated aluminium panels on upper floors ----
     perfTexture(P.perf/100);
     let count = 0;
-    const shade = {covered:[0,0,0,0], length:[0,0,0,0]};   // per side, summed over standard floors
+    const shade = {covered:[0,0,0,0], length:[0,0,0,0], spans:[[],[],[],[]]};   // per side, summed over standard floors; spans = floor 2 only (plan)
     if(N>1 && P.groups>0){
       const d = P.standoff, w = P.panelW, ph = H;         // panel spans slab-top to slab-top (covers slab edge above)
       const sides = [ // start corner, direction, outward normal, length
@@ -477,9 +495,10 @@
           });
           // merge overlapping projections so a length is never counted twice
           spans.sort((a,b)=>a[0]-b[0]);
-          let cov=0, cur=null;
-          spans.forEach(sp=>{ if(cur && sp[0]<=cur[1]) cur[1]=Math.max(cur[1],sp[1]); else { if(cur) cov+=cur[1]-cur[0]; cur=[sp[0],sp[1]]; } });
-          if(cur) cov+=cur[1]-cur[0];
+          let cov=0, cur=null; const merged=[];
+          spans.forEach(sp=>{ if(cur && sp[0]<=cur[1]) cur[1]=Math.max(cur[1],sp[1]); else { if(cur){ cov+=cur[1]-cur[0]; merged.push(cur); } cur=[sp[0],sp[1]]; } });
+          if(cur){ cov+=cur[1]-cur[0]; merged.push(cur); }
+          if(i===1) shade.spans[sIdx]=merged;
           shade.covered[sIdx]+=cov; shade.length[sIdx]+=sd.S;
         }
       }
@@ -491,8 +510,8 @@
     const shadePct = lenAll>0 ? covAll*opaque/lenAll*100 : 0;
     const sidePct = shade.length.map((l,k)=> l>0 ? shade.covered[k]*opaque/l*100 : 0);
 
-    // north arrow: side A (index 0, outward normal -z) faces azimuth az0; azimuth az maps to world angle psi = -90 - (az - az0)
-    const psiN = THREE.MathUtils.degToRad(-90 + P.az0);
+    // north arrow: side A (outward normal −z, world angle ψ = atan2(z,x) = −90°) faces azimuth az0; clockwise from above = ψ and azimuth both increase → ψ(az) = −90° + (az − az0)
+    const psiN = THREE.MathUtils.degToRad(-90 - P.az0);
     north.setDirection(new THREE.Vector3(Math.cos(psiN), 0, Math.sin(psiN)));
     north.position.set(-L/2 - 1.5, 0.02, W/2 + 1.5);
     north.setLength(Math.max(2, Math.min(L,W)*0.25), 0.8, 0.4);
@@ -519,14 +538,15 @@
     $('rShade').textContent = fmt(shadePct,1)+' %';
     $('rShadeArea').textContent = fmt(covAll*opaque*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
     drawSection(clear, t, gt, typ, gnd, rc, L);
-    heat({L, W, N, H, gL, gW, typ, gnd, sidePct});
+    heat({L, W, N, H, gL, gW, typ, gnd, sidePct, spans:shade.spans});
   }
 
   // ---------- overheating via the shared passive-house engine ----------
   function heat(g){
     const body = $('heatBody');
     if(!ENGINE){ body.innerHTML = '<tr><td colspan="4" class="bad">引擎未加载：需要 Passivehouse_Tool/01_Prototypes/_shared/ 与本页在同一仓库里</td></tr>'; $('rWinter').textContent='—'; return; }
-    const {L, W, N, H, gL, gW, typ, gnd, sidePct} = g;
+    const {L, W, N, H, gL, gW, typ, gnd, sidePct, spans} = g;
+    const R0={}, R1={}, KEY=['N','E','S','W'];   // side A (−z) → N wall of the engine's box, B (+x) → E, C (+z) → S, D (−x) → W  (positional only)
     const depth = Math.min(P.depth, Math.min(L,W)/2);
     const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A);
     const base = {H, depth, A, clim:P.clim, mass:P.mass, vent:P.vent};
@@ -536,14 +556,15 @@
     const cls = v => v<=ENGINE.OVH_GOOD ? 'ok' : v<=ENGINE.OVH_LIMIT ? 'warn' : 'bad';
     let rows='', z=0, o0=0, o1=0, n0=0, n1=0;
     for(let k=0;k<4;k++){
-      const az = ENGINE.norm(P.az0 - 90*k);
+      const az = ENGINE.norm(P.az0 + 90*k);   // A→B→C→D runs clockwise seen from above, so azimuth increases
       const parts0=[], parts1=[];
       if(N>1){
         const std0 = run(sideLen[k], typ, N-1, az, 1);
         const std1 = sidePct[k]>0 ? run(sideLen[k], typ, N-1, az, 1 - sidePct[k]/100) : std0;
-        parts0.push(std0); parts1.push(std1);
+        parts0.push(std0); parts1.push(std1); R0[KEY[k]]=std0; R1[KEY[k]]=std1;
       }
       const gr = run(gLen[k], gnd, 1, az, 1); parts0.push(gr); parts1.push(gr);
+      if(N<=1){ R0[KEY[k]]=gr; R1[KEY[k]]=gr; }
       const za = parts0.reduce((a,r)=>a+r.zoneA,0);
       const ov0 = parts0.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za, ov1 = parts1.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za;
       z+=za; o0+=ov0*za; o1+=ov1*za;
@@ -553,7 +574,55 @@
     rows += `<tr class="sum"><td>整栋</td><td></td><td class="${cls(o0/z)}">${fmt(o0/z,1)} %</td><td class="${cls(o1/z)}">${fmt(o1/z,1)} %</td></tr>`;
     body.innerHTML = rows;
     $('rWinter').textContent = fmt(n0,0)+' → '+fmt(n1,0)+' kWh/a';
+
+    // plan grid: standard floor box (ground-floor box when the building has one floor)
+    const bL = N>1?L:gL, bW = N>1?W:gW;
+    const box = {L:bL, W:bW, depth, grid:Math.max(0.5, Math.min(bL,bW)/14)};
+    PLAN = {G0:ENGINE.gridConditions(R0, box), G1:ENGINE.gridConditions(R1, box), box, az0:P.az0, spans:N>1?spans:[[],[],[],[]], sideLen:N>1?[L,W,L,W]:[gL,gW,gL,gW]};
+    renderPlan();
   }
+
+  // ---------- plan heatmap (V05/V06 平面图的精简版：只保留过热层) ----------
+  let PLAN = null, planMode = 'on';
+  function renderPlan(){
+    const svg = $('plan'); if(!PLAN){ svg.innerHTML=''; return; }
+    const {G0, G1, box, az0, spans, sideLen} = PLAN, G = planMode==='on'?G1:G0, mx = G0.max.Hx||0;
+    const w = box.L, h = box.W, R0 = Math.hypot(w,h)/2, pad = 2.6, V = 2*(R0+pad);
+    svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
+    const pxPerM = (svg.clientWidth||256)/V, fs = Math.max(0.4, 12/pxPerM), n2 = x=>(+x).toFixed(2);
+    const ink=css('--ink'), ink2=css('--ink-2'), line=css('--line'), panel=css('--panel'), heatC=css('--heat'), acc=css('--accent');
+    // world: compass ring + north
+    let o = `<circle r="${n2(R0+1.6)}" fill="none" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`;
+    for(let a=0;a<360;a+=45){ const t=THREE.MathUtils.degToRad(a), r1=R0+1.6, r2=r1-0.35*fs; o+=`<line x1="${n2(r1*Math.sin(t))}" y1="${n2(-r1*Math.cos(t))}" x2="${n2(r2*Math.sin(t))}" y2="${n2(-r2*Math.cos(t))}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
+    o += `<text x="0" y="${n2(-(R0+1.6)-fs*0.3)}" text-anchor="middle" font-size="${n2(fs)}" font-weight="600" fill="${ink}">北</text>`;
+    // rotated group: side A faces az0 → rotate clockwise by az0 so north is up
+    o += `<g transform="rotate(${az0})">`;
+    o += `<rect x="${n2(-w/2)}" y="${n2(-h/2)}" width="${n2(w)}" height="${n2(h)}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`;
+    G.cells.forEach(c=>{ const a = mx>0 ? 0.06+0.8*c.Hx/mx : 0.06;
+      o += `<rect x="${n2(c.x-c.gx/2)}" y="${n2(c.y-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${heatC}" opacity="${a.toFixed(3)}" stroke="${panel}" stroke-width="${n2(fs*0.03)}"><title>${fmt(c.Hx,1)} kWh/m²·年</title></rect>`; });
+    const D = box.depth, sw = n2(fs*0.07), da = `${n2(fs*0.4)} ${n2(fs*0.3)}`;
+    if(D<h/2){ o += `<line x1="${n2(-w/2)}" y1="${n2(h/2-D)}" x2="${n2(w/2)}" y2="${n2(h/2-D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/><line x1="${n2(-w/2)}" y1="${n2(-h/2+D)}" x2="${n2(w/2)}" y2="${n2(-h/2+D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/>`; }
+    if(D<w/2){ o += `<line x1="${n2(w/2-D)}" y1="${n2(-h/2)}" x2="${n2(w/2-D)}" y2="${n2(h/2)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/><line x1="${n2(-w/2+D)}" y1="${n2(-h/2)}" x2="${n2(-w/2+D)}" y2="${n2(h/2)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/>`; }
+    // sides in plan coords (x right, y down = three.js z): A: start (−w/2,−h/2) dir +x, B: (w/2,−h/2) dir +y, C: (w/2,h/2) dir −x, D: (−w/2,h/2) dir −y
+    const sides = [ {a:[-w/2,-h/2], u:[1,0],  n:[0,-1]}, {a:[w/2,-h/2], u:[0,1], n:[1,0]}, {a:[w/2,h/2], u:[-1,0], n:[0,1]}, {a:[-w/2,h/2], u:[0,-1], n:[-1,0]} ];
+    sides.forEach((sd,k)=>{ const S=sideLen[k], off=0.25;
+      o += `<line x1="${n2(sd.a[0]+sd.n[0]*off)}" y1="${n2(sd.a[1]+sd.n[1]*off)}" x2="${n2(sd.a[0]+sd.u[0]*S+sd.n[0]*off)}" y2="${n2(sd.a[1]+sd.u[1]*S+sd.n[1]*off)}" stroke="${acc}" stroke-width="${n2(fs*0.12)}" opacity=".8"/>`;
+      if(planMode==='on') spans[k].forEach(([x0,x1])=>{ const d=0.75;
+        o += `<line x1="${n2(sd.a[0]+sd.u[0]*x0+sd.n[0]*d)}" y1="${n2(sd.a[1]+sd.u[1]*x0+sd.n[1]*d)}" x2="${n2(sd.a[0]+sd.u[0]*x1+sd.n[0]*d)}" y2="${n2(sd.a[1]+sd.u[1]*x1+sd.n[1]*d)}" stroke="${ink}" stroke-width="${n2(fs*0.22)}" opacity=".85"/>`; });
+    });
+    o += '</g>';
+    // side labels: rotate positions, keep text upright
+    const t = THREE.MathUtils.degToRad(az0), rot = ([x,y])=>[x*Math.cos(t)-y*Math.sin(t), x*Math.sin(t)+y*Math.cos(t)];
+    const kind = ['长','短','长','短'];
+    sides.forEach((sd,k)=>{ const S=sideLen[k], c=[sd.a[0]+sd.u[0]*S/2+sd.n[0]*(1.25+0.35*fs), sd.a[1]+sd.u[1]*S/2+sd.n[1]*(1.25+0.35*fs)], [x,y]=rot(c);
+      const az = ENGINE.norm(az0+90*k);
+      o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.9)}" fill="${ink2}">${ENGINE.dirName(az)}</text>`; });
+    svg.innerHTML = o;
+    $('planMax').textContent = fmt(mx,1);
+    $('planOn').classList.toggle('on', planMode==='on'); $('planOff').classList.toggle('on', planMode!=='on');
+  }
+  $('planOn').addEventListener('click', ()=>{ planMode='on'; renderPlan(); });
+  $('planOff').addEventListener('click', ()=>{ planMode='off'; renderPlan(); });
 
   // ---------- section diagram ----------
   function drawSection(clear, t, gt, typ, gnd, rc, L){
