@@ -22,6 +22,7 @@
     --model:#f3f1ec;
     --slab:#d8d4c8;
     --ground:#dcd9d0;
+    --ok:#3d7a4a; --warn:#b07a1e; --bad:#b3413a;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -91,6 +92,13 @@
   .section svg{width:100%;height:auto;display:block}
   .section .cap{color:var(--ink-2);font-size:12px;margin-top:6px}
 
+  table.heat{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  table.heat th{font-weight:500;color:var(--ink-2);text-align:right;padding:2px 0 4px;border-bottom:1px solid var(--line)}
+  table.heat th:first-child,table.heat td:first-child{text-align:left}
+  table.heat td{text-align:right;padding:3px 0}
+  table.heat tr.sum td{border-top:1px solid var(--line);font-weight:500}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .cap{color:var(--ink-2);font-size:12px}
   .hint{margin-top:auto;color:var(--ink-2);font-size:12px}
 
   main{flex:1;position:relative;min-width:0}
@@ -231,10 +239,56 @@
     <span>首层 窗面积（一圈）</span><span id="rGArea"></span>
     <span>铝板总数</span><span id="rPanels"></span>
     <span>标准层 窗条遮阳率（整圈）</span><span id="rShade"></span>
-    <span>四面遮阳率（长 / 短 / 长 / 短）</span><span id="rShadeSides"></span>
     <span>标准层 被遮挡窗面积</span><span id="rShadeArea"></span>
   </div>
-  <div class="cap" style="color:var(--ink-2);font-size:12px;margin-top:-8px">遮阳率 = 铝板正面投影覆盖窗条的长度比 × (1 − 穿孔率)；无铝板处为 0%。首层无铝板，遮阳率 0%。</div>
+  <div class="cap" style="margin-top:-8px">遮阳率 = 铝板正面投影覆盖窗条的长度比 × (1 − 穿孔率)；无铝板处为 0%。首层无铝板，遮阳率 0%。</div>
+
+  <hr>
+  <h2>室内过热 · 被动房引擎</h2>
+
+  <div class="ctl">
+    <div class="row"><label for="az0">长边 A 朝向（方位角）</label><output id="az0Out"></output></div>
+    <input id="az0" type="range" min="0" max="355" step="5" value="180">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="depth">房间进深</label><output id="depthOut"></output></div>
+    <input id="depth" type="range" min="3" max="10" step="0.5" value="5">
+  </div>
+  <div class="two">
+    <div class="ctl">
+      <div class="row"><label for="clim">气候</label></div>
+      <select id="clim">
+        <option value="apNow">当下（机场站）</option>
+        <option value="hbNow">当下（港口站）</option>
+        <option value="f2080">2080 年预测</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <div class="row"><label for="mass">热质量</label></div>
+      <select id="mass">
+        <option value="light">轻（木框架）</option>
+        <option value="mid" selected>中（混凝土楼板）</option>
+        <option value="heavy">重（楼板 + 砌体）</option>
+      </select>
+    </div>
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="vent">开窗通风</label></div>
+    <select id="vent">
+      <option value="none">不开窗</option>
+      <option value="win" selected>开窗（约 2 次/h）</option>
+      <option value="cross">穿堂风（约 4 次/h）</option>
+    </select>
+  </div>
+
+  <table class="heat">
+    <thead><tr><th>立面</th><th>遮阳率</th><th>过热 无板</th><th>有板</th></tr></thead>
+    <tbody id="heatBody"></tbody>
+  </table>
+  <div class="readout">
+    <span>整栋 冬季净得热（无板 → 有板）</span><span id="rWinter"></span>
+  </div>
+  <div class="cap" id="heatNote">过热 = 全年室内高于 25 °C 的小时占比。被动房判据：≤ 10%，建议 ≤ 5%。计算方法与 Version_06 相同（单节点逐小时热平衡）；铝板按透光系数 = 1 − 遮阳率 折减该面的直射、散射和采光。三维图中红色箭头指北。</div>
 
   <div class="hint">拖动旋转 · 滚轮 / 双指缩放 · 双击复位</div>
 </aside>
@@ -242,11 +296,14 @@
 <main><canvas id="c"></canvas></main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../../../Passivehouse_Tool/01_Prototypes/_shared/wwr-climate.js"></script>
+<script src="../../../Passivehouse_Tool/01_Prototypes/_shared/wwr-engine.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
-  const ids = ['wwr','gwwr','recess','len','wid','floors','fh','slab','gslab','tilt','groups','gapGroup','gapPanel','panelW','standoff','thick','perf'];
-  const sels = ['groupMode','tiltMode']; const chks = ['randPos','perFloor','perSide'];
+  const ids = ['wwr','gwwr','recess','len','wid','floors','fh','slab','gslab','tilt','groups','gapGroup','gapPanel','panelW','standoff','thick','perf','az0','depth'];
+  const sels = ['groupMode','tiltMode','clim','mass','vent'];
+  const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null; const chks = ['randPos','perFloor','perSide'];
   let seed = 7;
   const P = {};
   const fmt = (v,d=1)=> (+v).toFixed(d);
@@ -300,6 +357,8 @@
 
   const building = new THREE.Group();
   scene.add(building);
+  const north = new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(), 1, 0xb3413a, 0.35, 0.2);
+  scene.add(north);
 
   // rectangular ring (outer L×W, wall thickness th), extruded h along +Y
   function ring(L, W, th, h){
@@ -432,6 +491,12 @@
     const shadePct = lenAll>0 ? covAll*opaque/lenAll*100 : 0;
     const sidePct = shade.length.map((l,k)=> l>0 ? shade.covered[k]*opaque/l*100 : 0);
 
+    // north arrow: side A (index 0, outward normal -z) faces azimuth az0; azimuth az maps to world angle psi = -90 - (az - az0)
+    const psiN = THREE.MathUtils.degToRad(-90 + P.az0);
+    north.setDirection(new THREE.Vector3(Math.cos(psiN), 0, Math.sin(psiN)));
+    north.position.set(-L/2 - 1.5, 0.02, W/2 + 1.5);
+    north.setLength(Math.max(2, Math.min(L,W)*0.25), 0.8, 0.4);
+
     const totalH = topOf(N);
     const R = Math.max(L,W,totalH);
     ground.scale.set(R*8,R*8,1);
@@ -452,9 +517,42 @@
     $('rGArea').textContent = fmt(gnd.winH*2*(gL+gW),1)+' m²';
     $('rPanels').textContent = count+' 片';
     $('rShade').textContent = fmt(shadePct,1)+' %';
-    $('rShadeSides').textContent = sidePct.map(v=>fmt(v,0)).join(' / ')+' %';
     $('rShadeArea').textContent = fmt(covAll*opaque*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
     drawSection(clear, t, gt, typ, gnd, rc, L);
+    heat({L, W, N, H, gL, gW, typ, gnd, sidePct});
+  }
+
+  // ---------- overheating via the shared passive-house engine ----------
+  function heat(g){
+    const body = $('heatBody');
+    if(!ENGINE){ body.innerHTML = '<tr><td colspan="4" class="bad">引擎未加载：需要 Passivehouse_Tool/01_Prototypes/_shared/ 与本页在同一仓库里</td></tr>'; $('rWinter').textContent='—'; return; }
+    const {L, W, N, H, gL, gW, typ, gnd, sidePct} = g;
+    const depth = Math.min(P.depth, Math.min(L,W)/2);
+    const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A);
+    const base = {H, depth, A, clim:P.clim, mass:P.mass, vent:P.vent};
+    const sideLen = [L, W, L, W], gLen = [gL, gW, gL, gW], kind = ['长','短','长','短'];
+    const win = (S,b)=> b.winH>0.01 ? [{w:S, h:b.winH, sill:b.sill}] : [];
+    const run = (S, b, floors, az, screen)=> ENGINE.calcSegment({len:S, az, oh:0, screen, windows:win(S,b)}, Object.assign({floors}, base));
+    const cls = v => v<=ENGINE.OVH_GOOD ? 'ok' : v<=ENGINE.OVH_LIMIT ? 'warn' : 'bad';
+    let rows='', z=0, o0=0, o1=0, n0=0, n1=0;
+    for(let k=0;k<4;k++){
+      const az = ENGINE.norm(P.az0 - 90*k);
+      const parts0=[], parts1=[];
+      if(N>1){
+        const std0 = run(sideLen[k], typ, N-1, az, 1);
+        const std1 = sidePct[k]>0 ? run(sideLen[k], typ, N-1, az, 1 - sidePct[k]/100) : std0;
+        parts0.push(std0); parts1.push(std1);
+      }
+      const gr = run(gLen[k], gnd, 1, az, 1); parts0.push(gr); parts1.push(gr);
+      const za = parts0.reduce((a,r)=>a+r.zoneA,0);
+      const ov0 = parts0.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za, ov1 = parts1.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za;
+      z+=za; o0+=ov0*za; o1+=ov1*za;
+      n0+=parts0.reduce((a,r)=>a+r.net,0); n1+=parts1.reduce((a,r)=>a+r.net,0);
+      rows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt(sidePct[k],0)} %</td><td class="${cls(ov0)}">${fmt(ov0,1)} %</td><td class="${cls(ov1)}">${fmt(ov1,1)} %</td></tr>`;
+    }
+    rows += `<tr class="sum"><td>整栋</td><td></td><td class="${cls(o0/z)}">${fmt(o0/z,1)} %</td><td class="${cls(o1/z)}">${fmt(o1/z,1)} %</td></tr>`;
+    body.innerHTML = rows;
+    $('rWinter').textContent = fmt(n0,0)+' → '+fmt(n1,0)+' kWh/a';
   }
 
   // ---------- section diagram ----------
@@ -531,12 +629,12 @@
   function loop(){ resize(); updateCam(); renderer.render(scene,camera); requestAnimationFrame(loop); }
 
   // ---------- inputs ----------
-  const units = {wwr:'%', gwwr:'%', recess:' m', len:' m', wid:' m', floors:' 层', fh:' m', slab:' m', gslab:' m', tilt:'°', groups:' 组', gapGroup:' m', gapPanel:' m', panelW:' m', standoff:' m', thick:' m', perf:'%'};
+  const units = {wwr:'%', gwwr:'%', recess:' m', len:' m', wid:' m', floors:' 层', fh:' m', slab:' m', gslab:' m', tilt:'°', groups:' 组', gapGroup:' m', gapPanel:' m', panelW:' m', standoff:' m', thick:' m', perf:'%', az0:'°', depth:' m'};
   function read(){
     ids.forEach(id=>{
       const v = parseFloat($(id).value); P[id]=v;
-      const d = ['floors','wwr','gwwr','len','wid','tilt','groups','perf'].includes(id)?0:(['recess','gapGroup','panelW'].includes(id)?1:(id==='thick'?3:2));
-      $(id+'Out').innerHTML = `<b>${v.toFixed(d)}</b>${units[id]}`;
+      const d = ['floors','wwr','gwwr','len','wid','tilt','groups','perf','az0'].includes(id)?0:(['recess','gapGroup','panelW','depth'].includes(id)?1:(id==='thick'?3:2));
+      $(id+'Out').innerHTML = `<b>${v.toFixed(d)}</b>${units[id]}` + (id==='az0'&&ENGINE ? ' '+ENGINE.dirName(v) : '');
     });
     sels.forEach(id=> P[id]=$(id).value); chks.forEach(id=> P[id]=$(id).checked);
     rebuild();
