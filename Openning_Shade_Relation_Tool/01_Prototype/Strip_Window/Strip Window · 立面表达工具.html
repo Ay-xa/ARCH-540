@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Strip Window · 立面表达工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    --bg:#e9e6df;        /* studio paper */
+    --panel:#f7f5f0;
+    --ink:#23241f;
+    --ink-2:#6b6a63;
+    --line:#cfccc3;
+    --accent:#2f5d8a;    /* window blue */
+    --track:#d9d6cd;
+    --glass:#7fb2d9;
+    --model:#f3f1ec;
+    --slab:#d8d4c8;
+    --ground:#dcd9d0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
+      --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91;
+    --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+  body{
+    margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+    font-size:14px;line-height:1.4;display:flex;overflow:hidden;
+  }
+  *,*::before,*::after{box-sizing:inherit}
+
+  aside{
+    width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--line);
+    padding:22px 22px 18px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;
+  }
+  h1{font-size:18px;font-weight:600;margin:0;letter-spacing:-.01em}
+  h1 small{display:block;font-size:12px;font-weight:400;color:var(--ink-2);margin-top:4px}
+
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl .row{display:flex;justify-content:space-between;align-items:baseline}
+  .ctl label{font-weight:500}
+  .ctl output{font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .ctl output b{color:var(--ink);font-weight:500}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--track);border-radius:1px}
+  input[type=range]::-moz-range-track{height:2px;background:var(--track);border-radius:1px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--panel);
+    border:2px solid var(--ink);margin-top:-7px;cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--ink);cursor:pointer;
+  }
+  input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+  .wwr input[type=range]::-webkit-slider-thumb{border-color:var(--accent)}
+  .wwr input[type=range]::-moz-range-thumb{border-color:var(--accent)}
+  .wwr label{color:var(--accent)}
+
+  hr{border:0;border-top:1px solid var(--line);margin:0}
+  h2{font-size:13px;font-weight:600;margin:2px 0 -6px;color:var(--ink)}
+  select,button{
+    font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:6px 8px;width:100%;cursor:pointer;
+  }
+  select:focus-visible,button:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button:hover{border-color:var(--ink)}
+  .checks{display:flex;gap:16px;flex-wrap:wrap}
+  .checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+  input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;margin:0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .readout{display:grid;grid-template-columns:1fr auto;row-gap:5px;column-gap:12px;color:var(--ink-2);font-size:13px}
+  .readout span:nth-child(even){color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+
+  /* section diagram: one floor, side view */
+  .section{margin-top:2px}
+  .section svg{width:100%;height:auto;display:block}
+  .section .cap{color:var(--ink-2);font-size:12px;margin-top:6px}
+
+  .hint{margin-top:auto;color:var(--ink-2);font-size:12px}
+
+  main{flex:1;position:relative;min-width:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+
+  @media (max-width:760px){
+    body{flex-direction:column}
+    aside{width:100%;flex:0 0 auto;max-height:52%;border-right:0;border-bottom:1px solid var(--line);padding:16px 18px}
+    main{flex:1}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h1>Strip window<small>连续横向带窗立面 · 小模型</small></h1>
+
+  <div class="ctl wwr">
+    <div class="row"><label for="wwr">窗墙比 WWR</label><output id="wwrOut"></output></div>
+    <input id="wwr" type="range" min="0" max="100" step="1" value="45">
+  </div>
+
+  <div class="section">
+    <svg id="sec" viewBox="0 0 256 186" aria-label="单层剖面示意"></svg>
+    <div class="cap">剖面：上为标准层，下为首层（内退）；带窗在净墙高内上下居中</div>
+  </div>
+
+  <hr>
+
+  <div class="ctl wwr">
+    <div class="row"><label for="gwwr">首层 窗墙比 WWR</label><output id="gwwrOut"></output></div>
+    <input id="gwwr" type="range" min="0" max="100" step="1" value="80">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="recess">首层 内退 recess</label><output id="recessOut"></output></div>
+    <input id="recess" type="range" min="0" max="20" step="0.5" value="4">
+  </div>
+
+  <hr>
+
+  <div class="ctl">
+    <div class="row"><label for="len">长 L</label><output id="lenOut"></output></div>
+    <input id="len" type="range" min="6" max="80" step="1" value="30">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="wid">宽 W</label><output id="widOut"></output></div>
+    <input id="wid" type="range" min="6" max="60" step="1" value="16">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="floors">层数</label><output id="floorsOut"></output></div>
+    <input id="floors" type="range" min="1" max="30" step="1" value="6">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="fh">层高 H（楼板顶到楼板顶）</label><output id="fhOut"></output></div>
+    <input id="fh" type="range" min="2.6" max="6" step="0.1" value="3.6">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="slab">楼板厚 t</label><output id="slabOut"></output></div>
+    <input id="slab" type="range" min="0.15" max="1.0" step="0.05" value="0.35">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="gslab">首层楼板厚（台基）</label><output id="gslabOut"></output></div>
+    <input id="gslab" type="range" min="0.15" max="2.0" step="0.05" value="0.6">
+  </div>
+
+  <hr>
+  <h2>二次表皮 · 穿孔铝板</h2>
+
+  <div class="two">
+    <div class="ctl">
+      <div class="row"><label for="groupMode">组合方式</label></div>
+      <select id="groupMode">
+        <option value="mix">随机混合 1 / 2 / 3</option>
+        <option value="1">全部 1 片一组</option>
+        <option value="2">全部 2 片一组</option>
+        <option value="3">全部 3 片一组</option>
+        <option value="cycle">1-2-3 循环</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <div class="row"><label for="tiltMode">倾角方向</label></div>
+      <select id="tiltMode">
+        <option value="alt">组内交替（折板）</option>
+        <option value="same">同向</option>
+        <option value="rand">随机正负</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ctl">
+    <div class="row"><label for="tilt">单片倾角</label><output id="tiltOut"></output></div>
+    <input id="tilt" type="range" min="0" max="70" step="1" value="25">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="groups">每面组数</label><output id="groupsOut"></output></div>
+    <input id="groups" type="range" min="0" max="20" step="1" value="5">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="gapGroup">组间间隔</label><output id="gapGroupOut"></output></div>
+    <input id="gapGroup" type="range" min="0" max="10" step="0.1" value="1.5">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="gapPanel">组内片间隔</label><output id="gapPanelOut"></output></div>
+    <input id="gapPanel" type="range" min="0" max="1" step="0.05" value="0.1">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="panelW">单片宽度</label><output id="panelWOut"></output></div>
+    <input id="panelW" type="range" min="0.4" max="3" step="0.1" value="1.2">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div>
+    <input id="standoff" type="range" min="0.1" max="1.5" step="0.05" value="0.4">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="thick">铝板厚度</label><output id="thickOut"></output></div>
+    <input id="thick" type="range" min="0.01" max="0.20" step="0.005" value="0.03">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="perf">穿孔率</label><output id="perfOut"></output></div>
+    <input id="perf" type="range" min="0" max="45" step="1" value="18">
+  </div>
+  <div class="checks">
+    <label><input type="checkbox" id="randPos" checked>随机位置</label>
+    <label><input type="checkbox" id="perFloor" checked>逐层不同</label>
+    <label><input type="checkbox" id="perSide" checked>各面不同</label>
+  </div>
+  <button id="reseed" type="button">重新随机</button>
+
+  <hr>
+
+  <div class="readout">
+    <span>建筑总高</span><span id="rH"></span>
+    <span>净墙高 H − t</span><span id="rClear"></span>
+    <span>标准层 窗高 / 窗台高</span><span id="rWin"></span>
+    <span>标准层 窗面积（一圈）</span><span id="rArea"></span>
+    <span>首层 平面</span><span id="rGfoot"></span>
+    <span>首层 窗高 / 窗台高</span><span id="rGWin"></span>
+    <span>首层 窗面积（一圈）</span><span id="rGArea"></span>
+    <span>铝板总数</span><span id="rPanels"></span>
+    <span>标准层 窗条遮阳率（整圈）</span><span id="rShade"></span>
+    <span>四面遮阳率（长 / 短 / 长 / 短）</span><span id="rShadeSides"></span>
+    <span>标准层 被遮挡窗面积</span><span id="rShadeArea"></span>
+  </div>
+  <div class="cap" style="color:var(--ink-2);font-size:12px;margin-top:-8px">遮阳率 = 铝板正面投影覆盖窗条的长度比 × (1 − 穿孔率)；无铝板处为 0%。首层无铝板，遮阳率 0%。</div>
+
+  <div class="hint">拖动旋转 · 滚轮 / 双指缩放 · 双击复位</div>
+</aside>
+
+<main><canvas id="c"></canvas></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const ids = ['wwr','gwwr','recess','len','wid','floors','fh','slab','gslab','tilt','groups','gapGroup','gapPanel','panelW','standoff','thick','perf'];
+  const sels = ['groupMode','tiltMode']; const chks = ['randPos','perFloor','perSide'];
+  let seed = 7;
+  const P = {};
+  const fmt = (v,d=1)=> (+v).toFixed(d);
+
+  // ---------- three setup ----------
+  const canvas = $('c');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 2000);
+
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const col = n => new THREE.Color(css(n));
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8a80, 0.75);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.bias = -0.0008;
+  scene.add(sun);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshLambertMaterial({color:col('--ground')}));
+  ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
+  scene.add(ground);
+
+  const matWall = new THREE.MeshLambertMaterial({color:col('--model')});
+  const matSlab = new THREE.MeshLambertMaterial({color:col('--slab')});
+  const matGlass = new THREE.MeshPhysicalMaterial({
+    color:col('--glass'), transparent:true, opacity:0.42, roughness:0.15, metalness:0.05, side:THREE.DoubleSide
+  });
+  const matEdge = new THREE.LineBasicMaterial({color:0x4a4a44});
+  const matPanel = new THREE.MeshStandardMaterial({color:0xf6f6f4, roughness:0.55, metalness:0.25, side:THREE.DoubleSide, alphaTest:0.5});
+  const matPanelEdge = new THREE.LineBasicMaterial({color:0x7a7a74});
+  let perfCache = -1;
+  function perfTexture(ratio){
+    if(ratio===perfCache) return;
+    perfCache = ratio;
+    if(ratio<=0){ matPanel.alphaMap=null; matPanel.needsUpdate=true; return; }
+    const N=128, pitch=16, cv=document.createElement('canvas'); cv.width=cv.height=N;
+    const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,N,N); ctx.fillStyle='#000';
+    const r = pitch*Math.sqrt(ratio/Math.PI);
+    for(let y=pitch/2;y<N;y+=pitch) for(let x=pitch/2;x<N;x+=pitch){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+    const tex = new THREE.CanvasTexture(cv); tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+    matPanel.alphaMap = tex; matPanel.needsUpdate = true;
+  }
+  function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+  const building = new THREE.Group();
+  scene.add(building);
+
+  // rectangular ring (outer L×W, wall thickness th), extruded h along +Y
+  function ring(L, W, th, h){
+    const s = new THREE.Shape();
+    s.moveTo(-L/2,-W/2); s.lineTo(L/2,-W/2); s.lineTo(L/2,W/2); s.lineTo(-L/2,W/2); s.closePath();
+    const hole = new THREE.Path();
+    const l=L/2-th, w=W/2-th;
+    hole.moveTo(-l,-w); hole.lineTo(-l,w); hole.lineTo(l,w); hole.lineTo(l,-w); hole.closePath();
+    s.holes.push(hole);
+    const g = new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false});
+    g.rotateX(-Math.PI/2); // extrude along +Y
+    return g;
+  }
+  function addMesh(geo, mat, y, edges, shadow){
+    const m = new THREE.Mesh(geo, mat);
+    m.position.y = y; m.castShadow = shadow; m.receiveShadow = shadow;
+    building.add(m);
+    if(edges){
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), matEdge);
+      e.position.y = y; building.add(e);
+    }
+    return m;
+  }
+
+  // lay out groups along one side of length S; returns [{start, sizes:n}]
+  function layoutSide(S, rng){
+    const {panelW:w, gapPanel:gp, gapGroup:gg, groups:nG} = P;
+    const margin = 0.3;
+    let sizes = [];
+    for(let k=0;k<nG;k++){
+      const m = P.groupMode;
+      sizes.push(m==='mix' ? 1+Math.floor(rng()*3) : m==='cycle' ? (k%3)+1 : +m);
+    }
+    const gw = n => n*w + (n-1)*gp;
+    const avail = S - 2*margin;
+    let total = () => sizes.reduce((a,n)=>a+gw(n),0) + Math.max(0,sizes.length-1)*gg;
+    while(sizes.length && total() > avail) sizes.pop();
+    if(!sizes.length) return [];
+    const out=[]; let x;
+    if(P.randPos){
+      const slack = avail - total();
+      const wts=[]; let sum=0; for(let k=0;k<=sizes.length;k++){ const v=rng()+0.05; wts.push(v); sum+=v; }
+      x = margin + slack*wts[0]/sum;
+      sizes.forEach((n,k)=>{ out.push({start:x, n}); x += gw(n) + gg + slack*wts[k+1]/sum; });
+    } else {
+      x = margin + (avail - total())/2;
+      sizes.forEach(n=>{ out.push({start:x, n}); x += gw(n) + gg; });
+    }
+    return out;
+  }
+
+  function rebuild(){
+    while(building.children.length){ const c=building.children.pop(); if(c.geometry && !c.geometry.__shared) c.geometry.dispose(); }
+    const {len:L, wid:W, floors:N, fh:H, slab:t, gslab:gt} = P;
+    const clear = H - t;
+    const th = Math.min(0.3, L/20, W/20);
+    const rMax = Math.max(0, Math.min(L,W)/2 - 2);
+    const rc = Math.min(P.recess, rMax);
+    const gL = L - 2*rc, gW = W - 2*rc;
+    const band = (wwr)=>{ const wh=clear*wwr; return {winH:wh, sill:(clear-wh)/2}; };
+    const typ = band(P.wwr/100), gnd = band(P.gwwr/100);
+    const topOf = i => gt + i*H;           // top of slab i
+
+    for(let i=0;i<N;i++){
+      const wall0 = topOf(i);
+      const isG = (i===0);
+      const bl = isG?gL:L, bw = isG?gW:W, b = isG?gnd:typ;
+      const st = isG?gt:t;
+      addMesh(new THREE.BoxGeometry(L,st,W), matSlab, wall0 - st/2, true, true);
+      if(b.sill>0.001){
+        addMesh(ring(bl,bw,th,b.sill), matWall, wall0, true, true);
+        addMesh(ring(bl,bw,th,b.sill), matWall, wall0 + b.sill + b.winH, true, true);
+      }
+      if(b.winH>0.001){
+        addMesh(ring(bl-th*0.6, bw-th*0.6, 0.04, b.winH), matGlass, wall0 + b.sill, false, false);
+      }
+    }
+    addMesh(new THREE.BoxGeometry(L,t,W), matSlab, topOf(N) - t/2, true, true); // roof
+
+    // ---- secondary facade: perforated aluminium panels on upper floors ----
+    perfTexture(P.perf/100);
+    let count = 0;
+    const shade = {covered:[0,0,0,0], length:[0,0,0,0]};   // per side, summed over standard floors
+    if(N>1 && P.groups>0){
+      const d = P.standoff, w = P.panelW, ph = H;         // panel spans slab-top to slab-top (covers slab edge above)
+      const sides = [ // start corner, direction, outward normal, length
+        {a:[-L/2,-W/2], u:[1,0],  n:[0,-1], S:L},
+        {a:[ L/2,-W/2], u:[0,1],  n:[1,0],  S:W},
+        {a:[ L/2, W/2], u:[-1,0], n:[0,1],  S:L},
+        {a:[-L/2, W/2], u:[0,-1], n:[-1,0], S:W},
+      ];
+      const geo = new THREE.BoxGeometry(w, ph, P.thick);
+      if(matPanel.alphaMap) matPanel.alphaMap.repeat.set(w/0.12, ph/0.12);
+      const egeo = new THREE.EdgesGeometry(geo);
+      const tiltR = THREE.MathUtils.degToRad(P.tilt);
+      const projW = w*Math.cos(tiltR) + P.thick*Math.sin(tiltR);   // frontal projection of one tilted panel
+      for(let i=1;i<N;i++){
+        for(let sIdx=0;sIdx<4;sIdx++){
+          const sd = sides[sIdx];
+          const rng = mulberry32(seed + (P.perFloor?i*101:0) + (P.perSide?sIdx*17:0));
+          const yaw = Math.atan2(sd.n[0], sd.n[1]);   // rotate panel so local +z faces outward
+          const y = topOf(i) + ph/2;
+          const spans = [];
+          layoutSide(sd.S, rng).forEach(g=>{
+            for(let k=0;k<g.n;k++){
+              const cx = g.start + k*(w+P.gapPanel) + w/2;
+              const sign = P.tiltMode==='same'?1 : P.tiltMode==='alt'?(k%2?-1:1) : (rng()<0.5?-1:1);
+              const px = sd.a[0] + sd.u[0]*cx + sd.n[0]*d, pz = sd.a[1] + sd.u[1]*cx + sd.n[1]*d;
+              const m = new THREE.Mesh(geo, matPanel);
+              m.position.set(px, y, pz); m.rotation.y = yaw + sign*tiltR;
+              m.castShadow = true; m.receiveShadow = true; building.add(m);
+              const e = new THREE.LineSegments(egeo, matPanelEdge); e.position.copy(m.position); e.rotation.copy(m.rotation); building.add(e);
+              spans.push([Math.max(0,cx-projW/2), Math.min(sd.S,cx+projW/2)]);
+              count++;
+            }
+          });
+          // merge overlapping projections so a length is never counted twice
+          spans.sort((a,b)=>a[0]-b[0]);
+          let cov=0, cur=null;
+          spans.forEach(sp=>{ if(cur && sp[0]<=cur[1]) cur[1]=Math.max(cur[1],sp[1]); else { if(cur) cov+=cur[1]-cur[0]; cur=[sp[0],sp[1]]; } });
+          if(cur) cov+=cur[1]-cur[0];
+          shade.covered[sIdx]+=cov; shade.length[sIdx]+=sd.S;
+        }
+      }
+    } else {
+      for(let i=1;i<N;i++){ shade.length[0]+=L; shade.length[1]+=W; shade.length[2]+=L; shade.length[3]+=W; }
+    }
+    const opaque = 1 - P.perf/100;
+    const covAll = shade.covered.reduce((a,b)=>a+b,0), lenAll = shade.length.reduce((a,b)=>a+b,0);
+    const shadePct = lenAll>0 ? covAll*opaque/lenAll*100 : 0;
+    const sidePct = shade.length.map((l,k)=> l>0 ? shade.covered[k]*opaque/l*100 : 0);
+
+    const totalH = topOf(N);
+    const R = Math.max(L,W,totalH);
+    ground.scale.set(R*8,R*8,1);
+    sun.position.set(R*1.2, R*1.8, R*0.9);
+    const s = R*1.6;
+    sun.shadow.camera.left=-s; sun.shadow.camera.right=s; sun.shadow.camera.top=s; sun.shadow.camera.bottom=-s;
+    sun.shadow.camera.far = R*6; sun.shadow.camera.updateProjectionMatrix();
+    orbit.target.set(0, totalH/2, 0);
+    orbit.fit = Math.hypot(L,W,totalH)*1.15;
+    if(!orbit.userZoomed) orbit.r = orbit.fit;
+
+    $('rH').textContent = fmt(totalH,2)+' m';
+    $('rClear').textContent = fmt(clear,2)+' m';
+    $('rWin').textContent = fmt(typ.winH,2)+' / '+fmt(typ.sill,2)+' m';
+    $('rArea').textContent = fmt(typ.winH*2*(L+W),1)+' m²';
+    $('rGfoot').textContent = fmt(gL,1)+' × '+fmt(gW,1)+' m'+(rc<P.recess?'（内退已限至 '+fmt(rc,1)+' m）':'');
+    $('rGWin').textContent = fmt(gnd.winH,2)+' / '+fmt(gnd.sill,2)+' m';
+    $('rGArea').textContent = fmt(gnd.winH*2*(gL+gW),1)+' m²';
+    $('rPanels').textContent = count+' 片';
+    $('rShade').textContent = fmt(shadePct,1)+' %';
+    $('rShadeSides').textContent = sidePct.map(v=>fmt(v,0)).join(' / ')+' %';
+    $('rShadeArea').textContent = fmt(covAll*opaque*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
+    drawSection(clear, t, gt, typ, gnd, rc, L);
+  }
+
+  // ---------- section diagram ----------
+  function drawSection(clear, t, gt, typ, gnd, rc, L){
+    const svg = $('sec');
+    const ink = css('--ink'), ink2 = css('--ink-2'), acc = css('--accent'), slab=css('--slab');
+    const cx = 128, ww = 150, top = 8, Hpx = 74;
+    const k = Hpx/(clear+t);
+    const gtk = Math.min(gt*k, 22);
+    const inset = Math.min(ww/2-14, rc/L*ww); // recess in px, proportional to plan
+    let s = '';
+    const floor = (yTop, wallW, b, label)=>{
+      const x0 = cx-wallW/2, x1 = cx+wallW/2;
+      const ySlab = yTop + t*k, yWin0 = ySlab + b.sill*k, yWin1 = yWin0 + b.winH*k, yBot = yTop + Hpx;
+      s += `<rect x="${cx-ww/2}" y="${yTop}" width="${ww}" height="${ySlab-yTop}" fill="${slab}" stroke="${ink}" stroke-width="1"/>`;
+      if(b.sill*k>0.4){
+        s += `<rect x="${x0}" y="${ySlab}" width="${wallW}" height="${yWin0-ySlab}" fill="none" stroke="${ink}" stroke-width="1"/>`;
+        s += `<rect x="${x0}" y="${yWin1}" width="${wallW}" height="${yBot-yWin1}" fill="none" stroke="${ink}" stroke-width="1"/>`;
+      }
+      if(b.winH*k>0.4){
+        s += `<rect x="${x0}" y="${yWin0}" width="${wallW}" height="${yWin1-yWin0}" fill="${acc}" fill-opacity=".35" stroke="${acc}" stroke-width="1"/>`;
+      }
+      const mid = (ySlab+yBot)/2;
+      s += `<line x1="${cx-ww/2-8}" x2="${cx+ww/2+8}" y1="${mid}" y2="${mid}" stroke="${ink2}" stroke-width="1" stroke-dasharray="3 3"/>`;
+      s += `<text x="${cx+ww/2+12}" y="${mid+4}" font-size="9" fill="${ink2}">${label}</text>`;
+      s += `<text x="${cx-ww/2-4}" y="${(yWin0+yWin1)/2+3}" font-size="9" fill="${acc}" text-anchor="end">${fmt(b.winH,2)}</text>`;
+    };
+    floor(top, ww, typ, '标准层');
+    floor(top+Hpx, ww-2*inset, gnd, '首层');
+    // ground plate
+    const yG = top+2*Hpx;
+    s += `<rect x="${cx-ww/2}" y="${yG}" width="${ww}" height="${gtk}" fill="${slab}" stroke="${ink}" stroke-width="1"/>`;
+    if(inset>2){
+      s += `<line x1="${cx-ww/2}" x2="${cx-ww/2+inset}" y1="${yG-6}" y2="${yG-6}" stroke="${ink2}" stroke-width="1"/>`;
+      s += `<text x="${cx-ww/2+inset/2}" y="${yG-9}" font-size="8" fill="${ink2}" text-anchor="middle">${fmt(rc,1)}</text>`;
+    }
+    svg.innerHTML = s;
+  }
+
+  // ---------- simple orbit ----------
+  const orbit = {theta:0.65, phi:1.05, r:60, fit:60, target:new THREE.Vector3(), userZoomed:false};
+  function updateCam(){
+    const {theta, phi, r, target} = orbit;
+    camera.position.set(
+      target.x + r*Math.sin(phi)*Math.sin(theta),
+      target.y + r*Math.cos(phi),
+      target.z + r*Math.sin(phi)*Math.cos(theta));
+    camera.lookAt(target);
+  }
+  let drag=null, pinch=null;
+  canvas.addEventListener('pointerdown', e=>{ drag={x:e.clientX,y:e.clientY}; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e=>{
+    if(!drag) return;
+    orbit.theta -= (e.clientX-drag.x)*0.006;
+    orbit.phi = Math.min(Math.PI/2-0.02, Math.max(0.12, orbit.phi - (e.clientY-drag.y)*0.006));
+    drag={x:e.clientX,y:e.clientY};
+  });
+  canvas.addEventListener('pointerup', ()=> drag=null);
+  canvas.addEventListener('pointercancel', ()=> drag=null);
+  canvas.addEventListener('wheel', e=>{ e.preventDefault(); zoom(Math.exp(e.deltaY*0.0012)); }, {passive:false});
+  canvas.addEventListener('dblclick', ()=>{ orbit.userZoomed=false; orbit.r=orbit.fit; orbit.theta=0.65; orbit.phi=1.05; });
+  canvas.addEventListener('touchstart', e=>{ if(e.touches.length===2){ drag=null; pinch=dist(e); } }, {passive:true});
+  canvas.addEventListener('touchmove', e=>{ if(e.touches.length===2 && pinch){ const d=dist(e); zoom(pinch/d); pinch=d; } }, {passive:true});
+  canvas.addEventListener('touchend', ()=> pinch=null);
+  function dist(e){ const a=e.touches[0], b=e.touches[1]; return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
+  function zoom(f){ orbit.userZoomed=true; orbit.r = Math.min(orbit.fit*4, Math.max(orbit.fit*0.15, orbit.r*f)); }
+
+  function resize(){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if(canvas.width!==w*renderer.getPixelRatio() || canvas.height!==h*renderer.getPixelRatio()){
+      renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+    }
+  }
+  function loop(){ resize(); updateCam(); renderer.render(scene,camera); requestAnimationFrame(loop); }
+
+  // ---------- inputs ----------
+  const units = {wwr:'%', gwwr:'%', recess:' m', len:' m', wid:' m', floors:' 层', fh:' m', slab:' m', gslab:' m', tilt:'°', groups:' 组', gapGroup:' m', gapPanel:' m', panelW:' m', standoff:' m', thick:' m', perf:'%'};
+  function read(){
+    ids.forEach(id=>{
+      const v = parseFloat($(id).value); P[id]=v;
+      const d = ['floors','wwr','gwwr','len','wid','tilt','groups','perf'].includes(id)?0:(['recess','gapGroup','panelW'].includes(id)?1:(id==='thick'?3:2));
+      $(id+'Out').innerHTML = `<b>${v.toFixed(d)}</b>${units[id]}`;
+    });
+    sels.forEach(id=> P[id]=$(id).value); chks.forEach(id=> P[id]=$(id).checked);
+    rebuild();
+  }
+  ids.forEach(id=> $(id).addEventListener('input', read));
+  sels.forEach(id=> $(id).addEventListener('change', read));
+  chks.forEach(id=> $(id).addEventListener('change', read));
+  $('reseed').addEventListener('click', ()=>{ seed = (seed*7919 + 13) % 100000; read(); });
+
+  function applyTheme(){
+    scene.background = col('--bg');
+    ground.material.color = col('--ground');
+    matWall.color = col('--model'); matSlab.color = col('--slab');
+    rebuild();
+  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+  read();
+  applyTheme();
+  loop();
+})();
+</script>
+</body>
+</html>

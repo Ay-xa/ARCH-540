@@ -4,3 +4,4 @@ Passivehouse_Tool/02_Data/BC_Housing/
 
 # Rhino 自动备份
 *.3dmbak
+*.rhl

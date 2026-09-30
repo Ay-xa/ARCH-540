@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>共享引擎自检 · 与 Version_06 数值比对</title>
+<style>
+body{font-family:"Noto Sans SC",system-ui,sans-serif;font-size:14px;margin:20px;max-width:1100px;color:#1E2A2F;background:#F6F7F4}
+h1{font-size:18px} h2{font-size:14px;margin-top:22px}
+table{border-collapse:collapse;font-size:12.5px} td,th{border:1px solid #C7CDCA;padding:3px 8px;text-align:left}
+.ok{color:#3A7A58} .bad{color:#B0283F;font-weight:700} pre{font-size:12px;background:#E9ECE8;padding:8px;overflow:auto}
+#status{font-weight:700}
+</style>
+<script src="wwr-climate.js"></script>
+<script src="wwr-engine.js"></script>
+</head>
+<body>
+<h1>共享引擎自检 · 与 Version_06 数值比对</h1>
+<p>本页用 <code>_shared/wwr-engine.js</code> 按 Version_06 的默认方案重算 6 组 × 4 立面的全部数值，并在下方的隐藏框架里打开 <code>../Version_06/wwr-tool.html?test=1</code>，取它的 <code>window.__digest</code> 逐字段比对。Version_06 的文件不做任何改动。需要经 http 打开（同源），双击 file:// 打开时框架里的比对会跳过。</p>
+<p id="status">运行中…</p>
+<h2>A. 引擎自检（V06 手算测试原样搬入 + 通用化路径的新测试）</h2>
+<table id="tA"><thead><tr><th>#</th><th>测试</th><th>得到</th><th>期望</th><th></th></tr></thead><tbody></tbody></table>
+<h2>B. 与 Version_06 digest() 逐字段比对</h2>
+<div id="tB"></div>
+<h2>C. 摘要（供记录）</h2>
+<pre id="tC"></pre>
+<iframe id="v06" src="../Version_06/wwr-tool.html?test=1" style="width:1px;height:1px;opacity:0;position:absolute;left:-10px" title="Version_06（比对用）"></iframe>
+<script>
+(function(){
+const E=window.WWR, T=[];
+const eq=(n,a,b,tol=1e-9)=>T.push({test:n,got:+(+a).toFixed(6),want:b,ok:Math.abs(a-b)<=tol});
+const D=E.V06_DEFAULT, ctx0=(c,m,v)=>({H:D.H,floors:D.floors,depth:D.depth,A:Object.assign({Gt:CLIM[c].Gt},D.A),clim:c,mass:m,vent:v,sill:D.sill,head:D.head});
+// ---- V06 手算测试原样 ----
+eq('ovhScore(0)=100',E.ovhScore(0),100); eq('ovhScore(5)=50',E.ovhScore(E.OVH_GOOD),50); eq('ovhScore(10)=0',E.ovhScore(E.OVH_LIMIT),0); eq('ovhScore(20)=0 不为负',E.ovhScore(20),0);
+const zeros=new Int16Array(8760), hot={T:new Int16Array(8760).fill(300),G:zeros,B:zeros,D:zeros}, sunZ={alt:new Float32Array(8760).fill(-10),az:new Float32Array(8760)};
+const pA={az:180,Ag:0,g:.5,oh:0,hw:1.8,Htr:50,V:300,C:15000,Qint:0,nHyg:0.3,etaHR:0,ventAch:0};
+const sA=E.simulateHours(pA,hot,sunZ); eq('恒 30 °C 室外 → 室内最高≈30',sA.Tmax,30,0.05); eq('恒 30 °C 室外 → 过热频率 >95%',sA.ovh>95?1:0,1);
+const mild={T:new Int16Array(8760).fill(200),G:zeros,B:zeros,D:zeros};
+const pB={az:180,Ag:0,g:.5,oh:0,hw:1.8,Htr:60,V:300,C:15000,Qint:600,nHyg:0.3,etaHR:0.75,ventAch:0};
+const sB=E.simulateHours(pB,mild,sunZ); eq('稳态 T=20+Q/H',sB.Tmax,20+600/(60+0.33*0.3*300),0.01);
+eq('interpN 节点值',E.interpN([0,10,20,30],90),10); eq('interpN 中间插值',E.interpN([0,10,20,30],45),5); eq('interpN 绕回',E.interpN([0,10,20,30],315),15);
+const ctx=ctx0('apNow','mid','win');
+const rS=E.calcFacadeFromWwr('S',20,180,D.f.S,ctx);
+const rv=E.calcFacadeFromWwr('S',20,180,Object.assign({},D.f.S,{vent:'cross'}),ctx), rn=E.calcFacadeFromWwr('S',20,180,Object.assign({},D.f.S,{vent:'none'}),ctx);
+eq('穿堂风过热频率 ≤ 不开窗',rv.ovh<=rn.ovh+1e-9?1:0,1);
+const rh=E.calcFacadeFromWwr('S',20,180,Object.assign({},D.f.S,{mass:'heavy'}),ctx), rl=E.calcFacadeFromWwr('S',20,180,Object.assign({},D.f.S,{mass:'light'}),ctx);
+eq('重质量最高室温 ≤ 轻质量',rh.TmaxIn<=rl.TmaxIn+1e-9?1:0,1);
+const r0=E.calcFacadeFromWwr('S',20,180,{wwr:0,n:4,oh:0},ctx); eq('无窗立面 Qhot=0',r0.Qhot,0); eq('无窗立面评分=100',r0.sc.heat,100);
+eq('南立面 Qhot 手算',rS.Qhot,rS.AgT*D.A.g*0.8*E.interpN(CLIM.apNow.GH,180),1e-6);
+eq('hotPer=Qhot/房间面积',rS.hotPer,rS.Qhot/(20*D.depth*D.floors),1e-9);
+// ---- windowsFromWwr：V06 的反推规则 ----
+const g=E.windowsFromWwr(20,0.40,4,0.6,2.4,3.0);
+eq('生成器：南墙 4 扇，单窗宽 = 0.4·20·3/1.8/4',g.wi,0.4*20*3/1.8/4,1e-12); eq('生成器：窗高 1.8',g.hw,1.8,1e-12); eq('生成器：4 扇',g.windows.length,4);
+eq('生成器：第 i 扇中心在 (i+.5)/n·len',g.windows[1].u+g.windows[1].w/2,(1.5/4)*20,1e-12);
+const gc=E.windowsFromWwr(10,0.70,1,0.6,2.4,3.0); eq('生成器：总宽超 90% 时截断',gc.clamped?1:0,1); eq('生成器：截断后单窗宽 = 9 m',gc.wi,9,1e-12);
+const gz=E.windowsFromWwr(20,0.0,4,0.6,2.4,3.0); eq('生成器：窗墙比 0 → 无窗',gz.windows.length,0);
+const gh=E.windowsFromWwr(20,0.4,4,0.6,3.5,3.0); eq('生成器：窗头截到吊顶 2.7',gh.hw,2.7-0.6,1e-12);
+// ---- calcSegment 通用化路径：不同的窗 ----
+const W1={u:1,w:2.5,h:1.8,sill:0.6}, W2={u:8,w:1.2,h:1.2,sill:1.0};
+const s1=E.calcSegment({len:20,az:180,oh:0,windows:[W1]},ctx), s2=E.calcSegment({len:20,az:180,oh:0,windows:[W2]},ctx), s12=E.calcSegment({len:20,az:180,oh:0,windows:[W1,W2]},ctx);
+['AwT','AgT','PT','Qgain','Qloss','Qsum','Qhot','totW'].forEach(k=>eq(`两扇不同的窗：${k} 可加`,s12[k],s1[k]+s2[k],1e-9));
+eq('两扇不同的窗：DF 可加（同一墙长）',s12.DF,s1.DF+s2.DF,1e-12);
+eq('两扇不同的窗：Htr 相加减去一次墙面项',s12.Htr,s1.Htr+s2.Htr-ctx.A.Uwall*(20*3*3+20*5),1e-9);
+eq('两扇不同的窗：分成 2 组',s12.groups.length,2);
+// 同尺寸的窗写成两个对象 = 一组，与生成器路径相同
+const two=E.calcSegment({len:20,az:180,oh:0,windows:[{u:1,w:3,h:1.8,sill:.6},{u:10,w:3,h:1.8,sill:.6}]},ctx);
+eq('两扇相同的窗归为 1 组',two.groups.length,1); eq('两扇相同的窗 count=2',two.groups[0].count,2);
+// 段划分（B：窗段与空墙段交替）
+const segs=E.segmentsForWall({id:'S',length:20},[{key:1,u:12,w:3,h:1.8,sill:.6},{key:0,u:2,w:3,h:1.8,sill:.6}]);
+eq('切段：2 窗 → 5 段',segs.length,5); eq('切段：段长之和 = 墙长',segs.reduce((a,s)=>a+s.len,0),20,1e-12);
+eq('切段：顺序 空 窗 空 窗 空',segs.map(s=>s.kind[0]).join('')==='bwbwb'?1:0,1); eq('切段：第一个空段 0–2',segs[0].u1,2,1e-12);
+const segT=E.segmentsForWall({id:'S',length:20},[{key:0,u:2,w:3,h:1.8,sill:.6},{key:1,u:5,w:3,h:1.8,sill:.6}]);
+eq('切段：相接的两窗之间无空段（4 段）',segT.length,4);
+eq('切段：无窗墙 = 1 个空段',E.segmentsForWall({id:'N',length:20},[]).length,1);
+// 空墙段：无窗、DF 0、有过热模拟
+const blank=E.calcSegment({len:5,az:180,oh:0,windows:[]},ctx); eq('空墙段 DF=0',blank.DF,0); eq('空墙段 AwT=0',blank.AwT,0); eq('空墙段 ovh 有值',isFinite(blank.ovh)?1:0,1);
+// 旋转：方位角相同的段结果相同
+const a1=E.calcSegment({len:12,az:270,oh:0,windows:[W1]},ctx), a2=E.calcSegment({len:12,az:E.norm(180+90),oh:0,windows:[W1]},ctx);
+eq('旋转 90°：南墙变西向，与西墙同结果',a1.DF-a2.DF+a1.ovh-a2.ovh+a1.Hx-a2.Hx,0,1e-12);
+// 无副作用：同输入两次结果相同、输入未被改
+const inp={len:20,az:180,oh:0,windows:[W1,W2]}; const j0=JSON.stringify(inp); const x1=E.calcSegment(inp,ctx), x2=E.calcSegment(inp,ctx);
+eq('无副作用：输入对象未被改',JSON.stringify(inp)===j0?1:0,1); eq('无副作用：两次结果相同',x1.ovh-x2.ovh+x1.DF-x2.DF,0);
+
+const tb=document.querySelector('#tA tbody');
+T.forEach((t,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i+1}</td><td>${t.test}</td><td>${t.got}</td><td>${typeof t.want==='number'?+t.want.toFixed(6):t.want}</td><td class="${t.ok?'ok':'bad'}">${t.ok?'通过':'失败'}</td>`;tb.appendChild(tr);});
+const passA=T.every(t=>t.ok);
+
+// ---- B：与 V06 digest 比对 ----
+const mine=E.digestV06(), mineS=JSON.stringify(mine);
+window.__engineDigest=mineS;
+function compare(theirsS){
+  const theirs=JSON.parse(theirsS); let same=0,total=0,maxRel=0,maxKey='',diffs=[];const extras={};
+  const walk=(a,b,path)=>{
+    if(typeof a==='number'&&typeof b==='number'){total++;const d=Math.abs(a-b),rel=d/Math.max(1e-12,Math.abs(b));if(a===b)same++;else{diffs.push({path,a,b,rel});if(rel>maxRel){maxRel=rel;maxKey=path;}}return;}
+    if(typeof a==='boolean'||typeof b==='boolean'||a==null||b==null){total++;if(a===b)same++;else diffs.push({path,a,b,rel:1});return;}
+    const ks=new Set([...Object.keys(a),...Object.keys(b)]);ks.forEach(k=>{
+      if(!(k in b)){const nm=k;extras[nm]=(extras[nm]||0)+1;return;}                 // 引擎新增字段（V06 没有）：单独统计，不算差异
+      if(!(k in a)){total++;diffs.push({path:path+'.'+k,a:undefined,b:b[k],rel:1});return;} // V06 有、引擎没有：算缺失
+      walk(a[k],b[k],path+'.'+k);});};
+  walk(mine,theirs,'');
+  const within=diffs.filter(d=>d.rel<=1e-9).length, beyond=diffs.filter(d=>d.rel>1e-9);
+  const html=`<p>V06 有的字段共 <b>${total}</b>；逐位相同 <b>${same}</b>；不同但相对差 ≤ 1e-9：<b>${within}</b>；相对差 &gt; 1e-9 或缺失：<b class="${beyond.length?'bad':'ok'}">${beyond.length}</b>。最大相对差 ${maxRel.toExponential(2)}（${maxKey||'—'}）。</p>`+
+    `<p>引擎新增、V06 没有的字段（不参与比对）：${Object.keys(extras).map(k=>`<code>${k}</code>×${extras[k]}`).join('，')||'无'}。</p>`+
+    `<p>V06 digest 长度 ${theirsS.length}，引擎 digest 长度 ${mineS.length}（引擎多了上述字段，字符串不会相同）。</p>`+
+    (beyond.length?`<table><thead><tr><th>字段</th><th>引擎</th><th>V06</th><th>相对差</th></tr></thead><tbody>${beyond.slice(0,60).map(d=>`<tr><td>${d.path}</td><td>${d.a}</td><td>${d.b}</td><td>${(+d.rel).toExponential(2)}</td></tr>`).join('')}</tbody></table>`:'')+
+    (within?`<details><summary>末位差异清单（${within} 项，≤ 1e-9）</summary><table><tbody>${diffs.filter(d=>d.rel<=1e-9).slice(0,80).map(d=>`<tr><td>${d.path}</td><td>${d.a}</td><td>${d.b}</td><td>${(+d.rel).toExponential(2)}</td></tr>`).join('')}</tbody></table></details>`:'');
+  document.getElementById('tB').innerHTML=html;
+  const passB=beyond.length===0;
+  window.__compare={total,same,within,beyond:beyond.length,maxRel,maxKey,extras};
+  document.getElementById('tC').textContent=JSON.stringify({engineVersion:E.version,selfTests:T.length,selfTestsPass:passA,compare:window.__compare},null,1);
+  document.getElementById('status').textContent=(passA&&passB)?'ENGINE ALL PASS：自检 '+T.length+' 项通过，与 Version_06 数值一致':'有失败项：自检 '+(passA?'通过':'失败')+'，比对 '+(passB?'通过':'失败');
+  document.getElementById('status').className=(passA&&passB)?'ok':'bad';
+  window.__engineDone=true;
+}
+let tries=0;
+function poll(){const fr=document.getElementById('v06');let d=null;try{d=fr.contentWindow&&fr.contentWindow.__digest;}catch(e){d='__cross';}
+  if(d==='__cross'){document.getElementById('tB').innerHTML='<p class="bad">无法读取框架（不同源，可能是 file:// 打开）。请经本地 http 服务打开本页；或在 V06 控制台取 window.__digest 手动比对。</p>';document.getElementById('status').textContent='自检 '+(passA?'通过':'失败')+'；比对跳过';window.__engineDone=true;return;}
+  if(d){compare(d);return;}
+  if(++tries>200){document.getElementById('tB').innerHTML='<p class="bad">等待 Version_06 的 __digest 超时（60 s）。</p>';document.getElementById('status').textContent='比对超时';window.__engineDone=true;return;}
+  setTimeout(poll,300);}
+poll();
+})();
+</script>
+</body>
+</html>
