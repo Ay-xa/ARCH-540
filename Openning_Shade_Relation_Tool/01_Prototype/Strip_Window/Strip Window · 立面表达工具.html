@@ -73,6 +73,16 @@
   .wwr label{color:var(--accent)}
 
   hr{border:0;border-top:1px solid var(--line);margin:0}
+  details.grp{padding-top:0}
+  details.grp summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:13px;gap:10px;
+    background:color-mix(in srgb,var(--ink) 7%,transparent);padding:8px 10px;border-radius:6px;margin:0 -6px}
+  details.grp summary::-webkit-details-marker{display:none}
+  details.grp summary span::before{content:'▸';display:inline-block;width:14px;color:var(--ink-2)}
+  details.grp[open] summary span::before{content:'▾'}
+  details.grp summary b{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
+  details.grp .body{display:flex;flex-direction:column;gap:18px;padding-top:14px}
+  .fixed{display:flex;flex-direction:column;gap:10px}
+  .fixed h2{background:color-mix(in srgb,var(--accent) 14%,transparent);padding:8px 10px;border-radius:6px;margin:0 -6px 2px}
   h2{font-size:13px;font-weight:600;margin:2px 0 -6px;color:var(--ink)}
   select,button{
     font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
@@ -104,10 +114,22 @@
   .seg button{border:0;border-radius:0;width:auto;flex:1;padding:5px 8px;background:transparent;color:var(--ink-2)}
   .seg button+button{border-left:1px solid var(--line)}
   .seg button.on{background:var(--ink);color:var(--panel)}
-  .plan{position:absolute;top:14px;right:14px;width:272px;display:flex;flex-direction:column;gap:6px;
-    background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:8px;padding:12px 14px 10px;z-index:2}
-  .plan .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .plan .row label{font-weight:500;font-size:13px}
+  .card{position:absolute;display:flex;flex-direction:column;gap:6px;
+    background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--line);border-radius:8px;padding:0 14px 10px;z-index:2;max-height:calc(100% - 28px)}
+  .card .bar{display:flex;align-items:center;gap:8px;cursor:move;user-select:none;touch-action:none;
+    margin:0 -14px 4px;padding:8px 10px 8px 14px;background:color-mix(in srgb,var(--ink) 7%,transparent);border-radius:8px 8px 0 0;border-bottom:1px solid var(--line)}
+  .card .bar label{font-weight:600;font-size:13px;flex:1}
+  .card .bar b{font-weight:500;color:var(--ink-2);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .card .mini{width:22px;height:22px;padding:0;line-height:1;border-radius:4px;flex:0 0 auto;font-size:14px}
+  .card .grip{position:absolute;right:3px;bottom:3px;width:14px;height:14px;cursor:nwse-resize;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);opacity:.55;touch-action:none}
+  .card.dragging{opacity:.92}
+  .card.min{padding-bottom:0}
+  .card.min > :not(.bar){display:none}
+  .card.min .bar{margin-bottom:0;border-bottom:0;border-radius:8px}
+  .plan{top:14px;right:14px;width:272px}
+  .data{top:14px;left:14px;width:300px}
+  .data .cbody{overflow:auto;display:flex;flex-direction:column;gap:14px;padding-top:4px}
+  .data .readout,.data table.heat{flex:0 0 auto}
   .plan .segs{display:flex;gap:6px}
   .plan .segs .seg{flex:1}
   .plan .seg button{padding:4px 8px;font-size:12px}
@@ -125,8 +147,10 @@
     aside{width:100%;flex:0 0 auto;max-height:52%;border-right:0;border-bottom:1px solid var(--line);padding:16px 18px}
     main{flex:1}
     .hint{display:none}
-    .plan{top:8px;right:8px;width:46%;padding:8px 10px}
-    .plan .cap{display:none}
+    .plan{top:8px;right:8px;width:58%;padding:0 10px 8px}
+    .data{top:auto;bottom:8px;left:8px;right:8px;width:auto;max-height:55%}
+    .card .cap,.card .grip{display:none}
+    .plan .seg button{white-space:nowrap;padding:4px 6px;font-size:11px}
   }
 </style>
 </head>
@@ -134,6 +158,9 @@
 <aside>
   <h1>Strip window<small>连续横向带窗立面 · 小模型</small></h1>
 
+  <details class="grp" id="g1">
+    <summary><span>建筑与环境</span><b id="g1Sum"></b></summary>
+    <div class="body">
   <div class="ctl wwr">
     <div class="row"><label for="wwr">窗墙比 WWR</label><output id="wwrOut"></output></div>
     <input id="wwr" type="range" min="0" max="100" step="1" value="45">
@@ -145,7 +172,6 @@
   </div>
 
   <hr>
-
   <div class="ctl wwr">
     <div class="row"><label for="gwwr">首层 窗墙比 WWR</label><output id="gwwrOut"></output></div>
     <input id="gwwr" type="range" min="0" max="100" step="1" value="80">
@@ -156,7 +182,6 @@
   </div>
 
   <hr>
-
   <div class="ctl">
     <div class="row"><label for="len">长 L</label><output id="lenOut"></output></div>
     <input id="len" type="range" min="6" max="80" step="1" value="30">
@@ -171,7 +196,7 @@
   </div>
   <div class="ctl">
     <div class="row"><label for="fh">层高 H（楼板顶到楼板顶）</label><output id="fhOut"></output></div>
-    <input id="fh" type="range" min="2.6" max="6" step="0.1" value="3.6">
+    <input id="fh" type="range" min="2.6" max="6" step="0.1" value="3.0">
   </div>
   <div class="ctl">
     <div class="row"><label for="slab">楼板厚 t</label><output id="slabOut"></output></div>
@@ -183,87 +208,6 @@
   </div>
 
   <hr>
-  <h2>二次表皮 · 穿孔铝板</h2>
-
-  <div class="two">
-    <div class="ctl">
-      <div class="row"><label for="groupMode">组合方式</label></div>
-      <select id="groupMode">
-        <option value="mix">随机混合 1 / 2 / 3</option>
-        <option value="1">全部 1 片一组</option>
-        <option value="2">全部 2 片一组</option>
-        <option value="3">全部 3 片一组</option>
-        <option value="cycle">1-2-3 循环</option>
-      </select>
-    </div>
-    <div class="ctl">
-      <div class="row"><label for="tiltMode">倾角方向</label></div>
-      <select id="tiltMode">
-        <option value="alt">组内交替（折板）</option>
-        <option value="same">同向</option>
-        <option value="rand">随机正负</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="ctl">
-    <div class="row"><label for="tilt">单片倾角</label><output id="tiltOut"></output></div>
-    <input id="tilt" type="range" min="0" max="70" step="1" value="25">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="groups">每面组数</label><output id="groupsOut"></output></div>
-    <input id="groups" type="range" min="0" max="20" step="1" value="5">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="gapGroup">组间间隔</label><output id="gapGroupOut"></output></div>
-    <input id="gapGroup" type="range" min="0" max="10" step="0.1" value="1.5">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="gapPanel">组内片间隔</label><output id="gapPanelOut"></output></div>
-    <input id="gapPanel" type="range" min="0" max="1" step="0.05" value="0.1">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="panelW">单片宽度</label><output id="panelWOut"></output></div>
-    <input id="panelW" type="range" min="0.4" max="3" step="0.1" value="1.2">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div>
-    <input id="standoff" type="range" min="0.1" max="1.5" step="0.05" value="0.4">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="thick">铝板厚度</label><output id="thickOut"></output></div>
-    <input id="thick" type="range" min="0.01" max="0.20" step="0.005" value="0.03">
-  </div>
-  <div class="ctl">
-    <div class="row"><label for="perf">穿孔率</label><output id="perfOut"></output></div>
-    <input id="perf" type="range" min="0" max="45" step="1" value="18">
-  </div>
-  <div class="checks">
-    <label><input type="checkbox" id="randPos" checked>随机位置</label>
-    <label><input type="checkbox" id="perFloor" checked>逐层不同</label>
-    <label><input type="checkbox" id="perSide" checked>各面不同</label>
-  </div>
-  <button id="reseed" type="button">重新随机</button>
-
-  <hr>
-
-  <div class="readout">
-    <span>建筑总高</span><span id="rH"></span>
-    <span>净墙高 H − t</span><span id="rClear"></span>
-    <span>标准层 窗高 / 窗台高</span><span id="rWin"></span>
-    <span>标准层 窗面积（一圈）</span><span id="rArea"></span>
-    <span>首层 平面</span><span id="rGfoot"></span>
-    <span>首层 窗高 / 窗台高</span><span id="rGWin"></span>
-    <span>首层 窗面积（一圈）</span><span id="rGArea"></span>
-    <span>铝板总数</span><span id="rPanels"></span>
-    <span>标准层 窗条遮阳率（整圈）</span><span id="rShade"></span>
-    <span>标准层 被遮挡窗面积</span><span id="rShadeArea"></span>
-  </div>
-  <div class="cap" style="margin-top:-8px">遮阳率 = 铝板正面投影覆盖窗条的长度比 × (1 − 穿孔率)；无铝板处为 0%。首层无铝板，遮阳率 0%。</div>
-
-  <hr>
-  <h2>室内过热 · 被动房引擎</h2>
-
   <div class="ctl">
     <div class="row"><label for="az0">长边 A 朝向（方位角）</label><output id="az0Out"></output></div>
     <input id="az0" type="range" min="0" max="355" step="5" value="180">
@@ -299,6 +243,129 @@
     </select>
   </div>
 
+    </div>
+  </details>
+
+  <div class="fixed">
+  <h2 id="devTitle">遮阳装置</h2>
+  <div class="ctl">
+    <div class="row"><label for="devType">装置类型（参数卡）</label></div>
+    <select id="devType"></select>
+  </div>
+  <div class="cap" id="devCap" style="margin-top:-8px"></div>
+
+  </div>
+
+  <details class="grp" id="g2">
+    <summary><span>装置与建筑的关系</span><b id="g2Sum"></b></summary>
+    <div class="body">
+  <div class="ctl">
+    <div class="row"><label for="groups">每面组数</label><output id="groupsOut"></output></div>
+    <input id="groups" type="range" min="0" max="30" step="1" value="10">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="gapGroup">组间间隔</label><output id="gapGroupOut"></output></div>
+    <input id="gapGroup" type="range" min="0" max="10" step="0.1" value="0">
+  </div>
+  <div class="ctl" data-use="gapPanel">
+    <div class="row"><label for="gapPanel">组内片间隔</label><output id="gapPanelOut"></output></div>
+    <input id="gapPanel" type="range" min="0" max="1" step="0.05" value="0">
+  </div>
+  <div class="two">
+    <div class="ctl" data-use="groupMode">
+      <div class="row"><label for="groupMode">组合方式</label></div>
+      <select id="groupMode">
+        <option value="mix">随机混合 1 / 2 / 3</option>
+        <option value="1">全部 1 片一组</option>
+        <option value="2" selected>全部 2 片一组</option>
+        <option value="3">全部 3 片一组</option>
+        <option value="cycle">1-2-3 循环</option>
+      </select>
+    </div>
+    <div class="ctl" data-use="tiltMode">
+      <div class="row"><label for="tiltMode" id="tiltModeLabel">固定边</label></div>
+      <select id="tiltMode">
+        <option value="alt">组内交替</option>
+        <option value="same">同向</option>
+        <option value="rand">随机</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="checks">
+    <label><input type="checkbox" id="randPos">随机位置</label>
+    <label><input type="checkbox" id="perFloor">逐层不同</label>
+    <label><input type="checkbox" id="perSide">各面不同</label>
+  </div>
+  <button id="reseed" type="button">重新随机（位置与穿孔率）</button>
+
+  <div class="ctl">
+    <div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div>
+    <input id="standoff" type="range" min="0.1" max="1.5" step="0.05" value="0.4">
+  </div>
+    </div>
+  </details>
+
+  <details class="grp" id="g3" open>
+    <summary><span>装置本身</span><b id="g3Sum"></b></summary>
+    <div class="body">
+  <div class="ctl">
+    <div class="row"><label for="tilt" id="tiltLabel">开合角度（0 合上 · 90 全开）</label><output id="tiltOut"></output></div>
+    <input id="tilt" type="range" min="0" max="90" step="1" value="45">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="panelW" id="panelWLabel">单片宽度</label><output id="panelWOut"></output></div>
+    <input id="panelW" type="range" min="0.4" max="4" step="0.1" value="1.5">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="thick">板厚（整板）</label><output id="thickOut"></output></div>
+    <input id="thick" type="range" min="0.005" max="0.2" step="0.005" value="0.15">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="skin">表皮厚度（孔深）</label><output id="skinOut"></output></div>
+    <input id="skin" type="range" min="0.5" max="10" step="0.5" value="3">
+  </div>
+  <div class="ctl">
+    <div class="row"><label for="holeD">孔径</label><output id="holeDOut"></output></div>
+    <input id="holeD" type="range" min="0" max="15" step="0.5" value="5">
+  </div>
+  <div class="two">
+    <div class="ctl">
+      <div class="row"><label for="perfMin">穿孔率 下限</label><output id="perfMinOut"></output></div>
+      <input id="perfMin" type="range" min="0" max="60" step="1" value="10">
+    </div>
+    <div class="ctl">
+      <div class="row"><label for="perfMax">穿孔率 上限</label><output id="perfMaxOut"></output></div>
+      <input id="perfMax" type="range" min="0" max="60" step="1" value="30">
+    </div>
+  </div>
+  <div class="readout">
+    <span>穿孔率（逐板随机）</span><span id="rPerf"></span>
+    <span>穿孔对漫射光的透过率（均值，含孔深）</span><span id="rPerfDay"></span>
+  </div>
+  <div class="cap" style="margin-top:-8px">每块板在上下限之间随机取一个穿孔率。孔越小、表皮越厚，斜射的光越容易被孔壁挡住：漫射光透过率 = 穿孔率 × 1 / (1 + 0.75 × 孔深 / 孔径)（短圆管对漫射来光的几何透过率，不含孔壁反射）。孔深取表皮厚度，不取整板厚度；整板厚度只参与侧面投影。过热计算按穿孔率，偏保守。</div>
+    </div>
+  </details>
+
+
+  <div class="hint">拖动旋转 · 滚轮 / 双指缩放 · 双击复位</div>
+</aside>
+
+<main><canvas id="c"></canvas>
+  <div class="card plan" id="planCard" style="--lc:var(--heat)">
+    <div class="bar"><label id="planTitle">标准层平面</label><button type="button" class="mini" title="收起 / 展开">–</button></div>
+    <div class="segs">
+        <div class="seg" role="group" aria-label="图层"><button type="button" id="layerHx" class="on">过热</button><button type="button" id="layerDF">采光</button></div>
+        <div class="seg" role="group" aria-label="铝板"><button type="button" id="planOn" class="on">有板</button><button type="button" id="planOff">无板</button></div>
+    </div>
+    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面热力图"></svg>
+    <div class="leg"><span id="planUnit"></span><span>0</span><i></i><b id="planMax"></b></div>
+    <div class="cap" id="planCap"></div>
+    <div class="grip" title="拖动改大小"></div>
+  </div>
+  <div class="card data" id="dataCard">
+    <div class="bar"><label>数据</label><b id="g4Sum"></b><button type="button" class="mini" title="收起 / 展开">–</button></div>
+    <div class="cbody">
   <table class="heat">
     <thead><tr><th>立面</th><th>遮阳率</th><th>过热 无板</th><th>有板</th></tr></thead>
     <tbody id="heatBody"></tbody>
@@ -310,21 +377,25 @@
   <div class="readout">
     <span>整栋 冬季净得热（无板 → 有板）</span><span id="rWinter"></span>
   </div>
-  <div class="cap" id="heatNote">过热 = 全年室内高于 25 °C 的小时占比。被动房判据：≤ 10%，建议 ≤ 5%。计算方法与 Version_06 相同（单节点逐小时热平衡）；铝板按透光系数 = 1 − 遮阳率 折减该面的直射、散射和采光。三维图中红色箭头指北。<br>采光 = 房间带平均采光系数（%），按透光系数一起折减；本工具沿用 Version_06 的口径，3% 记为充足（设计判断值，不是规范）。视野通透 = 窗条上没有被铝板正面投影盖住的长度比，与穿孔率无关。</div>
+  <div class="cap" id="heatNote">过热 = 全年室内高于 25 °C 的小时占比。被动房判据：≤ 10%，建议 ≤ 5%。计算方法与 Version_06 相同（单节点逐小时热平衡）；铝板按透光系数 = 1 − 遮阳率 折减该面的直射、散射和采光。三维图中红色箭头指北。<br>采光 = 房间带平均采光系数（%），按「穿孔对漫射光的透过率」折减（比过热用的穿孔率更低）；本工具沿用 Version_06 的口径，3% 记为充足（设计判断值，不是规范）。视野通透 = 窗条上没有被铝板正面投影盖住的长度比，与穿孔率无关。</div>
 
-  <div class="hint">拖动旋转 · 滚轮 / 双指缩放 · 双击复位</div>
-</aside>
+  <hr>
+  <div class="readout">
+    <span>建筑总高</span><span id="rH"></span>
+    <span>净墙高 H − t</span><span id="rClear"></span>
+    <span>标准层 窗高 / 窗台高</span><span id="rWin"></span>
+    <span>标准层 窗面积（一圈）</span><span id="rArea"></span>
+    <span>首层 平面</span><span id="rGfoot"></span>
+    <span>首层 窗高 / 窗台高</span><span id="rGWin"></span>
+    <span>首层 窗面积（一圈）</span><span id="rGArea"></span>
+    <span>板总数</span><span id="rPanels"></span>
+    <span>标准层 窗条遮阳率（整圈）</span><span id="rShade"></span>
+    <span>标准层 被遮挡窗面积</span><span id="rShadeArea"></span>
+  </div>
+  <div class="cap" style="margin-top:-8px">遮阳率 = 每块板正面投影覆盖窗条的长度 × (1 − 该板穿孔率)，逐板累加后除以窗条总长；无板处为 0%。首层无板，遮阳率 0%。</div>
 
-<main><canvas id="c"></canvas>
-  <div class="plan" style="--lc:var(--heat)">
-    <div class="row"><label id="planTitle">标准层平面</label></div>
-    <div class="segs">
-        <div class="seg" role="group" aria-label="图层"><button type="button" id="layerHx" class="on">过热</button><button type="button" id="layerDF">采光</button></div>
-        <div class="seg" role="group" aria-label="铝板"><button type="button" id="planOn" class="on">有板</button><button type="button" id="planOff">无板</button></div>
     </div>
-    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面热力图"></svg>
-    <div class="leg"><span id="planUnit"></span><span>0</span><i></i><b id="planMax"></b></div>
-    <div class="cap" id="planCap"></div>
+    <div class="grip" title="拖动改大小"></div>
   </div>
 </main>
 
@@ -334,8 +405,92 @@
 <script>
 (function(){
   const $ = id => document.getElementById(id);
-  const ids = ['wwr','gwwr','recess','len','wid','floors','fh','slab','gslab','tilt','groups','gapGroup','gapPanel','panelW','standoff','thick','perf','az0','depth'];
-  const sels = ['groupMode','tiltMode','clim','mass','vent'];
+  const ids = ['wwr','gwwr','recess','len','wid','floors','fh','slab','gslab','tilt','groups','gapGroup','gapPanel','panelW','standoff','thick','skin','holeD','perfMin','perfMax','az0','depth'];
+  const sels = ['devType','groupMode','tiltMode','clim','mass','vent'];
+  // ===== 机构库（MECHANISMS.md 有每条的来源与验证记录）=====
+  // 每个条目：name / tilt、panelW、tiltMode（滑块文字）/ cap（说明）/ uses（用到哪些排布控件）/ preset（切换时套的值）
+  //   setup(c)：每次重建算一次。c = {w 单元宽, ph 层高, t 板厚, tiltR 状态角, band:{sill, winH} 窗条, standoff 离墙}
+  //            返回 {geo 一片的几何, a 半片长, texW, texH 贴图尺寸, projW 单元沿立面的正面投影长,
+  //                  vert: null = 整高面状遮挡；{fA, gapH, D} = 窗条上部 fA 面状遮挡 + 其余在深 D、距窗头 gapH 的穿孔挑檐下}
+  //   place(u)：放一个单元。u = {grp 已随墙面转向的组（局部 x 沿墙、y 向上、z 向外）, leaf(pos, rot) 在组里画一片,
+  //                             cx 槽中心, w, ph, a, cT, sT, tiltR, sign ±1, px, pz 槽中心的世界坐标, topY 本层楼板顶, sd 墙面, d 离墙, setup}
+  //            返回单元沿立面的投影区间 [sp0, sp1]
+  const MECH = {
+    pivot: {
+      name:'#0 中轴转动板（最初的铝板）', tilt:'倾角（0 平行立面 · 90 垂直）', panelW:'单片宽度', tiltMode:'倾角方向',
+      cap:'一片板绕自己的竖向中轴转一个倾角。遮挡按正面投影：板宽·cos倾角 + 板厚·sin倾角，以板中心为准。来源：本工具最初的随机穿孔铝板（2026-09-30）。',
+      uses:{groupMode:true, tiltMode:true, gapPanel:true},
+      preset:{panelW:1.2, groupMode:'mix', tiltMode:'alt', gapPanel:0.1, gapGroup:1.5, tilt:25, groups:5, randPos:true, perFloor:true, perSide:true},
+      setup(c){ return {geo:new THREE.BoxGeometry(c.w, c.ph, c.t), a:c.w/2, texW:c.w, texH:c.ph, projW:c.w*Math.cos(c.tiltR)+c.t*Math.sin(c.tiltR), vert:null}; },
+      place(u){ u.grp.position.set(u.px, u.topY, u.pz);
+        u.leaf(new THREE.Vector3(0, u.ph/2, 0), new THREE.Euler(0, u.sign*u.tiltR, 0));
+        return [u.cx-u.setup.projW/2, u.cx+u.setup.projW/2]; }
+    },
+    bifoldV: {
+      name:'#1 膝盖式折板 · 竖轴（图 2、3）', tilt:'折角（0 贴平 · 90 全折）', panelW:'单元宽度（两片贴平时）', tiltMode:'固定边',
+      cap:'两片等长，一侧竖边固定在导轨上，另一侧沿导轨滑向固定边，折线向外凸，像书脊朝外的书。折得越开，单元在立面上占得越短、露出的窗越多。遮挡按两片的正面投影（从固定边起算）；两片作为竖鳍挡侧向太阳的角度效果未算，偏保守。来源：2026-10-01 图 2、3。',
+      uses:{groupMode:true, tiltMode:true, gapPanel:false},
+      preset:{panelW:3.0, groupMode:'2', tiltMode:'alt', gapPanel:0, gapGroup:0, tilt:45, groups:10, randPos:false, perFloor:false, perSide:false},
+      setup(c){ const a=c.w/2, cT=Math.cos(c.tiltR), sT=Math.sin(c.tiltR);
+        return {geo:new THREE.BoxGeometry(a, c.ph, c.t), a, texW:a, texH:c.ph, projW:Math.min(c.w, 2*a*cT+2*c.t*sT), vert:null}; },
+      place(u){ // fixed vertical edge at one end of the slot (sign +1: left end, −1: right end, mirrored); the sliding edge moves toward it
+        const xf = u.sign>0 ? u.cx-u.w/2 : u.cx+u.w/2, S=u.setup;
+        u.grp.position.set(u.sd.a[0]+u.sd.u[0]*xf+u.sd.n[0]*u.d, u.topY, u.sd.a[1]+u.sd.u[1]*xf+u.sd.n[1]*u.d);
+        u.grp.scale.x = u.sign;
+        u.leaf(new THREE.Vector3(u.a/2*u.cT, u.ph/2, u.a/2*u.sT), new THREE.Euler(0, -u.tiltR, 0));
+        u.leaf(new THREE.Vector3(1.5*u.a*u.cT, u.ph/2, u.a/2*u.sT), new THREE.Euler(0, u.tiltR, 0));
+        return u.sign>0 ? [xf, xf+S.projW] : [xf-S.projW, xf]; }
+    },
+    bifoldH: {
+      name:'#2 膝盖式折板 · 横轴（图 1）', tilt:'折角（0 贴平 · 90 全折）', panelW:'整板宽度（一个开间）', tiltMode:'固定边',
+      cap:'横向折线，板高一层。顶边固定，底边沿立面往上滑，折线向外凸。板从下往上缩短，露出窗的下部；凸出的膝盖连同下半片按「穿孔挑檐」交给引擎用太阳角度逐小时算，效果在过热和采光里，不在「遮阳率」读数里。来源：2026-10-01 图 1。',
+      uses:{groupMode:false, tiltMode:false, gapPanel:false},
+      preset:{panelW:3.0, gapGroup:0, tilt:45, groups:10, randPos:false, perFloor:false, perSide:false},
+      setup(c){ const a=c.ph/2, cT=Math.cos(c.tiltR), sT=Math.sin(c.tiltR), ph=c.ph;
+        // the unit covers [ph − 2a·cosθ, ph] above the slab top; the knee projects a·sinθ at height ph − a·cosθ; the lower leaf closes the triangle back to the wall
+        const s0=c.band.sill, wh=c.band.winH, yb=ph-2*a*cT, yk=ph-a*cT;
+        const ov=Math.max(0, Math.min(s0+wh, ph)-Math.max(s0, yb));
+        const fA=wh>0?Math.min(1, ov/wh):0, openHead=Math.min(yb, s0+wh);
+        return {geo:new THREE.BoxGeometry(c.w, a, c.t), a, texW:c.w, texH:a, projW:c.w,
+                vert:{fA, gapH:Math.max(0, yk-openHead), D:c.standoff+a*sT}}; },
+      place(u){ // fixed top edge at the slab line above; knee at (−a·cosθ, +a·sinθ); lower leaf returns to the wall at −2a·cosθ
+        u.grp.position.set(u.px, u.topY+u.ph, u.pz);
+        u.leaf(new THREE.Vector3(0, -u.a/2*u.cT, u.a/2*u.sT), new THREE.Euler(-u.tiltR, 0, 0));
+        u.leaf(new THREE.Vector3(0, -1.5*u.a*u.cT, u.a/2*u.sT), new THREE.Euler(u.tiltR, 0, 0));
+        return [u.cx-u.w/2, u.cx+u.w/2]; }
+    }
+    ,
+    umbrella: {
+      name:'#3 伞式六角折板（Al Bahar）', tilt:'折角（0 六角全闭 · 90 六角星全开）', panelW:'单元宽度（六角平边距）', tiltMode:'—',
+      cap:'六角形分六个花瓣，每瓣两个三角沿「中心—边中点」折痕相接；六个角点固定在框架上，各边中点随折角向外凸、向中心收，像伞骨。盖住立面的面积 = 六角形面积 × cos折角，按面状遮挡算，透光用穿孔率表示网状织物。单元行以窗条中心为中心。来源：2026-10-01 用户给的 Al Bahar 动态分析图（三状态 + 线稿）。近似：花瓣折起后对斜射光的角度效果未算。',
+      uses:{groupMode:false, tiltMode:false, gapPanel:false},
+      preset:{panelW:2.6, gapGroup:0, tilt:45, groups:12, randPos:false, perFloor:false, perSide:false},
+      setup(c){
+        const R = c.w/Math.sqrt(3), cT=Math.cos(c.tiltR), sT=Math.sin(c.tiltR), H2 = 2*R;   // pointy-top hexagon: flat-to-flat width w, height 2R
+        // 12 triangles: for each of 6 sectors, (C, V_i, M_i) and (C, M_i, V_i+1); V on the frame plane, M folds outward and inward
+        const pos=[], uv=[];
+        const V=i=>{ const t=Math.PI/2+i*Math.PI/3; return [R*Math.cos(t), R*Math.sin(t), 0]; };
+        const M=i=>{ const t=Math.PI/2+i*Math.PI/3+Math.PI/6, r=R*Math.cos(Math.PI/6); return [r*cT*Math.cos(t), r*cT*Math.sin(t), r*sT]; };
+        const push=(a,b,d)=>{ [a,b,d].forEach(q=>{ pos.push(q[0],q[1],q[2]); uv.push(q[0]/c.w+0.5, q[1]/H2+0.5); }); };
+        for(let i=0;i<6;i++){ const C=[0,0,0], v1=V(i), v2=V(i+1), m=M(i); push(C,v1,m); push(C,m,v2); }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2)); geo.computeVertexNormals();
+        // covered share of the band strip behind the unit: sample the projected star (outer radius R, inner radius = apothem·cosθ) over the band rectangle centred on the hexagon
+        const r = R*Math.cos(Math.PI/6)*cT, poly=[];
+        for(let i=0;i<12;i++){ const t=Math.PI/2+i*Math.PI/6, rr=(i%2===0)?R:r; poly.push([rr*Math.cos(t), rr*Math.sin(t)]); }
+        const inside=(x,y)=>{ let inn=false; for(let i=0,j=11;i<12;j=i++){ const [xi,yi]=poly[i],[xj,yj]=poly[j]; if((yi>y)!==(yj>y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) inn=!inn; } return inn; };
+        const wh=c.band.winH, NX=48, NY=24; let hit=0;
+        for(let j=0;j<NY;j++){ const y=-wh/2+(j+0.5)*wh/NY; for(let i=0;i<NX;i++){ const x=-c.w/2+(i+0.5)*c.w/NX; if(inside(x,y)) hit++; } }
+        return {geo, a:R, texW:c.w, texH:H2, projW:c.w, vert:null, areal:hit/(NX*NY), yc:c.band.sill + c.band.winH/2};
+      },
+      place(u){ u.grp.position.set(u.px, u.topY + u.setup.yc, u.pz);
+        u.leaf(new THREE.Vector3(0,0,0), new THREE.Euler(0,0,0));
+        return [u.cx-u.w/2, u.cx+u.w/2]; }
+    }
+  };
+  Object.keys(MECH).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=MECH[k].name; $('devType').appendChild(o); });
+  $('devType').value = 'bifoldV';
+  { const pr = MECH.bifoldV.preset; Object.keys(pr).forEach(k=>{ if(typeof pr[k]==='boolean') $(k).checked = pr[k]; else $(k).value = pr[k]; }); }   // start from the default entry's card, not the HTML defaults
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null; const chks = ['randPos','perFloor','perSide'];
   let seed = 7;
   const P = {};
@@ -372,19 +527,25 @@
     color:col('--glass'), transparent:true, opacity:0.42, roughness:0.15, metalness:0.05, side:THREE.DoubleSide
   });
   const matEdge = new THREE.LineBasicMaterial({color:0x4a4a44});
-  const matPanel = new THREE.MeshStandardMaterial({color:0xf6f6f4, roughness:0.55, metalness:0.25, side:THREE.DoubleSide, alphaTest:0.5});
+  // panels: a few perforation levels between lo and hi, one material per level (texture = 8 × 8 holes per tile, tile = 8 × hole pitch)
+  const PERF_LEVELS = 5;
+  const panelMats = Array.from({length:PERF_LEVELS}, ()=> new THREE.MeshStandardMaterial({color:0xf6f6f4, roughness:0.55, metalness:0.25, side:THREE.DoubleSide, alphaTest:0.5}));
   const matPanelEdge = new THREE.LineBasicMaterial({color:0x7a7a74});
-  let perfCache = -1;
-  function perfTexture(ratio){
-    if(ratio===perfCache) return;
-    perfCache = ratio;
-    if(ratio<=0){ matPanel.alphaMap=null; matPanel.needsUpdate=true; return; }
-    const N=128, pitch=16, cv=document.createElement('canvas'); cv.width=cv.height=N;
-    const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,N,N); ctx.fillStyle='#000';
-    const r = pitch*Math.sqrt(ratio/Math.PI);
-    for(let y=pitch/2;y<N;y+=pitch) for(let x=pitch/2;x<N;x+=pitch){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
-    const tex = new THREE.CanvasTexture(cv); tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-    matPanel.alphaMap = tex; matPanel.needsUpdate = true;
+  let perfCache = '';
+  function perfMaterials(lo, hi, holeD, w, ph){
+    const key = [lo,hi,holeD,w,ph].join('|'); if(key===perfCache) return; perfCache = key;
+    panelMats.forEach((m,j)=>{
+      const ratio = lo + (hi-lo)*(j+0.5)/PERF_LEVELS;
+      if(!(ratio>0.001) || !(holeD>0)){ m.alphaMap=null; m.needsUpdate=true; return; }
+      const N=128, pitch=16, cv=document.createElement('canvas'); cv.width=cv.height=N;
+      const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,N,N); ctx.fillStyle='#000';
+      const r = pitch*Math.sqrt(ratio/Math.PI);
+      for(let y=pitch/2;y<N;y+=pitch) for(let x=pitch/2;x<N;x+=pitch){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+      const tex = new THREE.CanvasTexture(cv); tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+      const pitchM = holeD/Math.sqrt(ratio/(Math.PI/4));        // hole pitch (m) for this open-area ratio on a square grid
+      const tile = 8*pitchM; tex.repeat.set(w/tile, ph/tile);
+      m.alphaMap = tex; m.needsUpdate = true;
+    });
   }
   function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
@@ -419,10 +580,10 @@
   // lay out groups along one side of length S; returns [{start, sizes:n}]
   function layoutSide(S, rng){
     const {panelW:w, gapPanel:gp, gapGroup:gg, groups:nG} = P;
-    const margin = 0.3;
+    const margin = (gg===0 && !P.randPos) ? 0 : 0.3;
     let sizes = [];
     for(let k=0;k<nG;k++){
-      const m = P.groupMode;
+      const m = MECH[P.devType].uses.groupMode ? P.groupMode : '1';
       sizes.push(m==='mix' ? 1+Math.floor(rng()*3) : m==='cycle' ? (k%3)+1 : +m);
     }
     const gw = n => n*w + (n-1)*gp;
@@ -472,9 +633,11 @@
     addMesh(new THREE.BoxGeometry(L,t,W), matSlab, topOf(N) - t/2, true, true); // roof
 
     // ---- secondary facade: perforated aluminium panels on upper floors ----
-    perfTexture(P.perf/100);
     let count = 0;
-    const shade = {covered:[0,0,0,0], length:[0,0,0,0], spans:[[],[],[],[]]};   // per side, summed over standard floors; spans = floor 2 only (plan)
+    // per side, summed over standard floors: covered = projected length, opqS / opqD = opaque-weighted length (solar / daylight), trS / trD = transmission-weighted length;
+    // spans = floor 2 only (plan), each [a, b, opaqueSolar, opaqueDay, transSolar, transDay]
+    const shade = {covered:[0,0,0,0], opqS:[0,0,0,0], opqD:[0,0,0,0], trS:[0,0,0,0], trD:[0,0,0,0], length:[0,0,0,0], spans:[[],[],[],[]], hf:null, areal:1};
+    const mech = MECH[P.devType];
     if(N>1 && P.groups>0){
       const d = P.standoff, w = P.panelW, ph = H;         // panel spans slab-top to slab-top (covers slab edge above)
       const sides = [ // start corner, direction, outward normal, length
@@ -483,47 +646,65 @@
         {a:[ L/2, W/2], u:[-1,0], n:[0,1],  S:L},
         {a:[-L/2, W/2], u:[0,-1], n:[-1,0], S:W},
       ];
-      const geo = new THREE.BoxGeometry(w, ph, P.thick);
-      if(matPanel.alphaMap) matPanel.alphaMap.repeat.set(w/0.12, ph/0.12);
-      const egeo = new THREE.EdgesGeometry(geo);
-      const tiltR = THREE.MathUtils.degToRad(P.tilt);
-      const projW = w*Math.cos(tiltR) + P.thick*Math.sin(tiltR);   // frontal projection of one tilted panel
+      const tiltR = THREE.MathUtils.degToRad(P.tilt), cT = Math.cos(tiltR), sT = Math.sin(tiltR);
+      const SU = mech.setup({w, ph, t:P.thick, tiltR, band:typ, standoff:d});
+      perfMaterials(P.perfLo, P.perfHi, P.holeD/1000, SU.texW, SU.texH);
+      const egeo = new THREE.EdgesGeometry(SU.geo);
+      const fA = SU.vert ? SU.vert.fA : (SU.areal!=null ? SU.areal : 1);   // share of the band height / area behind the unit that is actually covered
+      shade.hf = SU.vert; shade.areal = fA;
       for(let i=1;i<N;i++){
         for(let sIdx=0;sIdx<4;sIdx++){
           const sd = sides[sIdx];
           const rng = mulberry32(seed + (P.perFloor?i*101:0) + (P.perSide?sIdx*17:0));
+          const prng = mulberry32(seed*31 + i*101 + sIdx*17 + 991);   // perforation: always per panel
           const yaw = Math.atan2(sd.n[0], sd.n[1]);   // rotate panel so local +z faces outward
-          const y = topOf(i) + ph/2;
           const spans = [];
           layoutSide(sd.S, rng).forEach(g=>{
             for(let k=0;k<g.n;k++){
               const cx = g.start + k*(w+P.gapPanel) + w/2;
               const sign = P.tiltMode==='same'?1 : P.tiltMode==='alt'?(k%2?-1:1) : (rng()<0.5?-1:1);
               const px = sd.a[0] + sd.u[0]*cx + sd.n[0]*d, pz = sd.a[1] + sd.u[1]*cx + sd.n[1]*d;
-              const m = new THREE.Mesh(geo, matPanel);
-              m.position.set(px, y, pz); m.rotation.y = yaw + sign*tiltR;
-              m.castShadow = true; m.receiveShadow = true; building.add(m);
-              const e = new THREE.LineSegments(egeo, matPanelEdge); e.position.copy(m.position); e.rotation.copy(m.rotation); building.add(e);
-              spans.push([Math.max(0,cx-projW/2), Math.min(sd.S,cx+projW/2)]);
+              const ratio = P.perfLo + (P.perfHi-P.perfLo)*prng();
+              const lvl = Math.min(PERF_LEVELS-1, Math.floor((ratio-P.perfLo)/((P.perfHi-P.perfLo)||1)*PERF_LEVELS));
+              // one unit = a group turned to face outward (local x along the wall, y up, z outward); the mechanism places its leaves inside
+              const grp = new THREE.Group(); grp.rotation.y = yaw;
+              const leaf = (pos, rot)=>{ const m = new THREE.Mesh(SU.geo, panelMats[lvl]); m.position.copy(pos); m.rotation.copy(rot);
+                m.castShadow = true; m.receiveShadow = true; grp.add(m);
+                const e = new THREE.LineSegments(egeo, matPanelEdge); e.position.copy(pos); e.rotation.copy(rot); grp.add(e); };
+              const [sp0, sp1] = mech.place({grp, leaf, cx, w, ph, a:SU.a, cT, sT, tiltR, sign, px, pz, topY:topOf(i), sd, d, setup:SU});
+              building.add(grp);
+              spans.push([Math.max(0,sp0), Math.min(sd.S,sp1), (1-ratio)*fA, (1-ratio*P.K)*fA, ratio, ratio*P.K]);
               count++;
             }
           });
-          // merge overlapping projections so a length is never counted twice
+          // clip overlapping projections so a length is never counted twice (the first panel keeps the overlap)
           spans.sort((a,b)=>a[0]-b[0]);
-          let cov=0, cur=null; const merged=[];
-          spans.forEach(sp=>{ if(cur && sp[0]<=cur[1]) cur[1]=Math.max(cur[1],sp[1]); else { if(cur){ cov+=cur[1]-cur[0]; merged.push(cur); } cur=[sp[0],sp[1]]; } });
-          if(cur){ cov+=cur[1]-cur[0]; merged.push(cur); }
-          if(i===1) shade.spans[sIdx]=merged;
-          shade.covered[sIdx]+=cov; shade.length[sIdx]+=sd.S;
+          let cov=0, oS=0, oD=0, tS=0, tD=0, end=-Infinity; const clipped=[];
+          spans.forEach(sp=>{ const a=Math.max(sp[0],end), b=sp[1]; if(b>a){ cov+=b-a; oS+=(b-a)*sp[2]; oD+=(b-a)*sp[3]; tS+=(b-a)*sp[4]; tD+=(b-a)*sp[5]; clipped.push([a,b,sp[2],sp[3]]); end=b; } });
+          if(i===1) shade.spans[sIdx]=clipped;
+          shade.covered[sIdx]+=cov; shade.opqS[sIdx]+=oS; shade.opqD[sIdx]+=oD; shade.trS[sIdx]+=tS; shade.trD[sIdx]+=tD; shade.length[sIdx]+=sd.S;
         }
       }
     } else {
       for(let i=1;i<N;i++){ shade.length[0]+=L; shade.length[1]+=W; shade.length[2]+=L; shade.length[3]+=W; }
     }
-    const opaque = 1 - P.perf/100;
-    const covAll = shade.covered.reduce((a,b)=>a+b,0), lenAll = shade.length.reduce((a,b)=>a+b,0);
-    const shadePct = lenAll>0 ? covAll*opaque/lenAll*100 : 0;
-    const sidePct = shade.length.map((l,k)=> l>0 ? shade.covered[k]*opaque/l*100 : 0);
+    const opqAll = shade.opqS.reduce((a,b)=>a+b,0), lenAll = shade.length.reduce((a,b)=>a+b,0);
+    const shadePct = lenAll>0 ? opqAll/lenAll*100 : 0;
+    const sidePct = shade.length.map((l,k)=> l>0 ? shade.opqS[k]/l*100 : 0);
+    // window list per side for the engine (with device): vfold = whole band behind a uniform screen; hfold = top part behind leaves (areal), open part under the lower leaf (overhang), uncovered length (plain)
+    const winsFn = shade.length.map((l,k)=>{
+      const c = l>0 ? shade.covered[k]/l : 0, cv = shade.covered[k];
+      const tS = cv>0 ? shade.trS[k]/cv : 1, tD = cv>0 ? shade.trD[k]/cv : 1;     // mean transmission over the covered length
+      return (S,b)=>{
+        const wh=b.winH, s0=b.sill, out=[]; if(!(wh>0.01)) return out;
+        if(!shade.hf){ out.push({w:S, h:wh, sill:s0, screen:1-shade.opqS[k]/l, screenDay:1-shade.opqD[k]/l}); return out; }   // areal: opaque-weighted length already includes the covered share
+        const {fA, gapH, D} = shade.hf;
+        if(c*S>0.05 && fA*wh>0.01) out.push({w:S*c, h:fA*wh, sill:s0+(1-fA)*wh, screen:tS, screenDay:tD});
+        if(c*S>0.05 && (1-fA)*wh>0.01) out.push({w:S*c, h:(1-fA)*wh, sill:s0, oh:D, ohIn:0, ohGap:gapH, ohOpacity:1-tS});
+        if((1-c)*S>0.05) out.push({w:S*(1-c), h:wh, sill:s0});
+        return out; };
+    });
+    const sideView = shade.length.map((l,k)=> l>0 ? 1 - shade.covered[k]/l*(shade.hf?shade.hf.fA:shade.areal) : 1);
 
     // north arrow: side A (outward normal −z, world angle ψ = atan2(z,x) = −90°) faces azimuth az0; clockwise from above = ψ and azimuth both increase → ψ(az) = −90° + (az − az0)
     const psiN = THREE.MathUtils.degToRad(-90 - P.az0);
@@ -551,17 +732,17 @@
     $('rGArea').textContent = fmt(gnd.winH*2*(gL+gW),1)+' m²';
     $('rPanels').textContent = count+' 片';
     $('rShade').textContent = fmt(shadePct,1)+' %';
-    $('rShadeArea').textContent = fmt(covAll*opaque*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
+    $('rShadeArea').textContent = fmt(opqAll*typ.winH,1)+' / '+fmt(lenAll*typ.winH,1)+' m²';
     drawSection(clear, t, gt, typ, gnd, rc, L);
     const sideCov = shade.length.map((l,k)=> l>0 ? shade.covered[k]/l : 0);
-    heat({L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, spans:shade.spans});
+    heat({L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, sideView, winsFn, spans:shade.spans});
   }
 
   // ---------- overheating via the shared passive-house engine ----------
   function heat(g){
     const body = $('heatBody');
     if(!ENGINE){ body.innerHTML = '<tr><td colspan="4" class="bad">引擎未加载：需要 Passivehouse_Tool/01_Prototypes/_shared/ 与本页在同一仓库里</td></tr>'; $('rWinter').textContent='—'; return; }
-    const {L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, spans} = g;
+    const {L, W, N, H, gL, gW, typ, gnd, sidePct, sideCov, sideView, winsFn, spans} = g;
     let drows='', dl=0, d0=0, d1=0;
     const R0={}, R1={}, KEY=['N','E','S','W'];   // side A (−z) → N wall of the engine's box, B (+x) → E, C (+z) → S, D (−x) → W  (positional only)
     const depth = Math.min(P.depth, Math.min(L,W)/2);
@@ -569,7 +750,7 @@
     const base = {H, depth, A, clim:P.clim, mass:P.mass, vent:P.vent};
     const sideLen = [L, W, L, W], gLen = [gL, gW, gL, gW], kind = ['长','短','长','短'];
     const win = (S,b)=> b.winH>0.01 ? [{w:S, h:b.winH, sill:b.sill}] : [];
-    const run = (S, b, floors, az, screen)=> ENGINE.calcSegment({len:S, az, oh:0, screen, windows:win(S,b)}, Object.assign({floors}, base));
+    const run = (S, b, floors, az, wins)=> ENGINE.calcSegment({len:S, az, oh:0, windows: wins || win(S,b)}, Object.assign({floors}, base));
     const cls = v => v<=ENGINE.OVH_GOOD ? 'ok' : v<=ENGINE.OVH_LIMIT ? 'warn' : 'bad';
     const dcls = v => v>=3 ? 'ok' : v>=2 ? 'warn' : 'bad';   // V06 口径：DF 3% 满分
     let rows='', z=0, o0=0, o1=0, n0=0, n1=0;
@@ -577,11 +758,11 @@
       const az = ENGINE.norm(P.az0 + 90*k);   // A→B→C→D runs clockwise seen from above, so azimuth increases
       const parts0=[], parts1=[];
       if(N>1){
-        const std0 = run(sideLen[k], typ, N-1, az, 1);
-        const std1 = sidePct[k]>0 ? run(sideLen[k], typ, N-1, az, 1 - sidePct[k]/100) : std0;
+        const std0 = run(sideLen[k], typ, N-1, az);
+        const std1 = sideCov[k]>0 ? run(sideLen[k], typ, N-1, az, winsFn[k](sideLen[k], typ)) : std0;
         parts0.push(std0); parts1.push(std1); R0[KEY[k]]=std0; R1[KEY[k]]=std1;
       }
-      const gr = run(gLen[k], gnd, 1, az, 1); parts0.push(gr); parts1.push(gr);
+      const gr = run(gLen[k], gnd, 1, az); parts0.push(gr); parts1.push(gr);
       if(N<=1){ R0[KEY[k]]=gr; R1[KEY[k]]=gr; }
       const za = parts0.reduce((a,r)=>a+r.zoneA,0);
       const ov0 = parts0.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za, ov1 = parts1.reduce((a,r)=>a+r.ovh*r.zoneA,0)/za;
@@ -590,32 +771,44 @@
       rows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt(sidePct[k],0)} %</td><td class="${cls(ov0)}">${fmt(ov0,1)} %</td><td class="${cls(ov1)}">${fmt(ov1,1)} %</td></tr>`;
       const df0 = parts0[0].DF, df1 = parts1[0].DF;   // standard floors (ground floor when the building has one floor)
       dl+=sideLen[k]; d0+=df0*sideLen[k]; d1+=df1*sideLen[k];
-      drows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt((1-sideCov[k])*100,0)} %</td><td class="${dcls(df0)}">${fmt(df0,1)} %</td><td class="${dcls(df1)}">${fmt(df1,1)} %</td></tr>`;
+      drows += `<tr><td>${ENGINE.dirName(az)}（${kind[k]}边）</td><td>${fmt(sideView[k]*100,0)} %</td><td class="${dcls(df0)}">${fmt(df0,1)} %</td><td class="${dcls(df1)}">${fmt(df1,1)} %</td></tr>`;
     }
     rows += `<tr class="sum"><td>整栋</td><td></td><td class="${cls(o0/z)}">${fmt(o0/z,1)} %</td><td class="${cls(o1/z)}">${fmt(o1/z,1)} %</td></tr>`;
     body.innerHTML = rows;
     drows += `<tr class="sum"><td>整栋</td><td></td><td class="${dcls(d0/dl)}">${fmt(d0/dl,1)} %</td><td class="${dcls(d1/dl)}">${fmt(d1/dl,1)} %</td></tr>`;
     $('dayBody').innerHTML = drows;
     $('rWinter').textContent = fmt(n0,0)+' → '+fmt(n1,0)+' kWh/a';
+    $('g4Sum').textContent = '整栋过热 ' + fmt(o1/z,1) + ' %';
 
     // plan grid: standard floor box (ground-floor box when the building has one floor)
     const bL = N>1?L:gL, bW = N>1?W:gW;
     const box = {L:bL, W:bW, depth, grid:Math.max(0.5, Math.min(bL,bW)/14)};
-    PLAN = {G0:ENGINE.gridConditions(R0, box), G1:ENGINE.gridConditions(R1, box), box, az0:P.az0, spans:N>1?spans:[[],[],[],[]], sideLen:N>1?[L,W,L,W]:[gL,gW,gL,gW]};
+    PLAN = {G0:ENGINE.gridConditions(R0, box), G1:ENGINE.gridConditions(R1, box), box, az0:P.az0, spans:N>1?spans:[[],[],[],[]], sideLen:N>1?[L,W,L,W]:[gL,gW,gL,gW], KEY};
     renderPlan();
   }
 
   // ---------- plan heatmap (V05/V06 平面图的精简版：只保留过热层) ----------
-  let PLAN = null, planMode = 'on', planLayer = 'Hx';
+  let PLAN = null, planMode = 'on', planLayer = 'Hx', planClamp = null;
   const LAYER = {
     Hx:{title:'标准层平面 · 夏季过热暴露', unit:'kWh/m²·年', color:'--heat', dec:1,
-        cap:'颜色越深，高温时段从窗透入的辐射越多（按房间面积）。北朝上；虚线为房间带（进深）；墙外深色短线为第 2 层铝板的投影覆盖段。色阶以无板时的最大值为准，切到「有板」可直接比较。'},
+        cap:'颜色越深，高温时段从窗透入的辐射越多（按房间面积）。北朝上；虚线为房间带（进深）；墙外深色短线为第 2 层铝板的投影覆盖段，板后按穿孔率折减、板间不折减，向里逐渐混合。色阶以无板时的最大值为准，切到「有板」可直接比较。'},
     DF:{title:'标准层平面 · 采光系数', unit:'采光系数 %', color:'--day', dec:1,
-        cap:'颜色越深，采光越好；越往里越暗。铝板按透光系数整体折减该面的采光。色阶以无板时的最大值为准，切到「有板」看变暗了多少。'}
+        cap:'颜色越深，采光越好；越往里越暗。板后按「穿孔对漫射光的透过率」折减、板间不折减，向里逐渐混合，形成沿窗条的明暗。色阶以无板时的最大值为准，切到「有板」看变暗了多少。'}
   };
   function renderPlan(){
     const svg = $('plan'); if(!PLAN){ svg.innerHTML=''; return; }
-    const {G0, G1, box, az0, spans, sideLen} = PLAN, G = planMode==='on'?G1:G0, LY = LAYER[planLayer], mx = G0.max[planLayer]||0;
+    const {G0, G1, box, az0, spans, sideLen, KEY} = PLAN, G = G0, LY = LAYER[planLayer], mx = G0.max[planLayer]||0;
+    // opaque fraction of side k within [u0,u1]: spans are clipped (non-overlapping) with per-panel opacity for solar [2] and daylight [3]
+    const oi = planLayer==='Hx' ? 2 : 3;
+    const opqIn = (k,u0,u1)=>{ let c=0; spans[k].forEach(sp=>{ const lo=Math.max(sp[0],u0), hi=Math.min(sp[1],u1); if(hi>lo) c+=(hi-lo)*sp[oi]; }); return (u1>u0)?c/(u1-u0):0; };
+    const w0 = box.L, h0 = box.W;
+    const uOf = [ c=>c.x+w0/2, c=>c.y+h0/2, c=>w0/2-c.x, c=>h0/2-c.y ];   // position along side A/B/C/D
+    const dOf = [ c=>c.y+h0/2, c=>w0/2-c.x, c=>h0/2-c.y, c=>c.x+w0/2 ];   // distance from that wall
+    const cellVal = c=>{ if(planMode!=='on') return c[planLayer];
+      let v=0; for(let k=0;k<4;k++){ const part=c[planLayer+'k'][KEY[k]]; if(!(part>0)) continue;
+        const u=uOf[k](c), r=Math.max(dOf[k](c), c.gx/2);   // light spreads sideways about 45° as it goes deeper
+        v += part*(1 - opqIn(k,u-r,u+r)); }
+      return v; };
     const w = box.L, h = box.W, R0 = Math.hypot(w,h)/2, pad = 2.6, V = 2*(R0+pad);
     svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
     const pxPerM = (svg.clientWidth||256)/V, fs = Math.max(0.4, 12/pxPerM), n2 = x=>(+x).toFixed(2);
@@ -627,7 +820,7 @@
     // rotated group: side A faces az0 → rotate clockwise by az0 so north is up
     o += `<g transform="rotate(${az0})">`;
     o += `<rect x="${n2(-w/2)}" y="${n2(-h/2)}" width="${n2(w)}" height="${n2(h)}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`;
-    G.cells.forEach(c=>{ const v=c[planLayer], a = mx>0 ? 0.06+0.8*v/mx : 0.06;
+    G.cells.forEach(c=>{ const v=cellVal(c), a = mx>0 ? 0.06+0.8*v/mx : 0.06;
       o += `<rect x="${n2(c.x-c.gx/2)}" y="${n2(c.y-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${heatC}" opacity="${a.toFixed(3)}" stroke="${panel}" stroke-width="${n2(fs*0.03)}"><title>${fmt(v,LY.dec)} ${LY.unit}</title></rect>`; });
     const D = box.depth, sw = n2(fs*0.07), da = `${n2(fs*0.4)} ${n2(fs*0.3)}`;
     if(D<h/2){ o += `<line x1="${n2(-w/2)}" y1="${n2(h/2-D)}" x2="${n2(w/2)}" y2="${n2(h/2-D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/><line x1="${n2(-w/2)}" y1="${n2(-h/2+D)}" x2="${n2(w/2)}" y2="${n2(-h/2+D)}" stroke="${ink}" stroke-width="${sw}" stroke-dasharray="${da}" opacity=".7"/>`; }
@@ -652,6 +845,7 @@
     document.querySelector('.plan').style.setProperty('--lc', `var(${LY.color})`);
     $('planOn').classList.toggle('on', planMode==='on'); $('planOff').classList.toggle('on', planMode!=='on');
     $('layerHx').classList.toggle('on', planLayer==='Hx'); $('layerDF').classList.toggle('on', planLayer==='DF');
+    if(planClamp) planClamp();   // the card's height changes with its content; keep it inside the view
   }
   $('layerHx').addEventListener('click', ()=>{ planLayer='Hx'; renderPlan(); });
   $('layerDF').addEventListener('click', ()=>{ planLayer='DF'; renderPlan(); });
@@ -732,18 +926,36 @@
   function loop(){ resize(); updateCam(); renderer.render(scene,camera); requestAnimationFrame(loop); }
 
   // ---------- inputs ----------
-  const units = {wwr:'%', gwwr:'%', recess:' m', len:' m', wid:' m', floors:' 层', fh:' m', slab:' m', gslab:' m', tilt:'°', groups:' 组', gapGroup:' m', gapPanel:' m', panelW:' m', standoff:' m', thick:' m', perf:'%', az0:'°', depth:' m'};
+  const units = {wwr:'%', gwwr:'%', recess:' m', len:' m', wid:' m', floors:' 层', fh:' m', slab:' m', gslab:' m', tilt:'°', groups:' 组', gapGroup:' m', gapPanel:' m', panelW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%', az0:'°', depth:' m'};
   function read(){
     ids.forEach(id=>{
       const v = parseFloat($(id).value); P[id]=v;
-      const d = ['floors','wwr','gwwr','len','wid','tilt','groups','perf','az0'].includes(id)?0:(['recess','gapGroup','panelW','depth'].includes(id)?1:(id==='thick'?3:2));
-      $(id+'Out').innerHTML = `<b>${v.toFixed(d)}</b>${units[id]}` + (id==='az0'&&ENGINE ? ' '+ENGINE.dirName(v) : '');
+      const d = ['floors','wwr','gwwr','len','wid','tilt','groups','perfMin','perfMax','az0'].includes(id)?0:(['recess','gapGroup','panelW','depth','holeD','skin'].includes(id)?1:(id==='thick'?3:2));
+      $(id+'Out').innerHTML = (id==='thick' ? `<b>${(v*1000).toFixed(0)}</b> mm` : `<b>${v.toFixed(d)}</b>${units[id]}`) + (id==='az0'&&ENGINE ? ' '+ENGINE.dirName(v) : '');
     });
     sels.forEach(id=> P[id]=$(id).value); chks.forEach(id=> P[id]=$(id).checked);
+    applyDevice();
+    $('g1Sum').textContent = '窗墙比 ' + P.wwr.toFixed(0) + '%';
+    $('g2Sum').textContent = '每面 ' + P.groups + ' 组';
+    $('g3Sum').textContent = MECH[P.devType].tilt.split('（')[0] + ' ' + P.tilt + '°';
+    // perforation: each panel draws an open-area ratio in [lo, hi]; diffuse-light transmission through a hole of depth = skin thickness
+    P.perfLo = Math.min(P.perfMin, P.perfMax)/100; P.perfHi = Math.max(P.perfMin, P.perfMax)/100;
+    P.K = P.holeD>0 ? 1/(1 + 0.75*P.skin/P.holeD) : 0;
+    const perfMean = (P.perfLo+P.perfHi)/2;
+    $('rPerf').textContent = fmt(P.perfLo*100,0)+'–'+fmt(P.perfHi*100,0)+' %';
+    $('rPerfDay').textContent = fmt(perfMean*P.K*100,1)+' %（孔壁因子 '+fmt(P.K,2)+'）';
     rebuild();
   }
   ids.forEach(id=> $(id).addEventListener('input', read));
   sels.forEach(id=> $(id).addEventListener('change', read));
+  $('devType').addEventListener('change', ()=>{ const pr = MECH[$('devType').value].preset;
+    Object.keys(pr).forEach(k=>{ if(typeof pr[k]==='boolean') $(k).checked = pr[k]; else $(k).value = pr[k]; }); read(); });
+  function applyDevice(){
+    const mv = MECH[P.devType];
+    $('devTitle').textContent = '遮阳装置 · ' + mv.name.replace(/^#\d+ /,''); $('devCap').textContent = mv.cap;
+    $('tiltLabel').textContent = mv.tilt; $('panelWLabel').textContent = mv.panelW; $('tiltModeLabel').textContent = mv.tiltMode;
+    document.querySelectorAll('[data-use]').forEach(e=> e.hidden = !mv.uses[e.dataset.use]);
+  }
   chks.forEach(id=> $(id).addEventListener('change', read));
   $('reseed').addEventListener('click', ()=>{ seed = (seed*7919 + 13) % 100000; read(); });
 
@@ -754,6 +966,48 @@
     rebuild();
   }
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+  // ---------- remembered UI state (groups open/closed, plan card position & size); design parameters are never stored ----------
+  const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+  (function groupsState(){
+    const saved = store.get('sw.ui.groups') || {};
+    document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id];
+      d.addEventListener('toggle', ()=>{ const o = store.get('sw.ui.groups') || {}; o[d.id] = d.open; store.set('sw.ui.groups', o); }); });
+  })();
+  const cardClamps = [];
+  function makeCard(card, key){
+    const bar = card.querySelector('.bar'), grip = card.querySelector('.grip'), mini = card.querySelector('.mini'), host = document.querySelector('main');
+    const MINW = 200, MAXW = ()=> Math.max(MINW, host.clientWidth*0.6);
+    const mobile = ()=> window.innerWidth <= 760;
+    function clamp(){ const r = card.getBoundingClientRect(), h = host.getBoundingClientRect();
+      let l = r.left - h.left, t = r.top - h.top, w = Math.min(Math.max(r.width, MINW), MAXW());
+      l = Math.min(Math.max(0, l), Math.max(0, h.width - w)); t = Math.min(Math.max(0, t), Math.max(0, h.height - r.height));   // keep the whole card inside the 3D view
+      card.style.left = l+'px'; card.style.top = t+'px'; card.style.width = w+'px'; card.style.right = 'auto';
+      return {left:l, top:t, w, min:card.classList.contains('min')}; }
+    function save(){ if(mobile()) return; const st = card.style.left ? clamp() : {min:card.classList.contains('min')}; store.set(key, st); }
+    function apply(st){ if(!st) return; card.classList.toggle('min', !!st.min); if(st.left==null || mobile()) return;
+      card.style.right = 'auto'; card.style.left = st.left+'px'; card.style.top = st.top+'px'; card.style.width = st.w+'px'; clamp(); }
+    function reset(){ card.style.left = ''; card.style.top = ''; card.style.width = ''; card.style.right = ''; card.classList.remove('min'); try{ localStorage.removeItem(key); }catch(e){} renderPlan(); }
+    let drag = null;
+    bar.addEventListener('pointerdown', e=>{ if(e.target.closest('button')) return; const r = card.getBoundingClientRect(), h = host.getBoundingClientRect();
+      drag = {dx:e.clientX-(r.left-h.left), dy:e.clientY-(r.top-h.top)}; card.classList.add('dragging'); try{ bar.setPointerCapture(e.pointerId); }catch(_){} });
+    bar.addEventListener('pointermove', e=>{ if(!drag || mobile()) return; card.style.right='auto'; card.style.left=(e.clientX-drag.dx)+'px'; card.style.top=(e.clientY-drag.dy)+'px'; clamp(); });
+    bar.addEventListener('pointerup', ()=>{ if(!drag) return; drag=null; card.classList.remove('dragging'); save(); });
+    bar.addEventListener('dblclick', e=>{ if(e.target.closest('button')) return; reset(); });
+    mini.addEventListener('click', ()=>{ card.classList.toggle('min'); mini.textContent = card.classList.contains('min') ? '+' : '–'; if(card.style.left) clamp(); save(); renderPlan(); });
+    let rs = null;
+    grip.addEventListener('pointerdown', e=>{ rs = {x:e.clientX, w:card.getBoundingClientRect().width}; try{ grip.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+    grip.addEventListener('pointermove', e=>{ if(!rs) return; const r = card.getBoundingClientRect(), h = host.getBoundingClientRect();
+      card.style.right='auto'; card.style.left=(r.left-h.left)+'px'; card.style.width = Math.min(Math.max(rs.w + (e.clientX-rs.x), MINW), MAXW())+'px'; clamp(); renderPlan(); });
+    grip.addEventListener('pointerup', ()=>{ if(!rs) return; rs=null; save(); renderPlan(); });
+    apply(store.get(key)); if(mobile() && card.classList.contains('data') && !store.get(key)) card.classList.add('min');   // phone: data card starts folded to its title bar
+    mini.textContent = card.classList.contains('min') ? '+' : '–';
+    cardClamps.push(()=>{ if(card.style.left && !mobile()) store.set(key, clamp()); });
+    window.addEventListener('resize', ()=>{ if(card.style.left && !mobile()) clamp(); });
+  }
+  makeCard($('planCard'), 'sw.ui.plan');
+  makeCard($('dataCard'), 'sw.ui.data');
+  planClamp = ()=> cardClamps.forEach(f=>f());
 
   read();
   applyTheme();
