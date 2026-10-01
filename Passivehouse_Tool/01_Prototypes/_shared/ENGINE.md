@@ -18,7 +18,8 @@
 | `simulateHours(p, hr, sun)` | **通用化**：`p.groups = [{Ag, hw}, …]` 允许多种尺寸的窗（各组分别算挑檐遮挡）。只有一组时每一步算式与 V06 相同，数值逐位相等 |
 | `windowsFromWwr(len, wwr, n, sill, head, H)` | V06 `calc()` 前 6 行：从窗墙比生成 n 扇等大均匀的窗，含 V06 的三处截断（窗头 ≤ 吊顶、最小窗高 0.4、总窗宽 ≤ 墙长 90%） |
 | `calcSegment(seg, ctx)` | **通用化的 V06 `calc()`**：输入一段墙 `{len, az, oh, windows:[{w,h,sill}]}` 和上下文 `{H, floors, depth, A, clim, mass, vent}`，不读任何全局。同尺寸的窗归为一组，组内算式同 V06，组间相加。多出 `Wx`（冬季得热 / 房间面积）、`Hx`（= hotPer）、`groups`、`hourly: null`（预留） |
-| `seg.screen`（可选，2026-09-30 晚加） | 固定外屏（穿孔铝板等）的透光系数 0–1：`calcSegment` 把它乘在冬季得热、夏季辐射、高温时段辐射、采光系数和逐小时太阳得热上（直射、散射一起折减）；缺省 1，此时所有数值与 V06 逐位相同。结果多一个 `screen` 字段。使用者：`Openning_Shade_Relation_Tool/01_Prototype/Strip_Window` |
+| `seg.screen`（可选，2026-09-30 晚加） | 固定外屏（穿孔铝板等）的透光系数 0–1：`calcSegment` 把它乘在冬季得热、夏季辐射、高温时段辐射、采光系数和逐小时太阳得热上（直射、散射一起折减）；缺省 1，此时所有数值与 V06 逐位相同。另可给 `seg.screenDay`（只作用于采光系数；缺省等于 `screen`）。结果多 `screen` / `screenDay` 两个字段。使用者：`Openning_Shade_Relation_Tool/01_Prototype/Strip_Window` |
+| 每扇窗的可选字段（2026-10-01 加） | `windows[i]` 可带 `screen / screenDay`（该扇自己的透光系数）和 `oh / ohIn / ohGap / ohOpacity`（该扇自己的挑檐：外缘深度、内缘离墙距离、挑檐到窗头距离、不透光率）。用途：同一段墙上一部分窗在穿孔屏后、另一部分在翻开的板下。遮挡 = 不透光率 × [f(外缘) − f(内缘)]，f(x) = clamp((x·tan 轮廓角 − 距离) / 窗高)。全部缺省时 = 段级 `oh` / 0 / 0.05 / 1 / `screen`，算式与 V06 相同（自检与 1608 字段比对不变）。使用者：Strip Window 的横轴翻板 |
 | `calcFacadeFromWwr(k, len, az, fac, ctx)` | V06 等价层：`windowsFromWwr` + `calcSegment`，字段集合与 V06 `calc(k)` 一致 |
 | `aggregateBuilding(R, keys, box)` | V06 `calcAll()` 的汇总部分逐字复制 |
 | `segmentsForWall(wall, windows)` | 分区分支：窗段与空墙段交替切段 |
