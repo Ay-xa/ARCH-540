@@ -117,6 +117,7 @@ Strip_Window/
 - 操作：任意条；`apply = all | g1…g8`；id 由页面按顺序编（`notch01…`、`court01…`、`split01…`），Rhino 手柄点同名（红 / 蓝 / 绿）、自动增删。先加的优先，后加的和已有的挨在 1 m 内就忽略并写警告。每层只用第一条分裂。
 - 段：`loop = outer | outer2 | court1 | court2…`；凹口壁按边名编号（B1–B5，第二个凹口接着编），庭院内墙 Y1–Y4 / Y2_1–Y2_4，缝边 S1 / S2。
 - `run.sun = false` 暂停两个 Ladybug Direct Sun Hours（页面「跑 Ladybug 日照」勾、装置扫描时自动）。
+- `shading` 2026-10-03 补回 Strip Window 的排布参数：`groupMode = fill | 1 | 2 | 3 | mix`（每组几片；fill = 连续排满）、`gapPanel`（组内片间隔）、`gapGroup`（组间间隔）、`fixed = alt | same | rand`（固定边 / 倾角方向）；`perf = false` 时为实心板（穿孔率 0，表皮 / 孔径 / 穿孔率不起作用）。GH 的 `_slots()` 沿每段墙从中间排起，能放几组放几组。没搬的两项：每面组数（这里按段长自动决定）、随机位置。
 - `sun.expo` = 只有楼板遮挡 ÷ 自由墙面 的直射小时比例，引擎 `seg.expo` 只折减直射；只换装置时 `expo` 照用、`perSegment` 删掉并标 `stale`，Ladybug 算完再写满。
 - 读图不走 state.json：`02_Rules/inbox/<id>/{request.json, card.json, 图}`，见 `inbox/README.md`。
 

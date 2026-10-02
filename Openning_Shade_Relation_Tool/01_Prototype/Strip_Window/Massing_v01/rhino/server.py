@@ -294,7 +294,12 @@ def check_shading(sh):
            "perfMin": num(sh.get("perfMin", 0.1), 0, 0.9, "shading.perfMin"),
            "perfMax": num(sh.get("perfMax", 0.3), 0, 0.9, "shading.perfMax"),
            "floors": sh.get("floors", "all") if sh.get("floors", "all") in ("all", "2+") else "all",
-           "fixed": sh.get("fixed", "alt") if sh.get("fixed", "alt") in ("alt", "same") else "alt"}
+           "fixed": sh.get("fixed", "alt") if sh.get("fixed", "alt") in ("alt", "same", "rand") else "alt",
+           # 2026-10-03 从 Strip Window 补回的排布参数 + 打孔开关
+           "groupMode": str(sh.get("groupMode", "fill")) if str(sh.get("groupMode", "fill")) in ("fill", "1", "2", "3", "mix") else "fill",
+           "gapPanel": num(sh.get("gapPanel", 0), 0, 2, "shading.gapPanel"),
+           "gapGroup": num(sh.get("gapGroup", 0), 0, 10, "shading.gapGroup"),
+           "perf": bool(sh.get("perf", True))}
     fac = sh.get("facades")
     if fac is not None:                                   # 2026-10-03：按立面分设 {A|B|C|D|court: {on, tilt}}
         if not isinstance(fac, dict):

@@ -459,6 +459,11 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 用户：步 5（折角扫描 / 月×钟点 / 目标达标）先不做。步 6 文档：PLAN_massing_v01 §3 新契约、SHADING_RULES §4.3 页面版、PLAN_v03 §8 标记。第四刀结束。
 - 第四刀合计：三个顶层 tab；方案对比（快照 / 并排 / 导出导入；装置扫描做了但隐藏）；读图 tab（收件夹 + api 两种模式）；错位；分裂；`run.sun`；受晒跨装置保留。
 
+**机构库参数补齐 + 打孔选项（同日续）**
+- 用户：装置参数比 Strip Window 少；对比后少了四项排布参数（每组几片 groupMode、组内片间隔 gapPanel、组间间隔 gapGroup、固定边三种 fixed alt/same/rand）和两项没搬（每面组数、随机位置）。补回前四项：GH `_slots(ln, sh, seed)` 统一给四个条目用（fill 时与以前逐位相同）；页面「排布 / 固定边 / 片间隔 / 组间隔」四个控件，按条目启用（pivot 全用，bifoldV 不用片间隔，bifoldH / umbrella 都不用，和 Strip Window 的 uses 一致）。
+- 「铝板打孔」勾：不勾 = 实心板（`shading.perf=false`，`_perf` 返回穿孔率 0），表皮 / 孔径 / 穿孔率一组控件藏起来；快照摘要加「（实心）」。
+- 验证：竖轴折板 1.4 m、每组 2 片、组间隔 1.5、实心：F2 A 28 m → 12 片（6 组），screen = screenDay = view = 0.43。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。

@@ -222,13 +222,28 @@
       <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
       <div class="ctl"><div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div><input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="thick">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
-        <div class="ctl"><div class="row"><label for="skin">表皮厚度（孔深）</label><output id="skinOut"></output></div><input id="skin" type="range" min="0.5" max="20" step="0.5" value="3"></div>
+        <div class="ctl"><div class="row"><label for="groupMode">排布（每组几片）</label></div>
+          <select id="groupMode"><option value="fill" selected>排满（连续）</option><option value="1">每组 1 片</option><option value="2">每组 2 片</option><option value="3">每组 3 片</option><option value="mix">随机混合 1 / 2 / 3</option></select></div>
+        <div class="ctl"><div class="row"><label for="fixed" id="fixedLabel">固定边</label></div>
+          <select id="fixed"><option value="alt" selected>逐片交替</option><option value="same">同向</option><option value="rand">随机</option></select></div>
       </div>
-      <div class="ctl"><div class="row"><label for="holeD">孔径</label><output id="holeDOut"></output></div><input id="holeD" type="range" min="0" max="30" step="0.5" value="5"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="perfMin">穿孔率 下限</label><output id="perfMinOut"></output></div><input id="perfMin" type="range" min="0" max="90" step="1" value="10"></div>
-        <div class="ctl"><div class="row"><label for="perfMax">穿孔率 上限</label><output id="perfMaxOut"></output></div><input id="perfMax" type="range" min="0" max="90" step="1" value="30"></div>
+        <div class="ctl"><div class="row"><label for="gapPanel">片间隔</label><output id="gapPanelOut"></output></div><input id="gapPanel" type="range" min="0" max="2" step="0.05" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gapGroup">组间隔</label><output id="gapGroupOut"></output></div><input id="gapGroup" type="range" min="0" max="10" step="0.1" value="0"></div>
+      </div>
+      <div class="cap">排布沿每段墙从中间排起，能放几组放几组；「排满」= 连续、不留缝（间隔不起作用）。</div>
+      <div class="ctl"><div class="row"><label for="thick">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
+      <label class="cap" style="display:flex;gap:6px;align-items:center;color:var(--ink);font-weight:500"><input type="checkbox" id="perfOn" checked style="accent-color:var(--accent);margin:0">铝板打孔（不勾 = 实心板）</label>
+      <div id="perfWrap" style="display:flex;flex-direction:column;gap:16px">
+        <div class="two">
+          <div class="ctl"><div class="row"><label for="skin">表皮厚度（孔深）</label><output id="skinOut"></output></div><input id="skin" type="range" min="0.5" max="20" step="0.5" value="3"></div>
+          <div class="ctl"><div class="row"><label for="holeD">孔径</label><output id="holeDOut"></output></div><input id="holeD" type="range" min="0" max="30" step="0.5" value="5"></div>
+        </div>
+        <div class="two">
+          <div class="ctl"><div class="row"><label for="perfMin">穿孔率 下限</label><output id="perfMinOut"></output></div><input id="perfMin" type="range" min="0" max="90" step="1" value="10"></div>
+          <div class="ctl"><div class="row"><label for="perfMax">穿孔率 上限</label><output id="perfMaxOut"></output></div><input id="perfMax" type="range" min="0" max="90" step="1" value="30"></div>
+        </div>
+        <div class="cap">每片板的穿孔率在上下限之间随机；孔深 / 孔径决定散射光的透过（采光）。</div>
       </div>
       <div class="cap" id="devCap"></div>
     </div>
@@ -305,18 +320,18 @@
 (function(){
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
-  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
-  const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC','axis','applyS'];
+  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','gapPanel','gapGroup','thick','skin','holeD','perfMin','perfMax'];
+  const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC','axis','applyS','groupMode','fixed'];
   const FAC = ['A','B','C','D','court'];
-  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
-  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
+  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', gapPanel:' m', gapGroup:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
+  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, gapPanel:2, gapGroup:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const MECH = {
-    none:    {tilt:'—', unitW:'—', cap:'不装遮阳装置。'},
-    pivot:   {tilt:'倾角（0 平行立面 · 90 垂直）', unitW:'单片宽度', cap:'#0 一片板绕自己的竖向中轴转一个倾角，相邻板正负交替，每段墙从中间排满。面状遮挡：投影 = 板宽·cos倾角 + 板厚·sin倾角。'},
-    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽度（两片贴平时）', cap:'#1 两片等长，一侧固定一侧沿导轨滑，折线向外凸，固定边交替。面状遮挡：投影 = 2·半片·cos折角 + 2·板厚·sin折角。'},
-    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'整板宽度（一个开间）', cap:'#2 横向折线，板高一层：顶边固定、底边沿立面上滑，膝盖向外凸。板盖住的窗条上部按面状挡；膝盖以下露出的窗条按「穿孔挑檐」交给引擎用太阳角度算；Ladybug 里膝盖是真实遮挡。'},
-    umbrella:{tilt:'折角（0 六角全闭 · 90 六角星全开）', unitW:'单元宽度（六角平边距）', cap:'#3 六角形六个花瓣沿径向折痕折起，角点固定，盖住的面积随 cos折角 收缩成六角星；单元以窗条中心为中心。面状遮挡，覆盖率按六角星在窗条范围内采样。'}
+    none:    {tilt:'—', unitW:'—', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false}, cap:'不装遮阳装置。'},
+    pivot:   {tilt:'倾角（0 平行立面 · 90 垂直）', unitW:'单片宽度', fixed:'倾角方向', uses:{groupMode:true, fixed:true, gapPanel:true}, cap:'#0 一片板绕自己的竖向中轴转一个倾角，相邻板正负交替，每段墙从中间排满。面状遮挡：投影 = 板宽·cos倾角 + 板厚·sin倾角。'},
+    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽度（两片贴平时）', fixed:'固定边', uses:{groupMode:true, fixed:true, gapPanel:false}, cap:'#1 两片等长，一侧固定一侧沿导轨滑，折线向外凸，固定边交替。面状遮挡：投影 = 2·半片·cos折角 + 2·板厚·sin折角。'},
+    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'整板宽度（一个开间）', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false}, cap:'#2 横向折线，板高一层：顶边固定、底边沿立面上滑，膝盖向外凸。板盖住的窗条上部按面状挡；膝盖以下露出的窗条按「穿孔挑檐」交给引擎用太阳角度算；Ladybug 里膝盖是真实遮挡。'},
+    umbrella:{tilt:'折角（0 六角全闭 · 90 六角星全开）', unitW:'单元宽度（六角平边距）', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false}, cap:'#3 六角形六个花瓣沿径向折痕折起，角点固定，盖住的面积随 cos折角 收缩成六角星；单元以窗条中心为中心。面状遮挡，覆盖率按六角星在窗条范围内采样。'}
   };
   const P = {};
   let STATE = null, lastResultsAt = '', lastSunAt = '', suppressPost = false, postTimer = null;
@@ -372,6 +387,8 @@
     const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
     $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}`;
     const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
+    $('fixedLabel').textContent = mv.fixed || '固定边'; const uses = mv.uses || {}; $('groupMode').disabled = !uses.groupMode; $('fixed').disabled = !uses.fixed; $('gapPanel').disabled = !(uses.gapPanel && P.groupMode!=='fill'); $('gapGroup').disabled = !(uses.groupMode && P.groupMode!=='fill');
+    P.perfOn = $('perfOn').checked; $('perfWrap').hidden = !P.perfOn;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
 
@@ -384,7 +401,7 @@
            .concat(LIST.splits.map((sp,i)=>Object.assign({id:'split'+String(i+1).padStart(2,'0'), type:'split', floor:1, propagate:'up'}, sp))),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim, sun:$('runSun').checked},
-      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt', facades:P.fac}
+      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:P.fixed, groupMode:P.groupMode, gapPanel:P.gapPanel, gapGroup:P.gapGroup, perf:P.perfOn, facades:P.fac}
     };
   }
   async function post(){
@@ -623,7 +640,8 @@
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
   FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
   $('runSun').addEventListener('change', ()=>{ read(); schedulePost(); });
-  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC','axis','applyS'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
+  $('perfOn').addEventListener('change', ()=>{ read(); schedulePost(); });
+  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC','axis','applyS','groupMode','fixed'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
   ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
@@ -644,7 +662,7 @@
     const sh = d.shading || {}, fac = sh.facades || {};
     const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), name: (name||'').trim() || ('方案 ' + (SNAPS.length+1)), at: (dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)(new Date()),
       state: {building:d.building, ops:d.ops, windows:d.windows, run:d.run, shading:d.shading},
-      summary: { dev: devName(sh.type), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
+      summary: { dev: devName(sh.type) + (sh.type!=='none' && sh.perf===false ? '（实心）' : ''), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
         floors: d.results.floors.length, groups: ((d.results.groups||{}).list||[]).length || 1,
         ops: (d.ops||[]).map(o=> o.type==='notch' ? `凹口 ${o.edge} 深 ${fmt(o.depth,1)}` : `庭院 ${fmt(o.width,1)}×${fmt(o.depth,1)}`).join('、') || '无操作',
         period: (d.run||{}).period, clim: (d.run||{}).clim, size: `${d.building.L}×${d.building.W} m` },
@@ -789,6 +807,7 @@
       nSel = 0; cSel = 0; sSel = 0; loadNotch(0); loadCourt(0); loadSplit(0);
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; $('runSun').checked = d.run.sun !== false; }
       const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
+        $('groupMode').value = sh.groupMode || 'fill'; $('fixed').value = sh.fixed || 'alt'; $('gapPanel').value = sh.gapPanel || 0; $('gapGroup').value = sh.gapGroup || 0; $('perfOn').checked = sh.perf !== false;
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
       if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }

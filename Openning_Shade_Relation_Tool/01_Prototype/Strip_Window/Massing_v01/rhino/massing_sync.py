@@ -337,10 +337,49 @@ def _quad(A, B, z0, z1):
 
 
 def _perf(sh, seed):
+    if not sh.get("perf", True):                       # 2026-10-03：铝板打孔是选项；不打孔 = 实心板，穿孔率 0
+        return 0.0, (lambda: 0.0)
     K = 1.0 / (1.0 + 0.75 * float(sh["skin"]) / float(sh["holeD"])) if float(sh["holeD"]) > 0 else 0.0
     lo, hi = float(sh["perfMin"]), float(sh["perfMax"])
     r = rng_(seed)
     return K, (lambda: lo + (hi - lo) * next(r))
+
+
+def _slots(ln, sh, seed):
+    """2026-10-03 从 Strip Window 搬来的排布：沿一段墙放若干「组」，每组 m 片（groupMode fill/1/2/3/mix），组内片间隔 gapPanel、组间间隔 gapGroup，
+    能放多少组放多少组，整体居中。返回 [(起点, 正负号)]；正负号按 fixed：alt 全段逐片交替 / same 同向 / rand 随机。
+    groupMode = fill 且两个间隔都是 0 时与以前的「连续排满」完全相同。"""
+    w = float(sh.get("unitW", 0) or 0)
+    if w <= 0 or ln < w:
+        return []
+    mode = str(sh.get("groupMode", "fill")); gp = float(sh.get("gapPanel", 0) or 0); gg = float(sh.get("gapGroup", 0) or 0)
+    if mode == "fill":
+        gp = 0.0; gg = 0.0
+    r = rng_(seed + 7)
+    sizes, total = [], 0.0
+    while True:
+        m = {"1": 1, "2": 2, "3": 3}.get(mode, 1 + int(next(r) * 3) if mode == "mix" else 1)
+        gw = m * w + (m - 1) * gp
+        add = gw + (gg if sizes else 0.0)
+        if total + add > ln + 1e-9:
+            if m > 1 and mode == "mix":          # 混合时试着塞一个更小的组
+                m = 1; gw = w; add = gw + (gg if sizes else 0.0)
+                if total + add > ln + 1e-9: break
+            else:
+                break
+        sizes.append(m); total += add
+        if len(sizes) > 400: break
+    if not sizes:
+        return []
+    fixed = str(sh.get("fixed", "alt"))
+    x, slots, idx = (ln - total) / 2.0, [], 0
+    for m in sizes:
+        for k in range(m):
+            sign = 1 if fixed == "same" else ((1 if idx % 2 == 0 else -1) if fixed == "alt" else (1 if next(r) < 0.5 else -1))
+            slots.append((x, sign)); idx += 1
+            x += w + gp
+        x += gg - gp
+    return slots
 
 
 def _areal(ln, n_units, proj, ratios, K):
@@ -353,17 +392,16 @@ NONE = {"kind": "areal", "screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 
 
 def dev_bifoldV(seg, sh, z0, H, seed):
     p, (ux, uy), (nx, ny), ln = _frame(seg)
-    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    w = float(sh["unitW"]); slots = _slots(ln, sh, seed); n_units = len(slots)
     if n_units <= 0: return [], NONE
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     a = w / 2.0; t = float(sh["thick"]); dst = float(sh["standoff"])
     proj = min(w, 2 * a * cT + 2 * t * sT)
-    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    K, nxt = _perf(sh, seed)
     meshes, ratios = [], []
-    for k in range(n_units):
+    for s0, sign in slots:
         ratios.append(nxt())
-        sign = 1 if (sh.get("fixed", "alt") == "same" or k % 2 == 0) else -1
-        s0 = off + k * w; fx = s0 if sign > 0 else s0 + w
+        fx = s0 if sign > 0 else s0 + w
         P = lambda u_, o_: (p[0] + ux * u_ + nx * (dst + o_), p[1] + uy * u_ + ny * (dst + o_))
         f = P(fx, 0.0); knee = P(fx + sign * a * cT, a * sT); e = P(fx + sign * 2 * a * cT, 0.0)
         meshes.append(_quad(f, knee, z0, z0 + H)); meshes.append(_quad(knee, e, z0, z0 + H))
@@ -372,17 +410,16 @@ def dev_bifoldV(seg, sh, z0, H, seed):
 
 def dev_pivot(seg, sh, z0, H, seed):
     p, (ux, uy), (nx, ny), ln = _frame(seg)
-    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    w = float(sh["unitW"]); slots = _slots(ln, sh, seed); n_units = len(slots)
     if n_units <= 0: return [], NONE
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     t = float(sh["thick"]); dst = float(sh["standoff"])
     proj = min(w, w * cT + t * sT)
-    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    K, nxt = _perf(sh, seed)
     meshes, ratios = [], []
-    for k in range(n_units):
+    for s0, sign in slots:
         ratios.append(nxt())
-        sign = 1 if (sh.get("fixed", "alt") == "same" or k % 2 == 0) else -1
-        cx = off + k * w + w / 2.0
+        cx = s0 + w / 2.0
         C = (p[0] + ux * cx + nx * dst, p[1] + uy * cx + ny * dst)
         hx, hy = (w / 2.0) * (cT * ux * sign + sT * nx), (w / 2.0) * (cT * uy * sign + sT * ny)
         A, B = (C[0] - hx, C[1] - hy), (C[0] + hx, C[1] + hy)
@@ -393,16 +430,15 @@ def dev_pivot(seg, sh, z0, H, seed):
 
 def dev_bifoldH(seg, sh, z0, H, seed, band):
     p, (ux, uy), (nx, ny), ln = _frame(seg)
-    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    w = float(sh["unitW"]); slots = _slots(ln, sh, seed); n_units = len(slots)
     if n_units <= 0: return [], NONE
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     a = H / 2.0; dst = float(sh["standoff"])
-    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    K, nxt = _perf(sh, seed)
     meshes, ratios = [], []
     yk, yb = H - a * cT, H - 2 * a * cT
-    for k in range(n_units):
+    for s0, _sign in slots:
         ratios.append(nxt())
-        s0 = off + k * w
         P = lambda u_, o_: (p[0] + ux * u_ + nx * (dst + o_), p[1] + uy * u_ + ny * (dst + o_))
         A0, B0 = P(s0, 0.0), P(s0 + w, 0.0); A1, B1 = P(s0, a * sT), P(s0 + w, a * sT)
         for (a0, b0, za, a1, b1, zb) in ((A0, B0, z0 + H, A1, B1, z0 + yk), (A1, B1, z0 + yk, A0, B0, z0 + yb)):
@@ -442,17 +478,17 @@ def _star_cover(R, r, w, wh):
 
 def dev_umbrella(seg, sh, z0, H, seed, band):
     p, (ux, uy), (nx, ny), ln = _frame(seg)
-    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    w = float(sh["unitW"]); slots = _slots(ln, sh, seed); n_units = len(slots)
     if n_units <= 0: return [], NONE
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     dst = float(sh["standoff"]); R = w / math.sqrt(3.0); rA = R * math.cos(math.pi / 6)
-    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    K, nxt = _perf(sh, seed)
     zc = z0 + band["sill"] + band["winH"] / 2.0
     cover = _star_cover(R, rA * cT, w, band["winH"])
     meshes, ratios = [], []
-    for k in range(n_units):
+    for s0, _sign in slots:
         ratios.append(nxt())
-        cx = off + k * w + w / 2.0
+        cx = s0 + w / 2.0
         C = (p[0] + ux * cx + nx * dst, p[1] + uy * cx + ny * dst, zc)
         m = rg.Mesh(); m.Vertices.Add(C[0], C[1], C[2])
         for i in range(6):
