@@ -540,6 +540,10 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 页面：下拉换成滑块「从第几层起装」（1 = 全部，上限跟层数走），写进 json 还是 `shading.floors = "N+"`（1 时写 all，旧格式兼容）；装置组摘要加「N 层起」。服务：floors 校验改成 `all | N+`。massing_sync：`dev_from` 解析 N，第 i 层 ≥ N 才装。
 - 验证：拖到 6 → json 6+，F1–F5 装置 0 个、F6–F16 各 21 个；还原到 2+。自测 19/19。服务重启时发现旧进程是用相对路径启动的（按全路径匹配找不到），两个一起停掉再起一个。
 
+**里程碑：Massing_v01 节点上传 Git（2026-10-02）**
+- 标签 `massing-v01-2026-10-02`。到这一步为止：体量 + 楼层组（任意组、退台、错位）+ 凹口 / 庭院 / 分裂（多个、tab、拐角切齐、切穿）+ 四种遮阳装置按立面分设、从第 N 层起装 + 自遮挡受晒 + 平面热力图（罗盘、太阳弧）+ 窗洞剖面 + 方案对比 + 读图收件夹 + Rhino 周边环境。
+- 已知待办见「Next session」。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
