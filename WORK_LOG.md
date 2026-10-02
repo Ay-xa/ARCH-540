@@ -312,3 +312,36 @@ Records are appended after each session. Most recent entry is at the bottom.
 
 **Next session: suggested starting point**
 - 起服务、开 Rhino + GH，按 PLAN_v07 §6 走一遍演示并录屏；或直接开始讨论成品阶段的范围。
+
+---
+
+## 2026-09-30 → 10-02（Openning_Shade_Relation_Tool：Strip Window 遮阳推敲器 → 机构库 → Massing_v01 第一刀）
+
+**Completed**
+- Strip Window 页面（`Openning_Shade_Relation_Tool/01_Prototype/Strip_Window/`）：铝板厚度、投影遮阳率与视野通透率；接入共享引擎（朝向、进深、气候、热质量、通风 → 四面与整栋的过热 %、采光系数、冬季净得热）；标准层平面热力图（过热 / 采光两层、有板 / 无板、板后板间光斑）；孔径 + 孔距 → 穿孔率，表皮厚度 → 漫射光孔壁因子；逐板随机穿孔率。
+- 共享引擎 `_shared/wwr-engine.js`：段级 `screen / screenDay`；每扇窗可带 `screen / screenDay / oh / ohIn / ohGap / ohOpacity`（部分窗在屏后、部分在翻开的板下）。缺省与 V06 逐位相同（自检 49 项、1608 字段比对不变）。
+- 规则与库：`02_Rules/SHADING_RULES.md`（八问拆解、分类、调节逻辑、参数卡、六段流程）、`02_Rules/MECHANISMS.md`（机构库记录）。机构库 `MECH` 四个条目：#0 中轴转动板、#1/#2 膝盖式折板（竖轴 / 横轴，折角唯一状态参数；第一次按"门式开合"理解错，用户纠正为两端固定中间凸）、#3 伞式六角折板（Al Bahar 动态分析图）。换装置不碰引擎与页面的过热 / 采光路径。
+- UI：侧栏按建筑与环境 / 装置类型（固定）/ 装置与建筑的关系 / 装置本身折叠分组；平面与数据两张可拖动、可改宽、可收起的浮窗；界面状态记在浏览器，设计参数不存。
+- Massing_v01（`Strip_Window/Massing_v01/`，PLAN_massing_v01.md 第 2 稿）第 0–6 步：`rhino/server.py`（8768，字段校验，`/shared/` 转发引擎）、`state.json` 契约、`massing.3dm`（Handles 图层一个手柄点）、`massing.gh`（Trigger 0.5 s → Python 3「massing sync」→ 面板；源码在 `massing_sync.py`）、`massing-tool.html`。环路验证：页面滑块 → json → GH 周界（矩形减凹口，三层同形）→ 立面段写回 → 页面引擎逐段过热 / 采光、无凹口对照、平面图、模板解读；Rhino 拖手柄 → json → 页面滑块同步并标「来自 Rhino」。边界：深 0 → 4 段；凹口贴端点 → 零长段剔除（7 段）；换边 B 正常；自检 8 项通过。
+- 提交：489dc09、6c21be9、f069289、7263535、ec0b5a2、8eb4aea（Strip Window 与引擎）；Massing_v01 本次提交。
+
+**Key decisions**
+- 参数走文件桥，Claude 不在每次参数变化的回路里；只做读图填卡与结果解读（两份架构文档的一处有意差别）。
+- 遮阳第一刀不做，机构库条目第二刀移植到 GH；Ladybug（已安装）作为第二口径在第 7–8 步接入；第一刀指标用共享引擎。
+- 手柄与滑块冲突：`ops.at` 与 `handle.at` 比时间戳，后动者算数。
+- 机构库"一个例子写专条，两个例子归成族"。
+
+**Gotchas**
+- MCP 的 Python 3 组件：`SetSource()` 设源码，`CreateParameter + RegisterOutputParam + VariableParameterMaintenance()` 加输出；**`MarshOutputs` 默认 False，Python 列表会被当成一个对象，必须设 True**。Trigger 用 `AddTarget(guid)`，`Interval` 毫秒。保存用 `GH_DocumentIO(doc).SaveQuiet(path)`。
+- GH 从 Rhino 文档读点、`Objects.Replace` 移点都可在脚本内做；不需要引用式 Point 参数。
+- 手写 json 时间戳不要晚于机器时钟（曾因 2026-10-02 的手写戳让手柄一直"更新"）。
+- `get_viewport_image` 返回体过大时改用 `view.CaptureToBitmap().Save()` 落盘再看。
+- 本地静态服务（8767 / 8768）偶尔随面板关闭而停，重开即可；页面经 http 打开才能读共享引擎。
+
+**Current state**
+- Massing_v01 可复现：双击 `rhino/start_server.bat`；Rhino 打开 `massing.3dm`，Grasshopper 打开 `massing.gh`；页面 `http://localhost:8768/`。
+- 共同近似见 MECHANISMS.md；竖鳍的角度效果、平面网格的"找最近墙段"、动态调节规则未做。
+
+**Next session: suggested starting point**
+- 第 7–8 步：GH 加 EPW + 分析期 + LB Incident Radiation（分析面 = 窗条，context = 楼板）→ 写回每段辐射 → 页面段表加一列，运行改按钮触发。
+- 第二刀：机构库条目移植到 GH（先竖轴膝盖折板，沿每段墙排布）；庭院 / U 形操作；楼层组。
