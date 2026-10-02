@@ -408,5 +408,8 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 验证：F3（10 × 30 退台层）全在房间带内，过热暴露最高在 D 边后 1.5 m（11.8 kWh/m²，D 折板 70° 最开）、最低在 A 边后 4.5 m（折板 45°）；F1 带庭院：庭院四周格由内墙供值，庭院挡住的格不取外墙。
 - 坑：解读函数里已有 `const G`（楼层组），再声明一个 `G` 整页静默失效（SyntaxError 只在控制台）；改名 `PG`。控制台的旧错误在导航后仍留着，看时间顺序。
 
+**Grasshopper 预览配色（同日续）**
+- 用户：红色透明体块看不清。加三个 Custom Preview（`preview floors / windows / devices`），材质直接写在 M 端的 PersistentData（`GH_Material(Color)`）：楼板 (228,224,214) 不透明、窗条 (80,150,230) α150、装置 (196,104,38) 不透明。`massing sync` 和两个 LB Direct Sun Hours 的组件预览设 Hidden（LB 的日照色网格与窗条同面会闪烁；要看日照色时右键该组件 → Preview 打开即可）。截图 `screenshots/rhino_preview_colours.jpg`。
+
 **Next session: suggested starting point**
 - 方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
