@@ -367,6 +367,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 验证（凹口 + 庭院，45°，单元 3 m，夏季南向 A1 直射日照）：无装置 887 h → 中轴转动板 437 h、竖轴折板 376 h、伞式六角 428 h、横轴折板 211 h（膝盖挡高角太阳最狠）。
 - 坑：在 `run_python` 里 `time.sleep` 会卡住 Rhino 主线程，GH 的 Timer 不会跑；要等 GH 反应必须从外面（Bash）改文件再等。
 
+**U 形 + 移边 + 楼层组（同日续）**
+- 三件合一：楼层组 = `building.groups {podium, setback{A,B,C,D}}`（第 1 组基底矩形，第 2 组四边各退 = 退台 / 上部移边）；操作带 `apply: all/g1/g2`；U 形 = 凹口深度上限改为对面墙前 WALL。
+- `massing_sync.py` 重写：`floor_rect(b, i)` 给每层矩形与组号，`edges()/notch_limits/court_rect/notch_rect` 全部按矩形 (x0,y0,x1,y1) 工作；每层各自周界、洞、段（带 floor）、窗条、折板；`results.floors[]` 带 rect / group / perimeter / holes / area，`results.segments` 扁平带 floor，窗条网格与段一一对应（日照写回按序归段，不再用取模）。手柄仍按第 1 层矩形解释。
+- 页面：建筑组加「楼层组」块（裙房层数、A–D 退台）；凹口 / 庭院各带「作用在」；段表按层筛选、段名带 F#；平面可选层、其他层虚线叠出；引擎每段 floors=1，整栋按房间面积加权；解读加楼层组句和 U 形提示；自检 12 项（zoneA 改为单层）。
+- 验证：裙房 2 层 + 顶层 A/C 各退 3 m + 庭院只作用第 1 组：各层面积 420 / 420 / 276 m²，32 段；凹口深 12 m（U 形）正常。
+- 坑：解读函数里 `const` 的使用顺序（f1 在定义前被用）→ 页面静默回到「等待数据」；用 window.onerror 抓到。
+
 **Next session: suggested starting point**
-- 装 Radiance 后接回入射辐射（同一条链，写回多一个字段）。
-- 装置按立面分别设；U 形 / 移边；楼层组；平面网格改"找最近墙段"；动态调节规则。
+- 装 Radiance 后接回入射辐射。
+- 装置按立面 / 按组分别设；父子比例；平面网格改"找最近墙段"；动态调节规则；双击启动的单文件打包。

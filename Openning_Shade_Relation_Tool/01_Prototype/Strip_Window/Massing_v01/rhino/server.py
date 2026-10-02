@@ -36,7 +36,7 @@ def now():
 def check_building(b):
     if not isinstance(b, dict):
         raise ValueError("building must be an object")
-    return {
+    out = {
         "floors": int(num(b.get("floors"), 1, 30, "building.floors")),
         "H": num(b.get("H"), 2.6, 6, "building.H"),
         "slab": num(b.get("slab", 0.35), 0.15, 1.0, "building.slab"),
@@ -44,6 +44,12 @@ def check_building(b):
         "W": num(b.get("W"), 6, 60, "building.W"),
         "az0": num(b.get("az0"), 0, 360, "building.az0"),
     }
+    g = b.get("groups")
+    if isinstance(g, dict):
+        sb = g.get("setback") or {}
+        out["groups"] = {"podium": int(num(g.get("podium", out["floors"]), 0, 30, "groups.podium")),
+                         "setback": dict((k, num(sb.get(k, 0), 0, 30, "groups.setback." + k)) for k in EDGES)}
+    return out
 
 
 def check_ops(ops):
@@ -57,7 +63,9 @@ def check_ops(ops):
             raise ValueError("ops[%d].type: notch / court in Massing_v01" % i)
         if o.get("propagate", "up") != "up":
             raise ValueError("ops[%d].propagate: only 'up' in Massing_v01" % i)
-        common = {"id": str(o.get("id") or "%s%02d" % (o["type"], i + 1))[:16], "type": o["type"],
+        if o.get("apply", "all") not in ("all", "g1", "g2"):
+            raise ValueError("ops[%d].apply must be all/g1/g2" % i)
+        common = {"id": str(o.get("id") or "%s%02d" % (o["type"], i + 1))[:16], "type": o["type"], "apply": o.get("apply", "all"),
                   "floor": int(num(o.get("floor", 1), 1, 30, "ops.floor")), "propagate": "up",
                   "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth"),
                   "at": now()}                              # 页面改了就盖新时间戳；GH 用它和 handle.at 比谁后动
