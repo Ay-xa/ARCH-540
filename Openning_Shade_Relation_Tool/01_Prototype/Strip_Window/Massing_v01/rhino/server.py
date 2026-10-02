@@ -293,7 +293,7 @@ def check_shading(sh):
            "holeD": num(sh.get("holeD", 5), 0, 30, "shading.holeD"),
            "perfMin": num(sh.get("perfMin", 0.1), 0, 0.9, "shading.perfMin"),
            "perfMax": num(sh.get("perfMax", 0.3), 0, 0.9, "shading.perfMax"),
-           "floors": sh.get("floors", "all") if sh.get("floors", "all") in ("all", "2+") else "all",
+           "floors": str(sh.get("floors", "all")) if re.match(r"^(all|\d{1,2}\+)$", str(sh.get("floors", "all"))) else "all",   # 2026-10-02 「N+」= 从第 N 层起装，N 任意
            "fixed": sh.get("fixed", "alt") if sh.get("fixed", "alt") in ("alt", "same", "rand") else "alt",
            # 2026-10-03 从 Strip Window 补回的排布参数 + 打孔开关
            "groupMode": str(sh.get("groupMode", "fill")) if str(sh.get("groupMode", "fill")) in ("fill", "1", "2", "3", "mix") else "fill",

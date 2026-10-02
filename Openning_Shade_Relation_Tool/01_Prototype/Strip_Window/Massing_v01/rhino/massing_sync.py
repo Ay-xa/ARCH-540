@@ -699,7 +699,8 @@ def build(d):
             plate_info.append({"perimeter": [[round(q[0], 3), round(q[1], 3)] for q in pts],
                                "holes": [[[round(q[0], 3), round(q[1], 3)] for q in hp] for hp in holes]})
         pts, holes = plates[0][0], plates[0][2]
-        use_dev = sh.get("type") in ("bifoldV", "pivot", "bifoldH", "umbrella") and (sh.get("floors", "all") == "all" or i >= 1)
+        dev_from = int(str(sh.get("floors", "all")).rstrip("+")) if str(sh.get("floors", "all")).rstrip("+").isdigit() else 1   # 2026-10-02 「N+」= 从第 N 层起装
+        use_dev = sh.get("type") in ("bifoldV", "pivot", "bifoldH", "umbrella") and (i + 1) >= dev_from
         for si, s in enumerate(segs):
             p, q = s["p"], s["q"]
             dx, dy = q[0] - p[0], q[1] - p[1]; ln = math.hypot(dx, dy); nx, ny = dy / ln * OFF, -dx / ln * OFF

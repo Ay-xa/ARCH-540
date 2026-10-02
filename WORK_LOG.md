@@ -535,6 +535,11 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 验证：当前方案 F5 轮廓 10 点无尖刺、庭院回来；中间切穿 → 两块楼板（4 + 8 点）；A 边拐角切穿 → 8 点矩形；C 边拐角浅凹口 → 干净的 L；D 边切穿碰到 notch01 → 按规则忽略并警告。页面自测 19/19。截图 `screenshots/rhino_notch_corner.png`。
 - 命名小瑕疵：拐角处被吞掉的那条边的墙段会沿用凹口的名字（如 A3 实际朝北），只影响按立面分设装置时归到哪个字母，不影响日照和过热。
 
+**装置从第 X 层起装（同日续）**
+- 用户：装在哪些层要能任意填「X 层以上」。原来只有「全部 / 2 层以上」两个选项。
+- 页面：下拉换成滑块「从第几层起装」（1 = 全部，上限跟层数走），写进 json 还是 `shading.floors = "N+"`（1 时写 all，旧格式兼容）；装置组摘要加「N 层起」。服务：floors 校验改成 `all | N+`。massing_sync：`dev_from` 解析 N，第 i 层 ≥ N 才装。
+- 验证：拖到 6 → json 6+，F1–F5 装置 0 个、F6–F16 各 21 个；还原到 2+。自测 19/19。服务重启时发现旧进程是用相对路径启动的（按全路径匹配找不到），两个一起停掉再起一个。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。

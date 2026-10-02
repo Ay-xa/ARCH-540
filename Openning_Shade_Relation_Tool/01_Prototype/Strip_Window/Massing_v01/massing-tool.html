@@ -237,8 +237,7 @@
       <div class="two">
         <div class="ctl"><div class="row"><label for="devType">装置</label></div>
           <select id="devType"><option value="none">无装置</option><option value="pivot">#0 中轴转动板</option><option value="bifoldV" selected>#1 膝盖式折板 · 竖轴</option><option value="bifoldH">#2 膝盖式折板 · 横轴</option><option value="umbrella">#3 伞式六角折板</option></select></div>
-        <div class="ctl"><div class="row"><label for="devFloors">装在哪些层</label></div>
-          <select id="devFloors"><option value="all" selected>全部楼层</option><option value="2+">2 层以上</option></select></div>
+        <div class="ctl"><div class="row"><label for="devFrom">从第几层起装</label><output id="devFromOut"></output></div><input id="devFrom" type="range" min="1" max="30" step="1" value="1"></div>
       </div>
       <div class="note" id="devCap"></div>
 
@@ -357,11 +356,11 @@
 (function(){
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
-  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','gapPanel','gapGroup','thick','skin','holeD','perfMin','perfMax'];
-  const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC','axis','applyS','groupMode','fixed'];
+  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','gapPanel','gapGroup','devFrom','thick','skin','holeD','perfMin','perfMax'];
+  const sels = ['clim','mass','vent','edge','period','devType','applyN','applyC','axis','applyS','groupMode','fixed'];
   const FAC = ['A','B','C','D','court'];
-  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', gapPanel:' m', gapGroup:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
-  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, gapPanel:2, gapGroup:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
+  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', gapPanel:' m', gapGroup:' m', devFrom:' 层起', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
+  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, gapPanel:2, gapGroup:1, devFrom:0, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const MECH = {
     none:    {tilt:'—', unitW:'—', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false, thick:false}, cap:'不装遮阳装置。'},
@@ -457,7 +456,8 @@
     P.fac = {}; FAC.forEach(k=>{ const on = $('fOn'+k).checked, t = parseFloat($('fTilt'+k).value); P.fac[k] = {on, tilt:t}; $('fTilt'+k+'Out').textContent = on ? t+'°' : '不装'; $('fTilt'+k).disabled = !on; document.querySelector('#facTable tr[data-k="'+k+'"]').classList.toggle('off', !on); });
     const facAz = {A:P.az0, B:P.az0-90, C:P.az0+180, D:P.az0+90}; ['A','B','C','D'].forEach(k=> $('facLab'+k).textContent = k + (ENGINE ? '（'+ENGINE.dirName(facAz[k])+'）' : ''));
     const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
-    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}`;
+    $('devFrom').max = Math.max(1, P.floors); if(P.devFrom > P.floors){ $('devFrom').value = P.floors; P.devFrom = P.floors; }
+    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}${P.devFrom>1 ? ` · ${P.devFrom} 层起` : ''}`;
     const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
     $('g5Sum').textContent = `${$('clim').selectedOptions[0].textContent} · 进深 ${P.depth} m`;
     $('fixedLabel').textContent = mv.fixed || '固定边'; const uses = mv.uses || {}; $('groupMode').disabled = !uses.groupMode; $('fixed').disabled = !uses.fixed; $('gapPanel').disabled = !(uses.gapPanel && P.groupMode!=='fill'); $('gapGroup').disabled = !(uses.groupMode && P.groupMode!=='fill');
@@ -475,7 +475,7 @@
            .concat(LIST.splits.map((sp,i)=>Object.assign({id:'split'+String(i+1).padStart(2,'0'), type:'split', floor:1, propagate:'up'}, sp))),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim, sun:$('runSun').checked},
-      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:P.fixed, groupMode:P.groupMode, gapPanel:P.gapPanel, gapGroup:P.gapGroup, perf:false, facades:P.fac}
+      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:(P.devFrom<=1 ? 'all' : P.devFrom+'+'), fixed:P.fixed, groupMode:P.groupMode, gapPanel:P.gapPanel, gapGroup:P.gapGroup, perf:false, facades:P.fac}
     };
   }
   async function post(){
@@ -820,7 +820,7 @@
   FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
   $('runSun').addEventListener('change', ()=>{ read(); schedulePost(); });
   $('perfOn').addEventListener('change', ()=>{ read(); schedulePost(); });
-  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC','axis','applyS','groupMode','fixed'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
+  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','applyN','applyC','axis','applyS','groupMode','fixed'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
   ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
@@ -984,7 +984,7 @@
       LIST.splits = (d.ops||[]).filter(o=>o.type==='split').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {axis:op.axis||'x', apply:op.apply||'all', pos:h?h.pos:op.pos, gap:op.gap}; });
       nSel = 0; cSel = 0; sSel = 0; loadNotch(0); loadCourt(0); loadSplit(0);
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; $('runSun').checked = d.run.sun !== false; }
-      const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
+      const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFrom').value = /^\d+\+$/.test(sh.floors||'') ? parseInt(sh.floors,10) : 1; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
         $('groupMode').value = sh.groupMode || 'fill'; $('fixed').value = sh.fixed || 'alt'; $('gapPanel').value = sh.gapPanel || 0; $('gapGroup').value = sh.gapGroup || 0; $('perfOn').checked = sh.perf !== false;
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
