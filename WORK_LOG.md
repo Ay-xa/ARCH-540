@@ -348,6 +348,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 页面：段表加「直射日照」列（按分析期标题，颜色随值），分析期下拉（夏 / 冬 / 全年）与气候一起写进 `run`，解读多一句（最多 / 最少 / 凹口内各段）。验证：夏季 A1 887 h、凹口两侧 A2 423 / A4 385、北 523；切冬季 ≤ 10 s 刷新，北 0 h、南 806 h。
 - Gotchas：`SetSource()` 之后 `MarshOutputs` 会被重置为 False，每次重载源码都要再设；页面与服务字段同时改时要重启本地服务（旧进程还在跑旧校验，会悄悄丢字段）。
 
+**第二刀第 1 项（同日续）：竖轴膝盖折板进 Grasshopper**
+- json 加 `shading` 参数卡（type / unitW / tilt / standoff / thick / skin / holeD / perfMin / perfMax / floors / fixed），服务校验。
+- `massing_sync.py` 的 `device_units()`：每层每段从中间排满单元（n = ⌊段长 / 单元宽⌋），固定边交替，两片各一张竖向面片（折角决定膝盖位置），输出 `devMesh`（3 层 × 30 单元 × 2 片 = 180 片）接 Direct Sun Hours 的 context（与楼板并列两个来源）；翻译结果按段写回 `dev = {screen, screenDay, view, units}`，规则与 Strip Window 页面相同（投影、逐板随机穿孔、孔壁因子）。
+- 页面：「遮阳装置」分组（装置 / 覆盖层 / 折角 / 单元宽 / 离墙 / 板厚 / 表皮 / 孔径 / 穿孔率上下限）；段表改为 视野 · 过热无板/有板 · 采光无板/有板 · 日照；整栋无板→有板两行；解读多一句；自检 +2（10 项通过）。
+- 验证（凹口 A 深 4）：45° 时整栋过热 6.0 → 0.2 %、采光 3.6 → 1.4 %、视野 30 %、南向日照 887 → 560 h；0° 时过热 0、采光 0.7 %、视野 7 %、南向日照 196 h。
+- Gotcha：服务字段改了必须重启本地服务；页面在服务停掉期间会刷出一串 ERR_CONNECTION_REFUSED，恢复后自愈。
+
 **Next session: suggested starting point**
 - 装 Radiance 后接回入射辐射（同一条链，写回多一个字段）。
-- 第二刀：机构库条目移植到 GH（先竖轴膝盖折板，沿每段墙排布，作为 Direct Sun Hours 的 context）；庭院 / U 形操作；楼层组。
+- 第二刀其余：中轴转动板 / 横轴折板 / 伞式六角移植到 GH；庭院 / U 形操作；楼层组；平面网格改"找最近墙段"。

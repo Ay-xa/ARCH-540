@@ -4,7 +4,7 @@
   GET  /              工具页面 massing-tool.html（页面运行在 http://localhost:8768）
   GET  /shared/<f>    共享引擎文件（Passivehouse_Tool/01_Prototypes/_shared/ 下的 wwr-climate.js / wwr-engine.js）
   GET  /state         state.json 原文
-  POST /state         只接受 building / ops / windows / run；只改这些字段和 updated_by / updated_at，其余（handle / results）保留给 Grasshopper 写
+  POST /state         只接受 building / ops / windows / run / shading；只改这些字段和 updated_by / updated_at，其余（handle / results）保留给 Grasshopper 写
 
 不做任何几何计算。启动：双击 start_server.bat，或 `python server.py`。加 --no-browser 不自动打开浏览器。
 """
@@ -94,7 +94,26 @@ def check_run(r):
     return out
 
 
-CHECK = {"building": check_building, "ops": check_ops, "windows": check_windows, "run": check_run}
+def check_shading(sh):
+    if not isinstance(sh, dict):
+        raise ValueError("shading must be an object")
+    if sh.get("type") not in ("none", "bifoldV"):
+        raise ValueError("shading.type must be none/bifoldV (Massing_v01)")
+    out = {"type": sh["type"],
+           "unitW": num(sh.get("unitW", 3.0), 0.4, 6, "shading.unitW"),
+           "tilt": num(sh.get("tilt", 45), 0, 90, "shading.tilt"),
+           "standoff": num(sh.get("standoff", 0.4), 0, 2, "shading.standoff"),
+           "thick": num(sh.get("thick", 0.15), 0.001, 0.3, "shading.thick"),
+           "skin": num(sh.get("skin", 3), 0.5, 20, "shading.skin"),
+           "holeD": num(sh.get("holeD", 5), 0, 30, "shading.holeD"),
+           "perfMin": num(sh.get("perfMin", 0.1), 0, 0.9, "shading.perfMin"),
+           "perfMax": num(sh.get("perfMax", 0.3), 0, 0.9, "shading.perfMax"),
+           "floors": sh.get("floors", "all") if sh.get("floors", "all") in ("all", "2+") else "all",
+           "fixed": sh.get("fixed", "alt") if sh.get("fixed", "alt") in ("alt", "same") else "alt"}
+    return out
+
+
+CHECK = {"building": check_building, "ops": check_ops, "windows": check_windows, "run": check_run, "shading": check_shading}
 
 
 def read_state():

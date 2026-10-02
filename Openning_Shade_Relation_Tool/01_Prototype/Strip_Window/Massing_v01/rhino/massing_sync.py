@@ -1,7 +1,10 @@
 # massing_sync.py — Grasshopper「Python 3 Script」组件「massing sync」的源码（Massing_v01，PLAN_massing_v01 §4）
 # 由 Trigger 每 0.5 s 触发。输入：path（state.json 路径）。
 # 输出：floors（楼板 Brep）、windows（窗条面）、status（文字）；给 Ladybug 的 winMesh（每扇窗条一个网格，沿长度分格）、winFaces（每个网格的面数）、
-#       epw（气象文件路径）、north（Ladybug 的 north_：+Y 到北的逆时针角度）、m0 / m1（分析期起止月）。
+#       epw（气象文件路径）、north（Ladybug 的 north_：+Y 到北的逆时针角度）、m0 / m1（分析期起止月）、
+#       devMesh（遮阳装置的面片，给预览和 Direct Sun Hours 的 context）。
+# 遮阳装置（第二刀）：机构库 #1 竖轴膝盖折板，参数卡在 json 的 shading；沿每段墙排布，每段写回翻译结果 dev = {screen, screenDay, view, units}
+# （与 Strip Window 页面同一套规则：投影 = 2·半片·cosθ + 2·厚·sinθ，从固定边起算；穿孔逐板随机；漫射光孔壁因子 K = 1/(1+0.75·孔深/孔径)）。
 # 做的事：读 json → 周界（矩形减凹口，三层同形）→ 楼板预览 → 立面分段 → 窗条预览 → 写回 handle / results。
 # 手柄：Rhino「Handles」图层上名为 ops.id 的点。谁后动谁算数：ops.at（页面）与 handle.at（Rhino）比时间戳。
 # GH 只写 handle / results / updated_by / updated_at；其余字段原样保留。
@@ -123,15 +126,56 @@ def params_to_point(L, W, op):
     return rg.Point3d(0, 0, 0)
 
 
+def rng_(seed):
+    # 简单的确定性随机（与页面无关，只求每次重算结果一致）
+    x = (seed * 1103515245 + 12345) & 0x7fffffff
+    while True:
+        x = (x * 1103515245 + 12345) & 0x7fffffff
+        yield (x >> 8) / float(1 << 23)
+
+
+def device_units(seg, sh, i_floor, z0, H, s_idx):
+    """一段墙上的折板单元 → (面片列表, 翻译 dict)。seg = {p, q, len}；sh = 参数卡。"""
+    p, q, ln = seg["p"], seg["q"], seg["len"]
+    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    if n_units <= 0:
+        return [], {"screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 0}
+    th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
+    a = w / 2.0; t = float(sh["thick"]); dst = float(sh["standoff"])
+    proj = min(w, 2 * a * cT + 2 * t * sT)
+    K = 1.0 / (1.0 + 0.75 * float(sh["skin"]) / float(sh["holeD"])) if float(sh["holeD"]) > 0 else 0.0
+    lo, hi = float(sh["perfMin"]), float(sh["perfMax"])
+    dx, dy = q[0] - p[0], q[1] - p[1]; ux, uy = dx / ln, dy / ln; nx, ny = dy / ln, -dx / ln
+    off = (ln - n_units * w) / 2.0
+    meshes, opqS, opqD = [], 0.0, 0.0
+    r = rng_(991 + s_idx * 17 + i_floor * 101)
+    for k in range(n_units):
+        ratio = lo + (hi - lo) * next(r)
+        sign = 1 if (sh.get("fixed", "alt") == "same" or k % 2 == 0) else -1
+        s0 = off + k * w
+        fx = s0 if sign > 0 else s0 + w                       # 固定边沿墙的位置
+        P = lambda u_, o_: (p[0] + ux * u_ + nx * (dst + o_), p[1] + uy * u_ + ny * (dst + o_))
+        f = P(fx, 0.0); knee = P(fx + sign * a * cT, a * sT); e = P(fx + sign * 2 * a * cT, 0.0)
+        for A, B in ((f, knee), (knee, e)):
+            m = rg.Mesh()
+            m.Vertices.Add(A[0], A[1], z0); m.Vertices.Add(B[0], B[1], z0); m.Vertices.Add(B[0], B[1], z0 + H); m.Vertices.Add(A[0], A[1], z0 + H)
+            m.Faces.AddFace(0, 1, 2, 3); m.Normals.ComputeNormals(); meshes.append(m)
+        opqS += proj * (1.0 - ratio); opqD += proj * (1.0 - ratio * K)
+    cov = n_units * proj
+    return meshes, {"screen": round(1.0 - opqS / ln, 4), "screenDay": round(1.0 - opqD / ln, 4), "view": round(1.0 - cov / ln, 4), "units": n_units}
+
+
 def build(d):
     b, w = d["building"], d["windows"]
+    sh = d.get("shading") or {"type": "none"}
     L, W, H, N, slab = float(b["L"]), float(b["W"]), float(b["H"]), int(b["floors"]), float(b.get("slab", 0.35))
     op = d["ops"][0] if d.get("ops") else None
     pts, names = outline(L, W, op)
     segs = segments(pts, names, float(b["az0"]))
     winH = float(w["wwr"]) * (H - slab)
     sill = float(w["sill"])
-    floors, wins, meshes, faces = [], [], [], []
+    floors, wins, meshes, faces, dev = [], [], [], [], []
+    dev_tr = [None] * len(segs)
     poly = rg.Polyline([rg.Point3d(p[0], p[1], 0.0) for p in pts] + [rg.Point3d(pts[0][0], pts[0][1], 0.0)])
     for i in range(N):
         crv = poly.ToNurbsCurve(); crv.Translate(rg.Vector3d(0, 0, i * H))
@@ -155,15 +199,22 @@ def build(d):
                     m.Faces.AddFace(2 * k, 2 * k + 2, 2 * k + 3, 2 * k + 1)
                 m.Normals.ComputeNormals(); m.Compact()
                 meshes.append(m); faces.append(nc)
-    for s in segs:
+        if sh.get("type") == "bifoldV" and (sh.get("floors", "all") == "all" or i >= 1):
+            for si, s in enumerate(segs):
+                ms, tr = device_units(s, sh, i, i * H, H, si)
+                dev.extend(ms)
+                if dev_tr[si] is None:
+                    dev_tr[si] = tr
+    for si, s in enumerate(segs):
         s["winArea"] = round(s["len"] * winH, 3)
+        s["dev"] = dev_tr[si] if dev_tr[si] else {"screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 0}
     res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": True, "nSeg": len(segs),
            "floors": [{"i": i + 1, "area": round(area(pts), 2)} for i in range(N)],
            "perimeter": [[round(p[0], 3), round(p[1], 3)] for p in pts],
-           "segments": segs, "winH": round(winH, 3), "warnings": []}
+           "segments": segs, "winH": round(winH, 3), "warnings": [], "shading": {"type": sh.get("type", "none"), "units": sum(x["units"] for x in dev_tr if x)}}
     if op and op["width"] > min(L, W):
         res["warnings"].append("notch width clipped to the edge length")
-    return floors, wins, res, meshes, faces
+    return floors, wins, res, meshes, faces, dev
 
 
 def run(path):
@@ -209,10 +260,10 @@ def run(path):
     m0, m1 = PERIOD.get(run.get("period", "summer"), PERIOD["summer"])
     north = (float(b["az0"]) - 180.0) % 360.0
     cached = st.get("massing_out")
-    if not changed_file and not handle_moved and cached and len(cached) == 6:
-        f, w_, status, meshes, faces, nseg = cached
-        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg
-    floors, wins, res, meshes, faces = build(d)
+    if not changed_file and not handle_moved and cached and len(cached) == 7:
+        f, w_, status, meshes, faces, nseg, dev = cached
+        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg, dev
+    floors, wins, res, meshes, faces, dev = build(d)
     prev = st.get("massing_res")
     if handle_written or changed_file or prev != res:
         res["at"] = now()
@@ -230,10 +281,11 @@ def run(path):
         st["massing_res"] = dict(res, at="")
     else:
         st["massing_stamp"] = d.get("updated_at")
-    status = "seq %d | %d floors | %d segments | notch %s pos %.2f w %.1f d %.1f | %s" % (
-        res["seq"], len(res["floors"]), len(res["segments"]), op["edge"] if op else "-", op["pos"] if op else 0, op["width"] if op else 0, op["depth"] if op else 0, note or "ok")
-    st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"])
-    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"]
+    status = "seq %d | %d floors | %d segments | notch %s pos %.2f w %.1f d %.1f | device %s x%d | %s" % (
+        res["seq"], len(res["floors"]), len(res["segments"]), op["edge"] if op else "-", op["pos"] if op else 0, op["width"] if op else 0, op["depth"] if op else 0,
+        res["shading"]["type"], res["shading"]["units"], note or "ok")
+    st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"], dev)
+    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev
 
 
-floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg = run(path)
+floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg, devMesh = run(path)
