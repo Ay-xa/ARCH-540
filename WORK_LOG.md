@@ -521,6 +521,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 显示：Perspective 切到 Arctic + 平行投影，截图 `screenshots/rhino_context_v2.png`（122 栋、211 棵树、60 人）。
 - 保存：massing.3dm 仍是只读（旧实例的锁），`doc.Save()` 失败；用 `doc.WriteFile` 写到 scratch 再拷回，文件从 ~0.5 MB 变 18.8 MB（带渲染网格）。
 
+**工具失去对 Rhino 的控制（同日续）**
+- 现象：页面写了 state.json（updated_by=tool 01:32），Rhino 不回写；massing watch 的输出是空的，watch_key 停在 00:59。
+- 原因：Grasshopper 的 Trigger 定时器停了，组件本身没锁、目标也对。时间上正好在生成环境、ViewCapture 报「Render meshing failed or was canceled」和 doc.Save 失败之后——跑别的脚本或存盘失败会把定时器线程打断。手动 Expire 一下 watcher 它就正常跑（说明脚本没坏）。
+- 修：把 Trigger `Locked` 切 True 再 False、重挂目标，定时器恢复；touch state.json 后 watch_key 跟上文件 mtime，页面 POST 后 Rhino 几秒内回写。
+- 页面加提示：updated_by=tool 且 15 秒没回写 → 连接栏写「Rhino 15 秒没回写：Trigger 可能停了，点它一下暂停再点播放」。
+- 以后在 Rhino 里跑完别的脚本（环境生成、截图、存盘）要顺手检查 Trigger 还在不在跑。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。

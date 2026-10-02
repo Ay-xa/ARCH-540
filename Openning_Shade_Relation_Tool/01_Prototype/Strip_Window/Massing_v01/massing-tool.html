@@ -500,6 +500,8 @@
       if(touched){ suppressPost = true; read(); suppressPost = false; }
       const sunAt = d.results && d.results.sun ? d.results.sun.at : '';
       if(d.results && d.results.at && (d.results.at !== lastResultsAt || sunAt !== lastSunAt)){ lastResultsAt = d.results.at; lastSunAt = sunAt; render(d); setConn(true, 'Rhino 已写回 '+(sunAt && sunAt > d.results.at ? sunAt : d.results.at).slice(11,19)); }
+      // 2026-10-02：页面写了、Rhino 15 秒还没回写 → 多半是 Grasshopper 的 Trigger 定时器停了（跑过别的脚本或存盘失败后会这样）
+      else if(d.updated_by==='tool' && d.updated_at && (Date.now() - new Date(d.updated_at).getTime()) > 15000) setConn(true, 'Rhino 15 秒没回写：Grasshopper 里的 Trigger 可能停了，点它一下暂停再点播放（或重新打开 massing.gh）');
     }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
   }
 
