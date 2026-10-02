@@ -43,9 +43,12 @@
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .cap{color:var(--ink-2);font-size:12px}
   .tabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center} .tabs button{font:inherit;font-size:12px;line-height:1.3;padding:2px 8px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--ink-2);cursor:pointer} .tabs button.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);border-color:transparent} .tabs button.add{font-weight:700} .tabs button.del{margin-left:auto;color:var(--bad,#c33)}
+  .h3{font-size:12px;font-weight:600;color:var(--ink);letter-spacing:.02em;margin-top:6px;padding-bottom:4px;border-bottom:1px dashed var(--line)}
+  .note{color:var(--ink-2);font-size:12px;line-height:1.45}
+  #cmpAside,#readAside{display:flex;flex-direction:column;gap:12px}
   .viewtabs{display:flex;gap:6px} .viewtabs button{padding:5px 8px;font-size:13px} .viewtabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
   body:not([data-view="design"]) details.grp, body:not([data-view="design"]) #dataCard, body:not([data-view="design"]) #planCard, body:not([data-view="design"]) #interpCard{display:none}
-  body:not([data-view="compare"]) .only-compare{display:none} body:not([data-view="read"]) .only-read{display:none} body[data-view="read"] .save-row{display:none}
+  body:not([data-view="compare"]) .only-compare{display:none !important} body:not([data-view="read"]) .only-read{display:none !important} body[data-view="read"] .save-row{display:none}
   .save-row input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
   .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px} .snap button.arm{background:var(--bad);color:#fff;border-color:var(--bad)} .snap input.rename{font:inherit;font-size:13px;flex:1;min-width:0;padding:1px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--panel);color:var(--ink)}
   table.cmp{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums} table.cmp th,table.cmp td{text-align:right;padding:3px 6px;white-space:nowrap;vertical-align:top} table.cmp th:first-child,table.cmp td:first-child{text-align:left} table.cmp th{color:var(--ink-2);font-weight:500;border-bottom:1px solid var(--line)} table.cmp th.nm{color:var(--ink);font-weight:600} table.cmp td small{display:block;font-size:11px} .d-good{color:var(--ok)} .d-bad{color:var(--bad)} .d-0{color:var(--ink-2)}
@@ -90,57 +93,77 @@
 </head>
 <body>
 <aside>
-  <h1>Massing v01<small>体量拓扑 × 立面分段 × 过热与采光 · 第一刀</small></h1>
+  <h1>Massing v01<small>体量 × 立面遮阳 × 室内过热与采光</small></h1>
   <div class="conn" id="conn"><i></i><span id="connText">未连接本地服务</span></div>
   <div class="viewtabs"><button type="button" data-view="design" class="on">设计</button><button type="button" data-view="compare">对比</button><button type="button" data-view="read">读图</button></div>
   <div class="save-row two"><input id="snapName" placeholder="方案名（可空）"><button type="button" id="snapSave">存为方案</button></div>
-  <div class="only-compare" id="cmpAside" style="display:flex;flex-direction:column;gap:12px">
-    <div class="cap">在「设计」里调好，点上面的「存为方案」；右边勾选方案并排看。方案存在这台电脑的浏览器里，换电脑用导出 / 导入。</div>
+
+  <div class="only-compare" id="cmpAside">
+    <div class="note">在「设计」里调好后点「存为方案」。右边勾选 2–4 个方案并排看。方案保存在这台电脑的浏览器里，换电脑请用导出 / 导入。</div>
     <div id="sweepWrap" hidden>
-      <div class="cap" style="font-weight:600;color:var(--ink)">四种装置各跑一遍</div>
-      <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 30 s）</label>
+      <div class="h3">四种装置各跑一遍</div>
+      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 30 秒）</label>
       <button type="button" id="sweepBtn" class="primary">以当前设计为底，跑五个方案</button>
-      <div class="cap" id="sweepStatus"></div>
+      <div class="note" id="sweepStatus"></div>
     </div>
   </div>
-  <div class="only-read" id="readAside" style="display:flex;flex-direction:column;gap:10px">
-    <div class="cap" style="font-weight:600;color:var(--ink)">读图：从一张装置的图到参数卡</div>
-    <div class="cap">1. 右边上传运动分析图或照片，写一句描述，发送。<br>2. 有 api_key.txt 时模型直接读；没有时它进收件夹，<b>在聊天里对 Claude 说「读图」</b>，卡会出现在右边。<br>3. 卡上的每个字段都能改。确认后「应用到设计」直接换装置，或「存入机构库」交给 Claude 整理成条目。</div>
-    <div class="cap">模式：<span id="readModeAside">—</span></div>
-    <div class="cap">库里没有的运动方式，卡会说"最接近哪个条目、差在哪"；要生成三维仍要 Claude 加新条目（按钮「交给 Claude 加条目」）。</div>
+
+  <div class="only-read" id="readAside">
+    <div class="h3">读图：从一张装置的图到参数卡</div>
+    <div class="note">1. 右边上传装置的运动分析图或照片，写一句描述，发送。<br>2. 卡出来后每一格都能改。<br>3. 「应用到设计」直接换成这个装置；「存入机构库」交给 Claude 整理成条目。</div>
+    <div class="note">模式：<span id="readModeAside">—</span>。没有 api_key.txt 时，上传后在聊天里对 Claude 说「读图」。</div>
+    <div class="note">库里没有的运动方式，卡会说最接近哪个条目、差在哪；要做成三维需要 Claude 加新条目。</div>
   </div>
 
   <details class="grp" id="g1">
-    <summary><span>建筑与环境</span><b id="g1Sum"></b></summary>
+    <summary><span>建筑</span><b id="g1Sum"></b></summary>
     <div class="body">
-      <div class="ctl"><div class="row"><label for="L">长 L（A、C 边）</label><output id="LOut"></output></div><input id="L" type="range" min="6" max="80" step="1" value="30"></div>
-      <div class="ctl"><div class="row"><label for="W">宽 W（B、D 边）</label><output id="WOut"></output></div><input id="W" type="range" min="6" max="60" step="1" value="16"></div>
-      <div class="ctl"><div class="row"><label for="floors">层数</label><output id="floorsOut"></output></div><input id="floors" type="range" min="1" max="30" step="1" value="3"></div>
-      <div class="ctl"><div class="row"><label for="H">层高 H</label><output id="HOut"></output></div><input id="H" type="range" min="2.6" max="6" step="0.1" value="3.0"></div>
-      <div class="ctl"><div class="row"><label for="slab">楼板厚</label><output id="slabOut"></output></div><input id="slab" type="range" min="0.15" max="1.0" step="0.05" value="0.35"></div>
-      <div class="ctl"><div class="row"><label for="az0">A 边朝向（方位角）</label><output id="az0Out"></output></div><input id="az0" type="range" min="0" max="355" step="5" value="180"></div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:0">
-      <div class="cap" style="font-weight:600;color:var(--ink)">楼层组</div>
+      <div class="h3">基底与楼层</div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="L">长 L</label><output id="LOut"></output></div><input id="L" type="range" min="6" max="80" step="1" value="30"></div>
+        <div class="ctl"><div class="row"><label for="W">宽 W</label><output id="WOut"></output></div><input id="W" type="range" min="6" max="60" step="1" value="16"></div>
+      </div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="floors">层数</label><output id="floorsOut"></output></div><input id="floors" type="range" min="1" max="30" step="1" value="3"></div>
+        <div class="ctl"><div class="row"><label for="H">层高</label><output id="HOut"></output></div><input id="H" type="range" min="2.6" max="6" step="0.1" value="3.0"></div>
+      </div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="slab">楼板厚</label><output id="slabOut"></output></div><input id="slab" type="range" min="0.15" max="1.0" step="0.05" value="0.35"></div>
+        <div class="ctl"><div class="row"><label for="az0">A 边朝向</label><output id="az0Out"></output></div><input id="az0" type="range" min="0" max="355" step="5" value="180"></div>
+      </div>
+      <div class="note">A、C 边长 L，B、D 边长 W。A 边朝向 180° = 朝南，四条边按 A、B、C、D 顺时针排。</div>
+
+      <div class="h3">楼层组</div>
       <div class="tabs" id="grpTabs"></div>
       <div class="ctl"><div class="row"><label for="gn" id="gnLabel">本组层数</label><output id="gnOut"></output></div><input id="gn" type="range" min="0" max="30" step="1" value="3"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="sbA">A 边退</label><output id="sbAOut"></output></div><input id="sbA" type="range" min="0" max="15" step="0.5" value="0"></div>
-        <div class="ctl"><div class="row"><label for="sbB">B 边退</label><output id="sbBOut"></output></div><input id="sbB" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbA">A 边退台</label><output id="sbAOut"></output></div><input id="sbA" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbB">B 边退台</label><output id="sbBOut"></output></div><input id="sbB" type="range" min="0" max="15" step="0.5" value="0"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="sbC">C 边退</label><output id="sbCOut"></output></div><input id="sbC" type="range" min="0" max="15" step="0.5" value="0"></div>
-        <div class="ctl"><div class="row"><label for="sbD">D 边退</label><output id="sbDOut"></output></div><input id="sbD" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbC">C 边退台</label><output id="sbCOut"></output></div><input id="sbC" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbD">D 边退台</label><output id="sbDOut"></output></div><input id="sbD" type="range" min="0" max="15" step="0.5" value="0"></div>
       </div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="gsx">错位 沿 L</label><output id="gsxOut"></output></div><input id="gsx" type="range" min="-15" max="15" step="0.5" value="0"></div>
         <div class="ctl"><div class="row"><label for="gsy">错位 沿 W</label><output id="gsyOut"></output></div><input id="gsy" type="range" min="-15" max="15" step="0.5" value="0"></div>
       </div>
-      <div class="cap">从 F1 起按每组的层数依次分配，最后一组拿剩下的楼层。每组四条边各自从基底向内退（退台 / 移边），退 0 = 不退；错位 = 整组在平面上平移，悬挑和被盖住的部分 Ladybug 会算到。点 + 加一组，删 删掉当前组。</div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:0">
-      <div class="ctl"><div class="row"><label for="wwr">窗墙比（带窗）</label><output id="wwrOut"></output></div><input id="wwr" type="range" min="0" max="100" step="1" value="45"></div>
-      <div class="ctl"><div class="row"><label for="sill">窗台高</label><output id="sillOut"></output></div><input id="sill" type="range" min="0" max="2" step="0.05" value="0.73"></div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:0">
+      <div class="note">楼层从下往上分组，最后一组自动拿剩下的楼层。每组可以四边退台，也可以整组错位。点 + 加一组，删 删掉当前组。</div>
+
+      <div class="h3">窗</div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="wwr">窗墙比</label><output id="wwrOut"></output></div><input id="wwr" type="range" min="0" max="100" step="1" value="45"></div>
+        <div class="ctl"><div class="row"><label for="sill">窗台高</label><output id="sillOut"></output></div><input id="sill" type="range" min="0" max="2" step="0.05" value="0.73"></div>
+      </div>
+      <div class="note">每段墙一条通长的窗带，高度由窗墙比算出。</div>
+    </div>
+  </details>
+
+  <details class="grp" id="g5">
+    <summary><span>环境与计算</span><b id="g5Sum"></b></summary>
+    <div class="body">
       <div class="ctl"><div class="row"><label for="depth">房间进深</label><output id="depthOut"></output></div><input id="depth" type="range" min="3" max="10" step="0.5" value="5"></div>
+      <div class="note">离窗多远以内算作"靠窗的房间带"。过热和采光都按这条带算，更深的地方不计。</div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="clim">气候</label></div>
           <select id="clim"><option value="apNow">当下（机场站）</option><option value="hbNow">当下（港口站）</option><option value="f2080">2080 年预测</option></select></div>
@@ -153,26 +176,31 @@
         <div class="ctl"><div class="row"><label for="period">日照分析期</label></div>
           <select id="period"><option value="summer" selected>夏季 6–8 月</option><option value="winter">冬季 12–2 月</option><option value="annual">全年</option></select></div>
       </div>
-      <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="runSun" checked style="accent-color:var(--accent);margin:0">跑 Ladybug 日照（关掉后拖滑块更快，日照和受晒列停在上一次的值）</label>
+      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="runSun" checked style="accent-color:var(--accent);margin:0">计算 Ladybug 日照</label>
+      <div class="note">关掉后拖滑块更快；日照和受晒两列停在上一次的值。</div>
     </div>
   </details>
 
   <details class="grp" id="g2" open>
     <summary><span>拓扑操作</span><b id="g2Sum"></b></summary>
     <div class="body">
-      <div class="cap" style="font-weight:600;color:var(--ink)">凹口 <span class="badge" id="fromRhino" hidden>来自 Rhino</span></div>
+      <div class="note">三种操作都可以有多个：点 + 新增，点 删 删掉当前这个。Rhino 里的彩色点是手柄（红 凹口、蓝 庭院、绿 分裂），拖它和拖滑块一样，谁后动谁算数。</div>
+
+      <div class="h3">凹口 <span class="badge" id="fromRhino" hidden>来自 Rhino</span></div>
       <div class="tabs" id="notchTabs"></div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="edge">在哪条边</label></div>
-          <select id="edge"><option value="A" selected>A（默认朝南）</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+          <select id="edge"><option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
         <div class="ctl"><div class="row"><label for="applyN">作用在</label></div><select id="applyN"><option value="all" selected>全部楼层</option></select></div>
       </div>
       <div class="ctl"><div class="row"><label for="pos">位置（沿边）</label><output id="posOut"></output></div><input id="pos" type="range" min="0" max="1" step="0.01" value="0.4"></div>
-      <div class="ctl"><div class="row"><label for="nw">宽</label><output id="nwOut"></output></div><input id="nw" type="range" min="0" max="40" step="0.5" value="6"></div>
-      <div class="ctl"><div class="row"><label for="nd">深（深过一半 = U 形）</label><output id="ndOut"></output></div><input id="nd" type="range" min="0" max="60" step="0.5" value="4"></div>
-      <div class="cap">可以有多个凹口，点 + 新增、删 删掉当前这个；先加的优先，后加的和已有凹口挨在 1 m 以内会被忽略并写警告。Rhino 里「Handles」图层上的红点是每个凹口的中心，拖它等于改位置和深度；宽只在这里改。谁后动谁算数。最深切到对面墙前 1 m。</div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:0">
-      <div class="cap" style="font-weight:600;color:var(--ink)">庭院 <span class="badge" id="fromRhinoC" hidden>来自 Rhino</span></div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="nw">宽</label><output id="nwOut"></output></div><input id="nw" type="range" min="0" max="40" step="0.5" value="6"></div>
+        <div class="ctl"><div class="row"><label for="nd">深</label><output id="ndOut"></output></div><input id="nd" type="range" min="0" max="60" step="0.5" value="4"></div>
+      </div>
+      <div class="note">深过一半就是 U 形，最深到对面墙前 1 m。两个凹口挨得太近（1 m 以内）时后加的会被忽略。</div>
+
+      <div class="h3">庭院 <span class="badge" id="fromRhinoC" hidden>来自 Rhino</span></div>
       <div class="tabs" id="courtTabs"></div>
       <div class="ctl"><div class="row"><label for="applyC">作用在</label></div><select id="applyC"><option value="all" selected>全部楼层</option></select></div>
       <div class="two">
@@ -183,47 +211,54 @@
         <div class="ctl"><div class="row"><label for="cw">宽（沿 L）</label><output id="cwOut"></output></div><input id="cw" type="range" min="1" max="40" step="0.5" value="6"></div>
         <div class="ctl"><div class="row"><label for="cd">深（沿 W）</label><output id="cdOut"></output></div><input id="cd" type="range" min="1" max="30" step="0.5" value="6"></div>
       </div>
-      <div class="cap">可以有多个庭院。天井四面墙朝内开窗，第一个段名 Y1–Y4，第二个 Y2_1–Y2_4。Rhino 里的蓝点是每个庭院的中心。庭院离外墙至少 1 m，和凹口、其他庭院不能挨在 1 m 以内（挨着时 Grasshopper 忽略它并写警告）。</div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:0">
-      <div class="cap" style="font-weight:600;color:var(--ink)">分裂 <span class="badge" id="fromRhinoS" hidden>来自 Rhino</span></div>
+      <div class="note">庭院四面内墙朝内开窗。庭院离外墙至少 1 m，不能和凹口或别的庭院挨着，挨着的会被忽略。只开在下面几组时，上面的楼层会把它盖住。</div>
+
+      <div class="h3">分裂 <span class="badge" id="fromRhinoS" hidden>来自 Rhino</span></div>
       <div class="tabs" id="splitTabs"></div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="axis">切的方向</label></div>
-          <select id="axis"><option value="x" selected>横着切（缝沿 W，分成左右两块）</option><option value="y">竖着切（缝沿 L，分成前后两块）</option></select></div>
+          <select id="axis"><option value="x" selected>横着切，分成左右两块</option><option value="y">竖着切，分成前后两块</option></select></div>
         <div class="ctl"><div class="row"><label for="applyS">作用在</label></div><select id="applyS"><option value="all" selected>全部楼层</option></select></div>
       </div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="spos">切线位置</label><output id="sposOut"></output></div><input id="spos" type="range" min="0" max="1" step="0.01" value="0.5"></div>
         <div class="ctl"><div class="row"><label for="sgap">缝宽</label><output id="sgapOut"></output></div><input id="sgap" type="range" min="0.5" max="20" step="0.5" value="4"></div>
       </div>
-      <div class="cap">把楼板切成两块、中间留一道缝；缝两侧的墙是新立面（段名 S1 / S2），照样开窗装装置。每层只用第一条分裂；切线穿过凹口或庭院、或把一边切得不到 2 m 时忽略并写警告。Rhino 里的绿点是缝的中心，拖它改位置。</div>
+      <div class="note">把楼板切成两块、中间留缝。缝两侧的墙也是立面（S1、S2），一样开窗装装置。切线穿过凹口或庭院、或一边不到 2 m 时不切。</div>
     </div>
   </details>
 
   <details class="grp" id="g4" open>
-    <summary><span>遮阳装置（机构库）</span><b id="g4Sum"></b></summary>
+    <summary><span>遮阳装置</span><b id="g4Sum"></b></summary>
     <div class="body">
       <div class="two">
         <div class="ctl"><div class="row"><label for="devType">装置</label></div>
           <select id="devType"><option value="none">无装置</option><option value="pivot">#0 中轴转动板</option><option value="bifoldV" selected>#1 膝盖式折板 · 竖轴</option><option value="bifoldH">#2 膝盖式折板 · 横轴</option><option value="umbrella">#3 伞式六角折板</option></select></div>
-        <div class="ctl"><div class="row"><label for="devFloors">覆盖层</label></div>
+        <div class="ctl"><div class="row"><label for="devFloors">装在哪些层</label></div>
           <select id="devFloors"><option value="all" selected>全部楼层</option><option value="2+">2 层以上</option></select></div>
       </div>
+      <div class="note" id="devCap"></div>
+
+      <div class="h3">开合</div>
       <div class="ctl"><div class="row"><label for="tilt" id="tiltLabel">折角（0 贴平 · 90 全折）</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
-      <div class="ctl"><div class="row"><label>按立面分设</label></div><div class="cap">勾 = 装；拖上面的默认折角时各面跟随，单独拖某一面只改那一面。</div>
-        <table class="fac" id="facTable">
-          <tr data-k="A"><td id="facLabA">A</td><td><input type="checkbox" id="fOnA" checked></td><td><input type="range" id="fTiltA" min="0" max="90" step="1" value="45"></td><td><output id="fTiltAOut"></output></td></tr>
-          <tr data-k="B"><td id="facLabB">B</td><td><input type="checkbox" id="fOnB" checked></td><td><input type="range" id="fTiltB" min="0" max="90" step="1" value="45"></td><td><output id="fTiltBOut"></output></td></tr>
-          <tr data-k="C"><td id="facLabC">C</td><td><input type="checkbox" id="fOnC" checked></td><td><input type="range" id="fTiltC" min="0" max="90" step="1" value="45"></td><td><output id="fTiltCOut"></output></td></tr>
-          <tr data-k="D"><td id="facLabD">D</td><td><input type="checkbox" id="fOnD" checked></td><td><input type="range" id="fTiltD" min="0" max="90" step="1" value="45"></td><td><output id="fTiltDOut"></output></td></tr>
-          <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt"></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
-        </table>
-        <div class="cap">凹口两侧和凹口底的墙跟着它所在的边（B2 / B3 / B4 跟 B 边）；庭院四面内墙单独一组。</div></div>
-      <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
-      <div class="ctl"><div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div><input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"></div>
+      <div class="note">这是总闸：拖它，下面每个立面一起动；单独拖某一面只改那一面。不勾 = 这一面不装。</div>
+      <table class="fac" id="facTable">
+        <tr data-k="A"><td id="facLabA">A</td><td><input type="checkbox" id="fOnA" checked></td><td><input type="range" id="fTiltA" min="0" max="90" step="1" value="45"></td><td><output id="fTiltAOut"></output></td></tr>
+        <tr data-k="B"><td id="facLabB">B</td><td><input type="checkbox" id="fOnB" checked></td><td><input type="range" id="fTiltB" min="0" max="90" step="1" value="45"></td><td><output id="fTiltBOut"></output></td></tr>
+        <tr data-k="C"><td id="facLabC">C</td><td><input type="checkbox" id="fOnC" checked></td><td><input type="range" id="fTiltC" min="0" max="90" step="1" value="45"></td><td><output id="fTiltCOut"></output></td></tr>
+        <tr data-k="D"><td id="facLabD">D</td><td><input type="checkbox" id="fOnD" checked></td><td><input type="range" id="fTiltD" min="0" max="90" step="1" value="45"></td><td><output id="fTiltDOut"></output></td></tr>
+        <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt"></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
+      </table>
+      <div class="note">凹口里的墙跟着它所在的边；分裂的缝两侧按默认折角。</div>
+
+      <div class="h3">单元与排布</div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="groupMode">排布（每组几片）</label></div>
-          <select id="groupMode"><option value="fill" selected>排满（连续）</option><option value="1">每组 1 片</option><option value="2">每组 2 片</option><option value="3">每组 3 片</option><option value="mix">随机混合 1 / 2 / 3</option></select></div>
+        <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
+        <div class="ctl"><div class="row"><label for="thick" id="thickLabel">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
+      </div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="groupMode">每组几片</label></div>
+          <select id="groupMode"><option value="fill" selected>排满，不分组</option><option value="1">每组 1 片</option><option value="2">每组 2 片</option><option value="3">每组 3 片</option><option value="mix">随机 1 / 2 / 3 片</option></select></div>
         <div class="ctl"><div class="row"><label for="fixed" id="fixedLabel">固定边</label></div>
           <select id="fixed"><option value="alt" selected>逐片交替</option><option value="same">同向</option><option value="rand">随机</option></select></div>
       </div>
@@ -231,25 +266,20 @@
         <div class="ctl"><div class="row"><label for="gapPanel">片间隔</label><output id="gapPanelOut"></output></div><input id="gapPanel" type="range" min="0" max="2" step="0.05" value="0"></div>
         <div class="ctl"><div class="row"><label for="gapGroup">组间隔</label><output id="gapGroupOut"></output></div><input id="gapGroup" type="range" min="0" max="10" step="0.1" value="0"></div>
       </div>
-      <div class="cap">排布沿每段墙从中间排起，能放几组放几组；「排满」= 连续、不留缝（间隔不起作用）；选了每组几片之后，两个间隔才起作用。灰掉的控件 = 这个条目用不到。</div>
-      <div class="ctl"><div class="row"><label for="thick" id="thickLabel">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
-      <label class="cap" style="display:flex;gap:6px;align-items:center;color:var(--ink);font-weight:500"><input type="checkbox" id="perfOn" checked style="accent-color:var(--accent);margin:0">铝板打孔（不勾 = 实心板）</label>
-      <div id="perfWrap" style="display:flex;flex-direction:column;gap:16px">
-        <div class="two">
-          <div class="ctl"><div class="row"><label for="skin">表皮厚度（孔深）</label><output id="skinOut"></output></div><input id="skin" type="range" min="0.5" max="20" step="0.5" value="3"></div>
-          <div class="ctl"><div class="row"><label for="holeD">孔径</label><output id="holeDOut"></output></div><input id="holeD" type="range" min="0" max="30" step="0.5" value="5"></div>
-        </div>
-        <div class="two">
-          <div class="ctl"><div class="row"><label for="perfMin">穿孔率 下限</label><output id="perfMinOut"></output></div><input id="perfMin" type="range" min="0" max="90" step="1" value="10"></div>
-          <div class="ctl"><div class="row"><label for="perfMax">穿孔率 上限</label><output id="perfMaxOut"></output></div><input id="perfMax" type="range" min="0" max="90" step="1" value="30"></div>
-        </div>
-        <div class="cap">每片板的穿孔率在上下限之间随机；孔深 / 孔径决定散射光的透过（采光）。</div>
+      <div class="note">沿每段墙从中间排起，能放几组放几组。分了组，两个间隔才起作用。灰掉的 = 这种装置用不到。</div>
+
+      <div id="hiddenParams" hidden>
+        <input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"><output id="standoffOut"></output>
+        <input type="checkbox" id="perfOn"><div id="perfWrap"></div>
+        <input id="skin" type="range" min="0.5" max="20" step="0.5" value="3"><output id="skinOut"></output>
+        <input id="holeD" type="range" min="0" max="30" step="0.5" value="5"><output id="holeDOut"></output>
+        <input id="perfMin" type="range" min="0" max="90" step="1" value="10"><output id="perfMinOut"></output>
+        <input id="perfMax" type="range" min="0" max="90" step="1" value="30"><output id="perfMaxOut"></output>
       </div>
-      <div class="cap" id="devCap"></div>
     </div>
   </details>
 
-  <details class="grp" id="g3" open>
+  <details class="grp" id="g3">
     <summary><span>同步</span><b id="g3Sum"></b></summary>
     <div class="body">
       <button id="sync" type="button" class="primary">同步到 Rhino</button>
@@ -259,7 +289,7 @@
         <span>各层面积</span><span id="rArea">—</span>
         <span>窗高</span><span id="rWinH">—</span>
       </div>
-      <div class="cap">滑块一动就写入 state.json；Grasshopper 每 0.5 s 读一次，重算后写回立面段，页面用共享引擎算过热与采光。</div>
+      <div class="note">滑块一动就自动同步，一般不用点这个按钮。Rhino 重算后页面自己更新。</div>
     </div>
   </details>
 </aside>
@@ -270,11 +300,11 @@
       <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
       <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
     <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
-    <div class="cap">北朝上。底色 = 每一格的过热暴露（或采光）：每格从面向它的墙段取值，按离墙距离衰减，直射条带按太阳角度落在离墙一段距离上（Version_06 的网格规则，墙段代替四面整墙）；庭院挡在中间时不算。灰格 = 离所有外墙都超过房间带进深，立面管不到。鼠标停在格上看数值。段按过热着色；红点凹口手柄、蓝点庭院手柄。</div>
+    <div class="note">北朝上。底色是每一格的过热暴露或采光，从面向它的墙段按距离摊开；灰格离所有外墙都太远，立面管不到。鼠标停在格上看数值。彩色点是 Rhino 里的手柄。</div>
   </div>
 
   <div class="card" id="dataCard">
-    <div class="bar"><label>立面段 · 过热与采光</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">全部楼层</option></select><b id="dataSum"></b></div>
+    <div class="bar"><label>立面段</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">全部楼层</option></select><b id="dataSum"></b></div>
     <table class="heat">
       <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>视野</th><th>过热 无板</th><th>有板</th><th>采光 无板</th><th>有板</th><th>受晒</th><th id="sunHead">日照</th></tr></thead>
       <tbody id="segBody"><tr><td colspan="9" class="cap">等待 Rhino 写回立面段…</td></tr></tbody>
@@ -286,11 +316,11 @@
       <span>整栋采光（无凹口 → 有凹口，均无板）</span><span id="rDF">—</span>
       <span>冬季净得热（无板 → 有板）</span><span id="rNet">—</span>
     </div>
-    <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。这两列是引擎估算，已含「受晒」折减。<br>受晒 = 体量自遮挡后这段墙还能晒到的直射小时占同朝向自由墙面的比例（Ladybug：只有楼板遮挡 ÷ 没有遮挡），引擎用它折减直射得热，散射和采光不折；按分析期平均，套到全年。100 % = 没被自己的体量挡。<br>日照 = Ladybug「Direct Sun Hours」：分析期内窗条每点被太阳直射的小时数，三层平均，楼板（含凹口两侧）和遮阳装置作遮挡，不含周边建筑，也不含云（几何日照，不是辐射量）；入射辐射要装 Radiance 以后才能接。</div>
+    <div class="note">过热 = 全年室内高于 25 °C 的小时占比，被动房要求不超过 10 %，建议 5 % 以内。采光 = 房间带平均采光系数，3 % 算充足。两列「无板 / 有板」= 不装 / 装遮阳装置。受晒 = 这段墙被自己的体量挡掉后还能晒到的比例。日照 = Ladybug 算的直射小时数。过热和采光是估算，适合比大小，不适合当绝对值。</div>
   </div>
 
   <div class="card interp" id="interpCard">
-    <div class="bar"><label>解读（模板）</label></div>
+    <div class="bar"><label>解读</label></div>
     <div id="interp"><p class="cap">等待数据。</p></div>
   </div>
   <div class="card only-compare" id="snapCard" style="flex:1 1 300px;max-width:380px">
@@ -328,10 +358,10 @@
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const MECH = {
     none:    {tilt:'—', unitW:'—', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false, thick:false}, cap:'不装遮阳装置。'},
-    pivot:   {tilt:'倾角（0 平行立面 · 90 垂直）', unitW:'单片宽度', fixed:'倾角方向', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'#0 一片板绕自己的竖向中轴转一个倾角，相邻板正负交替，每段墙从中间排满。面状遮挡：投影 = 板宽·cos倾角 + 板厚·sin倾角。'},
-    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽度（两片贴平时）', fixed:'固定边', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'#1 两片等长，一侧固定一侧沿导轨滑，折线向外凸，固定边交替。面状遮挡：投影 = 2·半片·cos折角 + 2·板厚·sin折角。'},
-    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'整板宽度（一个开间）', fixed:'固定边（此条目不适用：顶边固定）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'#2 横向折线，板高一层：顶边固定、底边沿立面上滑，膝盖向外凸。板盖住的窗条上部按面状挡；膝盖以下露出的窗条按「穿孔挑檐」交给引擎用太阳角度算；Ladybug 里膝盖是真实遮挡。'},
-    umbrella:{tilt:'折角（0 六角全闭 · 90 六角星全开）', unitW:'单元宽度（六角平边距）', fixed:'固定边（此条目不适用：六个角点固定）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'#3 六角形六个花瓣沿径向折痕折起，角点固定，盖住的面积随 cos折角 收缩成六角星；单元以窗条中心为中心。面状遮挡，覆盖率按六角星在窗条范围内采样。'}
+    pivot:   {tilt:'倾角（0 贴平 · 90 垂直）', unitW:'单片宽', fixed:'倾角方向', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'一片板绕自己的竖向中轴转动。倾角越大，板越侧过去，挡得越少、看出去越通透。'},
+    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽（贴平时）', fixed:'固定边', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'两片竖板像书脊朝外的书：一边固定，另一边沿导轨滑过来，折线向外凸。折得越开，占的立面越短、露出的窗越多。'},
+    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'板宽（一开间）', fixed:'固定边（不适用）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'一块一层高的板横着折：顶边固定，底边往上滑，膝盖向外凸。折起来露出窗的下部，凸出的膝盖像一道挑檐挡高角度的太阳。'},
+    umbrella:{tilt:'折角（0 全闭 · 90 全开）', unitW:'单元宽（平边距）', fixed:'固定边（不适用）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'六角形的伞：六个角固定，中间的推杆把六片网布顶起来。折角越大，伞收得越紧，盖住的面积越小。'}
   };
   const P = {};
   let STATE = null, lastResultsAt = '', lastSunAt = '', suppressPost = false, postTimer = null;
@@ -387,8 +417,9 @@
     const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
     $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}`;
     const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
+    $('g5Sum').textContent = `${$('clim').selectedOptions[0].textContent} · 进深 ${P.depth} m`;
     $('fixedLabel').textContent = mv.fixed || '固定边'; const uses = mv.uses || {}; $('groupMode').disabled = !uses.groupMode; $('fixed').disabled = !uses.fixed; $('gapPanel').disabled = !(uses.gapPanel && P.groupMode!=='fill'); $('gapGroup').disabled = !(uses.groupMode && P.groupMode!=='fill');
-    $('thick').disabled = !uses.thick; $('thickLabel').textContent = uses.thick ? '板厚' : '板厚（此条目不用：按面状投影算）';
+    $('thick').disabled = !uses.thick; $('thickLabel').textContent = uses.thick ? '板厚' : '板厚（不用）'; $('thickLabel').title = uses.thick ? '' : '这种装置按面状投影算，板厚不影响结果'; $('fixedLabel').title = uses.fixed ? '' : '这种装置的固定边是定死的';
     P.perfOn = $('perfOn').checked; $('perfWrap').hidden = !P.perfOn;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
@@ -402,7 +433,7 @@
            .concat(LIST.splits.map((sp,i)=>Object.assign({id:'split'+String(i+1).padStart(2,'0'), type:'split', floor:1, propagate:'up'}, sp))),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim, sun:$('runSun').checked},
-      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:P.fixed, groupMode:P.groupMode, gapPanel:P.gapPanel, gapGroup:P.gapGroup, perf:P.perfOn, facades:P.fac}
+      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:P.fixed, groupMode:P.groupMode, gapPanel:P.gapPanel, gapGroup:P.gapGroup, perf:false, facades:P.fac}
     };
   }
   async function post(){
@@ -663,7 +694,7 @@
     const sh = d.shading || {}, fac = sh.facades || {};
     const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), name: (name||'').trim() || ('方案 ' + (SNAPS.length+1)), at: (dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)(new Date()),
       state: {building:d.building, ops:d.ops, windows:d.windows, run:d.run, shading:d.shading},
-      summary: { dev: devName(sh.type) + (sh.type!=='none' && sh.perf===false ? '（实心）' : ''), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
+      summary: { dev: devName(sh.type), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
         floors: d.results.floors.length, groups: ((d.results.groups||{}).list||[]).length || 1,
         ops: (d.ops||[]).map(o=> o.type==='notch' ? `凹口 ${o.edge} 深 ${fmt(o.depth,1)}` : `庭院 ${fmt(o.width,1)}×${fmt(o.depth,1)}`).join('、') || '无操作',
         period: (d.run||{}).period, clim: (d.run||{}).clim, size: `${d.building.L}×${d.building.W} m` },

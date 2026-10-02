@@ -477,6 +477,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 原因：`dev_umbrella` 在墙段比单元窄、放不下单元时提前 `return [], NONE`（两个值），而 `build` 现在拆三个值（多了骨架），整个脚本报错，所有输出清空 → Rhino 里什么都不显示。单元宽一加大就有短段放不下，所以才触发。改成 `return [], NONE, []`。
 - 教训：改返回值个数时，所有提前 return 都要一起改；短段（凹口壁 3–4 m）是最常触发边界的地方。
 
+**UI 层级整理（同日续）**
+- 用户：适宜度图先不加；整理层级；去掉铝板打孔和离墙距离；读图说明只在读图 tab；描述改成人话。
+- 侧栏重写：五个组 建筑（基底与楼层 / 楼层组 / 窗）· 环境与计算（新组 g5）· 拓扑操作（凹口 / 庭院 / 分裂）· 遮阳装置（装置 / 开合 / 单元与排布）· 同步；小标题统一 `.h3`，说明统一 `.note`，去掉 hr。打孔和离墙的控件移进 `#hiddenParams`（id 保留给 JS），payload 固定 `perf:false`、standoff 用隐藏默认 0.4。
+- 修了一个老问题：`#cmpAside / #readAside` 的内联 `display:flex` 盖过了 `.only-*` 的隐藏规则，对比 / 读图的说明一直在设计 tab 里露着；改成 CSS 规则 + `!important`。
+- 两列里的长标签会折行：长 L / 宽 W、单元宽、板厚（不用）、固定边（不适用）全部缩短，原因放 title 提示。机构库说明改成一句人话。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
