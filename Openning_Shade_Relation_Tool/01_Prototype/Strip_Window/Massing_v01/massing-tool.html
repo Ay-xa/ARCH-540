@@ -31,6 +31,7 @@
   .ctl output{font-variant-numeric:tabular-nums;color:var(--ink-2)}
   .ctl output b{color:var(--ink);font-weight:500}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0}
+  table.fac{width:100%;border-collapse:collapse;font-size:12px} table.fac td{padding:1px 4px;vertical-align:middle;white-space:nowrap} table.fac td:nth-child(3){width:100%} table.fac input[type=range]{height:18px} table.fac output{min-width:34px;display:inline-block;text-align:right} table.fac tr.off td{opacity:.45} table.fac tr.off td:nth-child(-n+2){opacity:1}
   input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--track);border-radius:1px}
   input[type=range]::-moz-range-track{height:2px;background:var(--track);border-radius:1px}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--panel);border:2px solid var(--ink);margin-top:-7px;cursor:pointer}
@@ -46,7 +47,7 @@
   details.grp summary::-webkit-details-marker{display:none}
   details.grp summary span::before{content:'▸';display:inline-block;width:14px;color:var(--ink-2)}
   details.grp[open] summary span::before{content:'▾'}
-  details.grp summary b{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
+  details.grp summary span{white-space:nowrap} details.grp summary b{font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   details.grp .body{display:flex;flex-direction:column;gap:16px;padding-top:14px}
   .readout{display:grid;grid-template-columns:1fr auto;row-gap:5px;column-gap:12px;color:var(--ink-2);font-size:13px}
   .readout span:nth-child(even){color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
@@ -159,6 +160,15 @@
           <select id="devFloors"><option value="all" selected>全部楼层</option><option value="2+">2 层以上</option></select></div>
       </div>
       <div class="ctl"><div class="row"><label for="tilt" id="tiltLabel">折角（0 贴平 · 90 全折）</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
+      <div class="ctl"><div class="row"><label>按立面分设</label></div><div class="cap">勾 = 装；拖上面的默认折角时各面跟随，单独拖某一面只改那一面。</div>
+        <table class="fac" id="facTable">
+          <tr data-k="A"><td id="facLabA">A</td><td><input type="checkbox" id="fOnA" checked></td><td><input type="range" id="fTiltA" min="0" max="90" step="1" value="45"></td><td><output id="fTiltAOut"></output></td></tr>
+          <tr data-k="B"><td id="facLabB">B</td><td><input type="checkbox" id="fOnB" checked></td><td><input type="range" id="fTiltB" min="0" max="90" step="1" value="45"></td><td><output id="fTiltBOut"></output></td></tr>
+          <tr data-k="C"><td id="facLabC">C</td><td><input type="checkbox" id="fOnC" checked></td><td><input type="range" id="fTiltC" min="0" max="90" step="1" value="45"></td><td><output id="fTiltCOut"></output></td></tr>
+          <tr data-k="D"><td id="facLabD">D</td><td><input type="checkbox" id="fOnD" checked></td><td><input type="range" id="fTiltD" min="0" max="90" step="1" value="45"></td><td><output id="fTiltDOut"></output></td></tr>
+          <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt" checked></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
+        </table>
+        <div class="cap">凹口两侧和凹口底的墙跟着它所在的边（B2 / B3 / B4 跟 B 边）；庭院四面内墙单独一组。</div></div>
       <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
       <div class="ctl"><div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div><input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"></div>
       <div class="two">
@@ -226,6 +236,7 @@
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
   const ids = ['L','W','floors','H','slab','az0','podium','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
   const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC'];
+  const FAC = ['A','B','C','D','court'];
   const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', podium:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
   const dec = {L:0, W:0, floors:0, az0:0, podium:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
@@ -248,7 +259,10 @@
     ['sbA','sbB','sbC','sbD'].forEach(id=> $(id).disabled = nG2<=0);
     $('g2Sum').textContent = (P.nd>0 ? `凹口 ${P.edge} 深 ${fmt(P.nd,1)}` : '无凹口') + (P.courtOn ? ` · 庭院 ${fmt(P.cw,1)}×${fmt(P.cd,1)}` : '');
     ['cu','cv','cw','cd'].forEach(id=> $(id).disabled = !P.courtOn);
-    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${P.tilt}° · ${fmt(P.unitW,1)} m`;
+    P.fac = {}; FAC.forEach(k=>{ const on = $('fOn'+k).checked, t = parseFloat($('fTilt'+k).value); P.fac[k] = {on, tilt:t}; $('fTilt'+k+'Out').textContent = on ? t+'°' : '不装'; $('fTilt'+k).disabled = !on; document.querySelector('#facTable tr[data-k="'+k+'"]').classList.toggle('off', !on); });
+    const facAz = {A:P.az0, B:P.az0-90, C:P.az0+180, D:P.az0+90}; ['A','B','C','D'].forEach(k=> $('facLab'+k).textContent = k + (ENGINE ? '（'+ENGINE.dirName(facAz[k])+'）' : ''));
+    const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
+    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}`;
     const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
@@ -260,7 +274,7 @@
       ops:[{id:'notch01', type:'notch', apply:P.applyN, floor:1, propagate:'up', edge:P.edge, pos:P.pos, width:P.nw, depth:P.nd}].concat(P.courtOn ? [{id:'court01', type:'court', apply:P.applyC, floor:1, propagate:'up', pos_u:P.cu, pos_v:P.cv, width:P.cw, depth:P.cd}] : []),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim},
-      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt'}
+      shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt', facades:P.fac}
     };
   }
   async function post(){
@@ -429,7 +443,8 @@
     const dov = agg0dev.ovh - agg0.ovh, ddf = agg0dev.DF - agg0.DF;
     ps.push(`和不开凹口的矩形相比（都不装遮阳），整栋过热 ${dov>=0?'上升':'下降'} ${fmt(Math.abs(dov),1)} 个百分点，采光 ${ddf>=0?'上升':'下降'} ${fmt(Math.abs(ddf),2)} 个百分点；立面总长（各层合计）从 ${fmt(d.results.floors.reduce((a,f)=>{const r=f.rect||[0,0,P.L,P.W]; return a+2*((r[2]-r[0])+(r[3]-r[1]));},0),1)} m 变为 ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m。`);
     if(P.devType!=='none'){ const nU = rows.reduce((a,x)=>a+(x.dev?x.dev.units:0),0); const worstD = rows.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
-      ps.push(`装上${$('devType').selectedOptions[0].textContent.replace(/^#\d+ /,'')}（${P.tilt}°，每层 ${nU} 个单元）后，整栋过热从 ${fmt(agg0dev.ovh,1)} % 到 ${fmt(agg.ovh,1)} %，采光从 ${fmt(agg0dev.DF,1)} % 到 ${fmt(agg.DF,1)} %，视野通透 ${fmt(totalView*100,0)} %；仍最热的是 ${worstD.edge}（${fmt(worstD.r.ovh,1)} %）。`); }
+      const facSay = FAC.map(k=> (k==='court' ? '庭院' : $('facLab'+k).textContent) + ' ' + (P.fac[k].on ? P.fac[k].tilt+'°' : '不装')).join('、');
+      ps.push(`装上${$('devType').selectedOptions[0].textContent.replace(/^#\d+ /,'')}（${facSay}；共 ${nU} 个单元）后，整栋过热从 ${fmt(agg0dev.ovh,1)} % 到 ${fmt(agg.ovh,1)} %，采光从 ${fmt(agg0dev.DF,1)} % 到 ${fmt(agg.DF,1)} %，视野通透 ${fmt(totalView*100,0)} %；仍最热的是 ${worstD.edge}（${fmt(worstD.r.ovh,1)} %）。`); }
     const sun = window.__sun;
     if(sun){ const order = rows.map((x,i)=>[lab(x), sun.perSegment[i]]).filter(a=>a[1]!=null).sort((a,b)=>b[1]-a[1]); const lo = order[order.length-1], hi = order[0];
       const onBase = pt => ({A:Math.abs(pt[1])<1e-6, B:Math.abs(pt[0]-P.L)<1e-6, C:Math.abs(pt[1]-P.W)<1e-6, D:Math.abs(pt[0])<1e-6})[op.edge];
@@ -452,7 +467,9 @@
   }
 
   // ---------- wiring ----------
+  $('tilt').addEventListener('input', ()=>{ FAC.forEach(k=> $('fTilt'+k).value = $('tilt').value); });   // 默认折角 = 总闸，各面跟随（在下面的通用监听之前跑）
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
+  FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
   $('courtOn').addEventListener('change', ()=>{ read(); schedulePost(); });
   sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
@@ -475,7 +492,8 @@
       $('courtOn').checked = !!opC;
       if(opC){ $('cw').value=opC.width; $('cd').value=opC.depth; $('applyC').value = opC.apply||'all'; const useC = hC && hC.at > (opC.at||''); $('cu').value = useC?hC.pos_u:opC.pos_u; $('cv').value = useC?hC.pos_v:opC.pos_v; if(hC) lastHandleAtC = hC.at; }
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; }
-      const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100); }
+      const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
+        FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : true; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
       if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }
       setConn(true, '已连接本地服务');

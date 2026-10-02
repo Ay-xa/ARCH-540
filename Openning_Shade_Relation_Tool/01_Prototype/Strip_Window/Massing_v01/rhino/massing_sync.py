@@ -368,6 +368,22 @@ def dev_umbrella(seg, sh, z0, H, seed, band):
     return meshes, _areal(ln, n_units, w * cover, ratios, K)
 
 
+FACADE_KEYS = ("A", "B", "C", "D", "court")
+
+
+def facade_key(seg):
+    """段属于哪个立面：外圈按边名首字母（凹口壁 B2 归 B 边），庭院内墙归 court"""
+    return "court" if str(seg.get("loop", "")).startswith("court") else str(seg.get("edge", "A"))[0]
+
+
+def facade_setting(sh, seg):
+    """2026-10-03：按立面分设。shading.facades = {A|B|C|D|court: {on, tilt}}；缺的立面 = 装、折角用 shading.tilt"""
+    fc = (sh.get("facades") or {}).get(facade_key(seg)) or {}
+    on = bool(fc.get("on", True))
+    tilt = float(fc.get("tilt", sh.get("tilt", 45)))
+    return on, tilt
+
+
 def device_units(seg, sh, i_floor, z0, H, s_idx, band):
     seed = 991 + s_idx * 17 + i_floor * 101
     t = sh.get("type", "none")
@@ -439,9 +455,11 @@ def build(d):
                 m.Faces.AddFace(2 * k, 2 * k + 2, 2 * k + 3, 2 * k + 1)
             m.Normals.ComputeNormals(); m.Compact()
             meshes.append(m); faces.append(nc)
-            if use_dev:
-                ms, tr = device_units(s, sh, i, i * H, H, si, band)
-                dev.extend(ms); s["dev"] = tr
+            f_on, f_tilt = facade_setting(sh, s)
+            if use_dev and f_on:
+                sh_f = dict(sh); sh_f["tilt"] = f_tilt            # 这一面自己的折角
+                ms, tr = device_units(s, sh_f, i, i * H, H, si, band)
+                dev.extend(ms); s["dev"] = tr; s["dev"]["tilt"] = f_tilt
             else:
                 s["dev"] = dict(NONE)
             s["winArea"] = round(ln * winH, 3)
@@ -451,7 +469,9 @@ def build(d):
                            "holes": [[[round(p[0], 3), round(p[1], 3)] for p in hp] for hp in holes]})
     res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": False, "nSeg": len(segs_all),
            "floors": floor_info, "segments": segs_all, "winH": round(winH, 3), "warnings": warnings,
-           "shading": {"type": sh.get("type", "none"), "units": sum(s["dev"]["units"] for s in segs_all)},
+           "shading": {"type": sh.get("type", "none"), "units": sum(s["dev"]["units"] for s in segs_all),
+                       "facades": {k: {"on": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[0],
+                                       "tilt": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[1]} for k in FACADE_KEYS}},
            "groups": {"podium": int((b.get("groups") or {}).get("podium", N)), "setback": (b.get("groups") or {}).get("setback", {})}}
     return floors, wins, res, meshes, faces, dev
 

@@ -116,6 +116,17 @@ def check_shading(sh):
            "perfMax": num(sh.get("perfMax", 0.3), 0, 0.9, "shading.perfMax"),
            "floors": sh.get("floors", "all") if sh.get("floors", "all") in ("all", "2+") else "all",
            "fixed": sh.get("fixed", "alt") if sh.get("fixed", "alt") in ("alt", "same") else "alt"}
+    fac = sh.get("facades")
+    if fac is not None:                                   # 2026-10-03：按立面分设 {A|B|C|D|court: {on, tilt}}
+        if not isinstance(fac, dict):
+            raise ValueError("shading.facades must be an object")
+        out["facades"] = {}
+        for k, v in fac.items():
+            if k not in ("A", "B", "C", "D", "court"):
+                raise ValueError("shading.facades key must be A/B/C/D/court")
+            if not isinstance(v, dict):
+                raise ValueError("shading.facades.%s must be an object" % k)
+            out["facades"][k] = {"on": bool(v.get("on", True)), "tilt": num(v.get("tilt", out["tilt"]), 0, 90, "shading.facades.%s.tilt" % k)}
     return out
 
 

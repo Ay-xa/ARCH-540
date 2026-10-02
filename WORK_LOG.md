@@ -395,5 +395,12 @@ Records are appended after each session. Most recent entry is at the bottom.
   - 复制 LB 组件：`GH_DocumentIO.Copy(Local, True)`（按选中）→ `Paste` → **`Document.MutateAllIds()`** → `MergeDocument`；不 Mutate 会因 InstanceGuid 重复而炸，而且会留下同 guid 的幽灵对象。
   - `EmitObject(ComponentGuid)` 生成的是空的 Python 组件，没有 LB 的脚本和端口。
 
+**装置按立面分设（同日续）**
+- json：`shading.facades = {A|B|C|D|court: {on, tilt}}`；server 校验（键只许这五个，tilt 0–90，on 布尔）；缺省 = 全装、默认折角。
+- `massing_sync.py`：`facade_key(seg)`（外圈取边名首字母，庭院内墙 = court）、`facade_setting(sh, seg)`；生成时每段复制一份 shading 换成自己的折角，不装的段 `dev = NONE`；`results.shading.facades` 回显。
+- 页面：装置卡加 `#facTable`（勾 + 滑条 + 读数，不装的行变淡）；默认折角滑条的 input 监听先把五个滑条设成同值，再走通用监听；立面标签带朝向（A（南）…随 az0 变）；g4 摘要 `A45 B45 C— D70 庭45`；解读句按立面列。
+- 验证：C 不装、D 70°：C 段 units 0、视野 100 %、过热有板 = 无板；D 段 5 单元 @70°、视野 59 %、过热 9.6 → 3.3 %；日照重算（装置几何变了）。整栋 4.3 → 0.4 %。
+- 服务改了 server.py 要重启：先 `Get-CimInstance Win32_Process` 看 PID 命令行确认是 `python server.py`，再 Stop-Process，然后 preview_start massing-bridge。
+
 **Next session: suggested starting point**
-- 装置按立面 / 按组分设 → 方案对比（存几个状态并排）→ 父子比例、平面网格改"找最近墙段"、动态调节规则、单文件打包、Radiance。
+- 方案对比（存几个状态并排看）→ 父子比例、平面网格改"找最近墙段"、动态调节规则、单文件打包、Radiance。

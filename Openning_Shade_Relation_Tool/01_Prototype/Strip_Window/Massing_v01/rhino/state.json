@@ -26,7 +26,7 @@
       "propagate": "up",
       "width": 6.0,
       "depth": 4.0,
-      "at": "2026-10-01T19:28:30.000",
+      "at": "2026-10-01T20:20:44.155",
       "edge": "B",
       "pos": 0.39
     },
@@ -38,7 +38,7 @@
       "propagate": "up",
       "width": 6.0,
       "depth": 6.0,
-      "at": "2026-10-01T19:28:30.000",
+      "at": "2026-10-01T20:20:44.155",
       "pos_u": 0.33,
       "pos_v": 0.5
     }
@@ -48,7 +48,7 @@
     "sill": 0.75
   },
   "run": {
-    "seq": 26,
+    "seq": 27,
     "period": "summer",
     "clim": "apNow"
   },
@@ -56,17 +56,17 @@
     "notch01": {
       "pos": 0.39,
       "depth": 4.0,
-      "at": "2026-10-01T19:28:30.000"
+      "at": "2026-10-01T20:20:44.155"
     },
     "court01": {
       "pos_u": 0.33,
       "pos_v": 0.5,
-      "at": "2026-10-01T19:28:30.000"
+      "at": "2026-10-01T20:20:44.155"
     }
   },
   "results": {
-    "seq": 26,
-    "at": "2026-10-01T20:06:43.331",
+    "seq": 27,
+    "at": "2026-10-01T20:20:44.465",
     "floorsSame": false,
     "nSeg": 32,
     "floors": [
@@ -267,7 +267,8 @@
           "screen": 0.3732,
           "screenDay": 0.3264,
           "view": 0.2222,
-          "units": 10
+          "units": 10,
+          "tilt": 45.0
         },
         "winArea": 35.775
       },
@@ -290,7 +291,8 @@
           "screen": 0.4105,
           "screenDay": 0.3699,
           "view": 0.2798,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 3.864
       },
@@ -313,7 +315,8 @@
           "screen": 0.505,
           "screenDay": 0.4776,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -336,7 +339,8 @@
           "screen": 0.3319,
           "screenDay": 0.2978,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -359,7 +363,8 @@
           "screen": 0.5866,
           "screenDay": 0.5339,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -382,7 +387,8 @@
           "screen": 0.4643,
           "screenDay": 0.4163,
           "view": 0.3096,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 8.061
       },
@@ -402,10 +408,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3694,
-          "screenDay": 0.3237,
-          "view": 0.2222,
-          "units": 10
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0
         },
         "winArea": 35.775
       },
@@ -425,10 +431,11 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4335,
-          "screenDay": 0.383,
-          "view": 0.2708,
-          "units": 5
+          "screen": 0.6825,
+          "screenDay": 0.6542,
+          "view": 0.5913,
+          "units": 5,
+          "tilt": 70.0
         },
         "winArea": 19.08
       },
@@ -451,7 +458,8 @@
           "screen": 0.3767,
           "screenDay": 0.3287,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -474,7 +482,8 @@
           "screen": 0.3701,
           "screenDay": 0.3242,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -497,7 +506,8 @@
           "screen": 0.3635,
           "screenDay": 0.3196,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -520,7 +530,8 @@
           "screen": 0.4347,
           "screenDay": 0.3687,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -543,7 +554,8 @@
           "screen": 0.3784,
           "screenDay": 0.3299,
           "view": 0.2222,
-          "units": 10
+          "units": 10,
+          "tilt": 45.0
         },
         "winArea": 35.775
       },
@@ -566,7 +578,8 @@
           "screen": 0.4939,
           "screenDay": 0.4275,
           "view": 0.2798,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 3.864
       },
@@ -589,7 +602,8 @@
           "screen": 0.5726,
           "screenDay": 0.5242,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -612,7 +626,8 @@
           "screen": 0.4071,
           "screenDay": 0.3497,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -635,7 +650,8 @@
           "screen": 0.5376,
           "screenDay": 0.5,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -658,7 +674,8 @@
           "screen": 0.462,
           "screenDay": 0.4147,
           "view": 0.3096,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 8.061
       },
@@ -678,10 +695,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3745,
-          "screenDay": 0.3273,
-          "view": 0.2222,
-          "units": 10
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0
         },
         "winArea": 35.775
       },
@@ -701,10 +718,11 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4301,
-          "screenDay": 0.3807,
-          "view": 0.2708,
-          "units": 5
+          "screen": 0.6805,
+          "screenDay": 0.6528,
+          "view": 0.5913,
+          "units": 5,
+          "tilt": 70.0
         },
         "winArea": 19.08
       },
@@ -727,7 +745,8 @@
           "screen": 0.3741,
           "screenDay": 0.327,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -750,7 +769,8 @@
           "screen": 0.3675,
           "screenDay": 0.3224,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -773,7 +793,8 @@
           "screen": 0.3609,
           "screenDay": 0.3179,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -796,7 +817,8 @@
           "screen": 0.3543,
           "screenDay": 0.3133,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -819,7 +841,8 @@
           "screen": 0.368,
           "screenDay": 0.3228,
           "view": 0.2222,
-          "units": 10
+          "units": 10,
+          "tilt": 45.0
         },
         "winArea": 35.775
       },
@@ -842,7 +865,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 45.0
         },
         "winArea": 1.073
       },
@@ -865,7 +889,8 @@
           "screen": 0.5235,
           "screenDay": 0.4903,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -888,7 +913,8 @@
           "screen": 0.3267,
           "screenDay": 0.2943,
           "view": 0.2222,
-          "units": 2
+          "units": 2,
+          "tilt": 45.0
         },
         "winArea": 7.155
       },
@@ -911,7 +937,8 @@
           "screen": 0.4885,
           "screenDay": 0.4662,
           "view": 0.4166,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 4.77
       },
@@ -934,7 +961,8 @@
           "screen": 0.4679,
           "screenDay": 0.3994,
           "view": 0.2473,
-          "units": 1
+          "units": 1,
+          "tilt": 45.0
         },
         "winArea": 3.697
       },
@@ -954,10 +982,11 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3797,
-          "screenDay": 0.3308,
-          "view": 0.2222,
-          "units": 10
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 45.0
         },
         "winArea": 35.775
       },
@@ -977,10 +1006,11 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4372,
-          "screenDay": 0.3946,
-          "view": 0.3,
-          "units": 3
+          "screen": 0.6845,
+          "screenDay": 0.6606,
+          "view": 0.6076,
+          "units": 3,
+          "tilt": 70.0
         },
         "winArea": 11.925
       }
@@ -989,7 +1019,29 @@
     "warnings": [],
     "shading": {
       "type": "bifoldV",
-      "units": 108
+      "units": 78,
+      "facades": {
+        "A": {
+          "on": true,
+          "tilt": 45.0
+        },
+        "B": {
+          "on": true,
+          "tilt": 45.0
+        },
+        "C": {
+          "on": false,
+          "tilt": 45.0
+        },
+        "D": {
+          "on": true,
+          "tilt": 70.0
+        },
+        "court": {
+          "on": true,
+          "tilt": 45.0
+        }
+      }
     },
     "groups": {
       "podium": 2,
@@ -1010,8 +1062,8 @@
         154.7,
         248.8,
         212.7,
-        73.4,
-        182.9,
+        523.0,
+        424.1,
         0.0,
         0.0,
         0.0,
@@ -1022,8 +1074,8 @@
         187.3,
         343.2,
         276.3,
-        111.4,
-        227.6,
+        523.0,
+        445.1,
         0.0,
         0.0,
         0.0,
@@ -1034,8 +1086,8 @@
         319.5,
         404.8,
         323.0,
-        111.4,
-        297.2
+        523.0,
+        514.9
       ],
       "perWindow": [
         186.8,
@@ -1044,8 +1096,8 @@
         154.7,
         248.8,
         212.7,
-        73.4,
-        182.9,
+        523.0,
+        424.1,
         0.0,
         0.0,
         0.0,
@@ -1056,8 +1108,8 @@
         187.3,
         343.2,
         276.3,
-        111.4,
-        227.6,
+        523.0,
+        445.1,
         0.0,
         0.0,
         0.0,
@@ -1068,10 +1120,10 @@
         319.5,
         404.8,
         323.0,
-        111.4,
-        297.2
+        523.0,
+        514.9
       ],
-      "at": "2026-10-01T20:13:04.134",
+      "at": "2026-10-01T20:20:46.162",
       "massOnly": [
         887.0,
         715.0,
@@ -1177,7 +1229,7 @@
     }
   },
   "updated_by": "gh",
-  "updated_at": "2026-10-01T20:13:04.134",
+  "updated_at": "2026-10-01T20:20:46.162",
   "shading": {
     "type": "bifoldV",
     "unitW": 3.0,
@@ -1189,6 +1241,28 @@
     "perfMin": 0.1,
     "perfMax": 0.3,
     "floors": "all",
-    "fixed": "alt"
+    "fixed": "alt",
+    "facades": {
+      "A": {
+        "on": true,
+        "tilt": 45.0
+      },
+      "B": {
+        "on": true,
+        "tilt": 45.0
+      },
+      "C": {
+        "on": false,
+        "tilt": 45.0
+      },
+      "D": {
+        "on": true,
+        "tilt": 70.0
+      },
+      "court": {
+        "on": true,
+        "tilt": 45.0
+      }
+    }
   }
 }
