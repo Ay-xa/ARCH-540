@@ -56,6 +56,7 @@ def main(path, results, resMass, vecs, faces, nSeg):
     mass, _ = per_segment(resMass, cnt, n)
     with open(path, "r", encoding="utf-8") as f:
         d = json.load(f)
+    own = sc.sticky.get("massing_stamp") == d.get("updated_at")     # 读到的还是 massing sync 自己最后写的那版？
     period = (d.get("run") or {}).get("period", "summer")
     segs = (d.get("results") or {}).get("segments") or []
     free = free_hours(segs, vecs) if (mass is not None and len(segs) == n and vecs) else None
@@ -79,7 +80,10 @@ def main(path, results, resMass, vecs, faces, nSeg):
         json.dump(d, f, ensure_ascii=False, indent=2)
     os.replace(tmp, path)
     sc.sticky["massing_sun_key"] = key
-    sc.sticky["massing_stamp"] = d["updated_at"]        # 让 massing sync 知道这次写入是自己人，不必重算
+    if own:
+        sc.sticky["massing_stamp"] = d["updated_at"]    # 让 massing sync 知道这次写入是自己人，不必重算
+    # 2026-10-02 修：如果页面在 sync 算完之后、日照写回之前又改了参数（Ladybug 跑几秒到几十秒），
+    # 就不接管时间戳——让 massing sync 看到文件变了去重算，否则页面那次修改会被吞掉（首层退台改回 0 却没重建）。
     msg = "sun hours written: " + ", ".join("%s" % r for r in rad)
     if expo is not None:
         msg += " | expo: " + ", ".join("%s" % e for e in expo)

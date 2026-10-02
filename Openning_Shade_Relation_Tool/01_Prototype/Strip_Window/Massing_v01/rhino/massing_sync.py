@@ -740,6 +740,7 @@ def run(path):
     if handle_written or changed_file or prev != res:
         res["at"] = now()
         fresh = read(path)
+        moved_under = fresh.get("updated_at") != d.get("updated_at")   # 2026-10-02：算的过程中页面又改了参数
         if handle_written:
             fresh["handle"] = d["handle"]
         old = fresh.get("results") or {}
@@ -754,7 +755,7 @@ def run(path):
         fresh["updated_by"] = "gh"
         fresh["updated_at"] = now()
         write(path, fresh)
-        st["massing_stamp"] = fresh["updated_at"]
+        st["massing_stamp"] = d.get("updated_at") if moved_under else fresh["updated_at"]   # 页面刚改过就留旧戳，下一轮重算
         st["massing_res"] = dict(res, at="")
     else:
         st["massing_stamp"] = d.get("updated_at")
