@@ -57,6 +57,23 @@ The tool is meant to be used as a loop, in roughly this order:
 5. **Keep what works.** *Save scheme* stores the current state in the browser; **Compare** puts 2–4 schemes side by side with the differences, so a device change and a massing change can be weighed against each other.
 6. Optional: `rhino/context_gen.py`, run in Rhino’s script editor, generates a 50 × 50 m lot with neighbouring houses, trees and people around the building for presentation renders (Arctic display mode). It is visual only and does not enter any calculation.
 
+### Reading a picture of a device (the *Read image* tab)
+
+The page itself cannot look at a picture; a model has to. Three ways, from least to most effort:
+
+1. **Your own Anthropic API key — automatic.** Save the key as one line in `rhino/api_key.txt` (the file is git-ignored) and restart `start_server.bat`. The sidebar of *Read image* then shows *mode: call the model directly*. Upload a sketch, photo or motion diagram, add one line of description, send. The server passes the picture and the eight-question card template to Claude and the parameter card appears on the page in a few seconds, ready to edit and *Apply to design*.
+2. **No key, but Claude Code with this repository open — one sentence in the chat.** The sidebar shows *mode: hand to Claude*. After you send the picture, it is stored in `Openning_Shade_Relation_Tool/02_Rules/inbox/<timestamp>/` together with your description. In Claude Code type:
+
+   ```
+   Read image: follow Openning_Shade_Relation_Tool/02_Rules/inbox/README.md, process the newest picture in the inbox and write its card.json
+   ```
+
+   Claude writes the card; the page checks the inbox every few seconds and shows it.
+   To get there: install Claude Code (desktop app from claude.ai/code, or `npm install -g @anthropic-ai/claude-code`), sign in with your own Claude account, open this repository folder as the project (it reads `CLAUDE.md` automatically). Rhino and the local server are still started by hand as in *Run it*. Claude Code can edit files in the repository: reading a picture only writes `card.json`, but asking it to “add a new device to the library” changes code that you should verify.
+3. **No model at all — by hand.** `inbox/README.md` defines the card: which sun it blocks, element direction, unit size, density and layout, transparency, how it moves, which side of the glass, which part of the window it covers, plus the closest library entry. A person can write that `card.json` into the inbox folder and the page shows it the same way.
+
+In every case the card maps onto one of the four library devices. For a motion the library does not have, the card names the closest entry and the differences; building it in 3D means adding a new entry in `rhino/massing_sync.py`. The GitHub Pages demo has no server, so its upload button does nothing.
+
 ### If something does not move
 
 - Status line says *Rhino 15 s without a write-back*: Grasshopper’s timer stopped. The watcher restarts itself; if it still sits, click the *Trigger* component once (pause) and again (play), or reopen `massing.gh`.
