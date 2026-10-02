@@ -568,6 +568,10 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 机器上没有 gh CLI：设 public 和开 Pages 要用户在 GitHub 网页设置里点（Settings → General → Danger Zone → Change visibility；Settings → Pages → Source: Deploy from a branch, main, /(root)）。
 - 下一步：等 Pages 链接生效后点开核对；用户在自己电脑上按 README 走一遍。
 
+**Pages 平面空白 + README 设计流程（2026-10-02 续）**
+- 用户：Pages 打开后平面是空的。原因：GitHub Pages 默认走 Jekyll，跳过下划线开头的目录，共享引擎在 `Passivehouse_Tool/01_Prototypes/_shared/` → 引擎 404 → 页面「engine not loaded」，平面 / 表 / 剖面都不画。加仓库根 `.nojekyll` 后正常（引擎 200，平面 54 k 字符、201 行表、剖面都有）。
+- README「How to use」拆成「Run it」（三步装起来）和「Designing with it」（按用户要求写成设计师的用法：先选或描述一个遮阳装置（读图 → 参数卡 → 应用），再定整体体量，看装置对采光 / 过热的影响，再用拓扑操作改体量把室内采光调好，最后存方案对比）。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
