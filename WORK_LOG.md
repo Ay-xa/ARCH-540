@@ -355,6 +355,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 验证（凹口 A 深 4）：45° 时整栋过热 6.0 → 0.2 %、采光 3.6 → 1.4 %、视野 30 %、南向日照 887 → 560 h；0° 时过热 0、采光 0.7 %、视野 7 %、南向日照 196 h。
 - Gotcha：服务字段改了必须重启本地服务；页面在服务停掉期间会刷出一串 ERR_CONNECTION_REFUSED，恢复后自愈。
 
+**第二个拓扑操作：庭院（同日续）**
+- `ops` 支持第二条 `court`（pos_u / pos_v / width / depth），服务校验；Rhino `Handles` 图层加蓝点 `court01`（庭院中心），手柄逻辑按 op 类型通用化（HANDLE_KEYS）。
+- `massing_sync.py` 重写为外圈 + 内圈：内圈顺时针，(dy, −dx) 指向天井即内墙"室外"方向，段名 Y1–Y4，朝向、窗条、折板、日照网格全部沿用；楼板实体 `Extrusion.AddInnerProfile`。
+- **坑**：内轮廓逐层平移后 2 层以上的洞丢失（AddInnerProfile 只认轮廓平面上的曲线），症状是庭院内墙日照全为 0；改成 z=0 做一次实体再 `Translate` 逐层。诊断方法：取窗条网格面心沿法线偏 0.1 m，`IsPointInside` + `RayShoot` 朝太阳。
+- 页面：拓扑操作组分凹口 / 庭院两块，庭院有开关、中心 u/v、宽、深；段表多 4 行内墙；平面画洞和蓝点；解读多一句。验证（庭院 6×6，无装置）：Y1 北 20 h、Y2 东 266 h、Y3 南 419 h、Y4 西 239 h；过热 Y4 9.8 %、Y3 9.2 %。
+
 **Next session: suggested starting point**
 - 装 Radiance 后接回入射辐射（同一条链，写回多一个字段）。
-- 第二刀其余：中轴转动板 / 横轴折板 / 伞式六角移植到 GH；庭院 / U 形操作；楼层组；平面网格改"找最近墙段"。
+- 第二刀其余：中轴转动板 / 横轴折板 / 伞式六角移植到 GH；U 形 / 移边；楼层组；平面网格改"找最近墙段"；装置按立面分别设。

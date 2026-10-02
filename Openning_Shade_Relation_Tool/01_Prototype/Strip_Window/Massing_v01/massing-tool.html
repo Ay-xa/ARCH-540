@@ -105,8 +105,9 @@
   </details>
 
   <details class="grp" id="g2" open>
-    <summary><span>凹口（拓扑操作）</span><b id="g2Sum"></b></summary>
+    <summary><span>拓扑操作</span><b id="g2Sum"></b></summary>
     <div class="body">
+      <div class="cap" style="font-weight:600;color:var(--ink)">凹口</div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="edge">在哪条边</label></div>
           <select id="edge"><option value="A" selected>A（默认朝南）</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
@@ -115,7 +116,19 @@
       <div class="ctl"><div class="row"><label for="pos">位置（沿边）<span class="badge" id="fromRhino" hidden>来自 Rhino</span></label><output id="posOut"></output></div><input id="pos" type="range" min="0" max="1" step="0.01" value="0.4"></div>
       <div class="ctl"><div class="row"><label for="nw">宽</label><output id="nwOut"></output></div><input id="nw" type="range" min="0" max="40" step="0.5" value="6"></div>
       <div class="ctl"><div class="row"><label for="nd">深</label><output id="ndOut"></output></div><input id="nd" type="range" min="0" max="30" step="0.5" value="4"></div>
-      <div class="cap">Rhino 里「Handles」图层上的红点是凹口中心，拖它等于改位置和深度；宽只在这里改。谁后动谁算数。</div>
+      <div class="cap">Rhino 里「Handles」图层上的红点是凹口中心，拖它等于改位置和深度；宽只在这里改。谁后动谁算数。深度 0 = 不开凹口。</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:0">
+      <div class="cap" style="font-weight:600;color:var(--ink)">庭院</div>
+      <div class="ctl"><div class="row"><label><input type="checkbox" id="courtOn" style="accent-color:var(--accent);margin:0 6px 0 0">开庭院</label><span class="badge" id="fromRhinoC" hidden>来自 Rhino</span></div></div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="cu">中心 沿 L</label><output id="cuOut"></output></div><input id="cu" type="range" min="0" max="1" step="0.01" value="0.6"></div>
+        <div class="ctl"><div class="row"><label for="cv">中心 沿 W</label><output id="cvOut"></output></div><input id="cv" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+      </div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="cw">宽（沿 L）</label><output id="cwOut"></output></div><input id="cw" type="range" min="1" max="40" step="0.5" value="6"></div>
+        <div class="ctl"><div class="row"><label for="cd">深（沿 W）</label><output id="cdOut"></output></div><input id="cd" type="range" min="1" max="30" step="0.5" value="6"></div>
+      </div>
+      <div class="cap">天井四面墙朝内开窗，段名 Y1–Y4。Rhino 里的蓝点是庭院中心。庭院离外墙至少 1 m，和凹口不能挨着（挨着时 Grasshopper 会忽略庭院并写警告）。</div>
     </div>
   </details>
 
@@ -194,20 +207,21 @@
 (function(){
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
-  const ids = ['L','W','floors','H','slab','az0','wwr','sill','depth','pos','nw','nd','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
+  const ids = ['L','W','floors','H','slab','az0','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
   const sels = ['clim','mass','vent','edge','period','devType','devFloors'];
-  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
-  const dec = {L:0, W:0, floors:0, az0:0, wwr:0, pos:2, nw:1, nd:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
+  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
+  const dec = {L:0, W:0, floors:0, az0:0, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const P = {};
-  let STATE = null, lastResultsAt = '', lastSunAt = '', lastHandleAt = '', suppressPost = false, postTimer = null;
+  let STATE = null, lastResultsAt = '', lastSunAt = '', lastHandleAt = '', lastHandleAtC = '', suppressPost = false, postTimer = null;
 
   // ---------- read sliders ----------
   function read(){
     ids.forEach(id=>{ const v = parseFloat($(id).value); P[id]=v; $(id+'Out').innerHTML = `<b>${v.toFixed(dec[id])}</b>${units[id]}` + (id==='az0'&&ENGINE ? ' '+ENGINE.dirName(v) : ''); });
-    sels.forEach(id=> P[id]=$(id).value);
+    sels.forEach(id=> P[id]=$(id).value); P.courtOn = $('courtOn').checked;
     $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} 层 · 窗墙比 ${P.wwr}%`;
-    $('g2Sum').textContent = `${P.edge} 边 · 深 ${fmt(P.nd,1)} m`;
+    $('g2Sum').textContent = (P.nd>0 ? `凹口 ${P.edge} 深 ${fmt(P.nd,1)}` : '无凹口') + (P.courtOn ? ` · 庭院 ${fmt(P.cw,1)}×${fmt(P.cd,1)}` : '');
+    ['cu','cv','cw','cd'].forEach(id=> $(id).disabled = !P.courtOn);
     $('g4Sum').textContent = P.devType==='none' ? '无装置' : `折角 ${P.tilt}° · 单元 ${fmt(P.unitW,1)} m`;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
@@ -216,7 +230,7 @@
   function payload(){
     return {
       building:{floors:P.floors, H:P.H, slab:P.slab, L:P.L, W:P.W, az0:P.az0},
-      ops:[{id:'notch01', type:'notch', floor:1, propagate:'up', edge:P.edge, pos:P.pos, width:P.nw, depth:P.nd}],
+      ops:[{id:'notch01', type:'notch', floor:1, propagate:'up', edge:P.edge, pos:P.pos, width:P.nw, depth:P.nd}].concat(P.courtOn ? [{id:'court01', type:'court', floor:1, propagate:'up', pos_u:P.cu, pos_v:P.cv, width:P.cw, depth:P.cd}] : []),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim},
       shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt'}
@@ -238,10 +252,16 @@
       const d = await r.json(); STATE = d;
       if(!document.querySelector('.conn.on')) setConn(true, '已连接本地服务');
       // handle dragged in Rhino → sliders follow (no POST back)
-      const h = (d.handle||{}).notch01, op = (d.ops||[])[0];
-      if(h && op && h.at > (op.at||'') && h.at !== lastHandleAt){
-        lastHandleAt = h.at; suppressPost = true;
-        $('pos').value = h.pos; $('nd').value = h.depth; read(); $('fromRhino').hidden = false;
+      const opN = (d.ops||[]).find(o=>o.type==='notch'), hN = (d.handle||{}).notch01;
+      if(hN && opN && hN.at > (opN.at||'') && hN.at !== lastHandleAt){
+        lastHandleAt = hN.at; suppressPost = true;
+        $('pos').value = hN.pos; $('nd').value = hN.depth; read(); $('fromRhino').hidden = false;
+        suppressPost = false;
+      }
+      const opC = (d.ops||[]).find(o=>o.type==='court'), hC = (d.handle||{}).court01;
+      if(hC && opC && hC.at > (opC.at||'') && hC.at !== lastHandleAtC){
+        lastHandleAtC = hC.at; suppressPost = true;
+        $('cu').value = hC.pos_u; $('cv').value = hC.pos_v; read(); $('fromRhinoC').hidden = false;
         suppressPost = false;
       }
       const sunAt = d.results && d.results.sun ? d.results.sun.at : '';
@@ -310,16 +330,22 @@
     o += `<g transform="rotate(${rot})">`;
     const pts = per.map(p=>[p[0]-cx, -(p[1]-cy)]);
     o += `<polygon points="${pts.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`;
+    const holes = (d.results.holes||[]).map(hp=>hp.map(p=>[p[0]-cx, -(p[1]-cy)]));
+    holes.forEach(hp=>{ o += `<polygon points="${hp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${css('--bg')}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`; });
+    const allPts = pts.concat(...holes);   // segment order = outer loop then each hole loop (same as rows)
+    const segPts = []; rows.forEach((x,i)=>{ segPts.push([[x.p[0]-cx, -(x.p[1]-cy)], [x.q[0]-cx, -(x.q[1]-cy)]]); });
     const mx = Math.max(0.01, ...rows.map(x=>x.r.ovh));
-    rows.forEach((x,i)=>{ const p=pts[i], q=pts[(i+1)%pts.length]; const a = 0.15+0.85*x.r.ovh/Math.max(mx, ENGINE.OVH_LIMIT);
+    rows.forEach((x,i)=>{ const [p,q] = segPts[i]; const a = 0.15+0.85*x.r.ovh/Math.max(mx, ENGINE.OVH_LIMIT);
       o += `<line x1="${n2(p[0])}" y1="${n2(p[1])}" x2="${n2(q[0])}" y2="${n2(q[1])}" stroke="${heat}" stroke-opacity="${a.toFixed(2)}" stroke-width="${n2(fs*0.35)}"><title>${x.edge} ${fmt(x.r.ovh,1)} %</title></line>`; });
-    const h = (d.handle||{}).notch01; if(h){ const op=d.ops[0]; const E = {A:[[0,0],[1,0],[0,1],b.L],B:[[b.L,0],[0,1],[-1,0],b.W],C:[[b.L,b.W],[-1,0],[0,-1],b.L],D:[[0,b.W],[0,-1],[1,0],b.W]}[op.edge];
+    const hC = (d.handle||{}).court01, opC2 = (d.ops||[]).find(o=>o.type==='court');
+    if(hC && opC2){ o += `<circle cx="${n2(hC.pos_u*b.L-cx)}" cy="${n2(-(hC.pos_v*b.W-cy))}" r="${n2(fs*0.35)}" fill="#285ac8" stroke="${panel}" stroke-width="${n2(fs*0.08)}"/>`; }
+    const h = (d.handle||{}).notch01; if(h){ const op=(d.ops||[]).find(o=>o.type==='notch'); const E = {A:[[0,0],[1,0],[0,1],b.L],B:[[b.L,0],[0,1],[-1,0],b.W],C:[[b.L,b.W],[-1,0],[0,-1],b.L],D:[[0,b.W],[0,-1],[1,0],b.W]}[op.edge];
       const hx = E[0][0]+E[1][0]*h.pos*E[3]+E[2][0]*h.depth, hy = E[0][1]+E[1][1]*h.pos*E[3]+E[2][1]*h.depth;
       o += `<circle cx="${n2(hx-cx)}" cy="${n2(-(hy-cy))}" r="${n2(fs*0.35)}" fill="#c82828" stroke="${panel}" stroke-width="${n2(fs*0.08)}"/>`; }
     o += '</g>';
     // labels upright
     const t = rot*Math.PI/180, R = ([x,y])=>[x*Math.cos(t)-y*Math.sin(t), x*Math.sin(t)+y*Math.cos(t)];
-    rows.forEach((x,i)=>{ const p=pts[i], q=pts[(i+1)%pts.length]; const mxy=[(p[0]+q[0])/2,(p[1]+q[1])/2]; const dx=q[0]-p[0], dy=q[1]-p[1], ln=Math.hypot(dx,dy); const nx=dy/ln, ny=-dx/ln;  // outward in svg coords (polygon is clockwise on screen)
+    rows.forEach((x,i)=>{ const [p,q] = segPts[i]; const mxy=[(p[0]+q[0])/2,(p[1]+q[1])/2]; const dx=q[0]-p[0], dy=q[1]-p[1], ln=Math.hypot(dx,dy); const nx=dy/ln, ny=-dx/ln;  // outward in svg coords (outer loop is clockwise on screen; hole loop is counter-clockwise, so this points into the courtyard)
       const [lx,ly] = R([mxy[0]+nx*0.9*fs, mxy[1]+ny*0.9*fs]);
       if(x.len>2.5) o += `<text x="${n2(lx)}" y="${n2(ly)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.75)}" fill="${ink2}">${x.edge}</text>`; });
     svg.innerHTML = o;
@@ -328,14 +354,18 @@
 
   function interpret(d, rows, agg, agg0){
     const rows0 = window.__rows0, agg0dev = window.__agg0dev, totalView = window.__view;
-    const op = d.ops[0], h = (d.handle||{}).notch01 || op;
+    const op = (d.ops||[]).find(o=>o.type==='notch') || d.ops[0], h = (d.handle||{}).notch01 || op;
+    const opC = (d.ops||[]).find(o=>o.type==='court'), court = rows.filter(x=>x.loop && x.loop.startsWith('court'));
     const pieces = rows.filter(x=>x.edge.startsWith(op.edge) && x.edge.length>1);
     const sides = pieces.filter(x=>Math.abs(ENGINE.norm(x.az - ENGINE.norm(P.az0 + {A:0,B:-90,C:180,D:90}[op.edge])))>1);
     const worst = rows0.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
     const best = rows0.slice().sort((a,b)=>b.r.DF-a.r.DF)[0];
     const ps = [];
     if(pieces.length) ps.push(`凹口在 ${op.edge} 边（${ENGINE.dirName(ENGINE.norm(P.az0 + {A:0,B:-90,C:180,D:90}[op.edge]))}），深 ${fmt(h.depth,1)} m、宽 ${fmt(op.width,1)} m，把这条边切成 ${pieces.map(x=>x.edge).join(' / ')}；新增的 ${sides.map(x=>x.edge+'（'+ENGINE.dirName(x.az)+'）').join('、')} 面向凹口内部。`);
-    else ps.push('当前没有有效的凹口（深或宽为 0），立面是四段。');
+    else ps.push('当前没有有效的凹口（深或宽为 0）。');
+    if(opC && court.length){ const cw = court.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
+      ps.push(`庭院 ${fmt(opC.width,1)} × ${fmt(opC.depth,1)} m，四面内墙 ${court.map(x=>x.edge+'（'+ENGINE.dirName(x.az)+'）').join('、')}；内墙里过热最高的是 ${cw.edge}：${fmt(cw.r.ovh,1)} %。`); }
+    else if(opC) ps.push('庭院被忽略：太小、太靠外墙，或与凹口挨着（见 Grasshopper 警告）。');
     ps.push(`过热最高的是 ${worst.edge}（${ENGINE.dirName(worst.az)}，${fmt(worst.len,1)} m）：${fmt(worst.r.ovh,1)} %；采光最好的是 ${best.edge}：${fmt(best.r.DF,1)} %。`);
     const dov = agg0dev.ovh - agg0.ovh, ddf = agg0dev.DF - agg0.DF;
     ps.push(`和不开凹口的矩形相比（都不装遮阳），整栋过热 ${dov>=0?'上升':'下降'} ${fmt(Math.abs(dov),1)} 个百分点，采光 ${ddf>=0?'上升':'下降'} ${fmt(Math.abs(ddf),2)} 个百分点；立面总长从 ${fmt(2*(P.L+P.W),1)} m 变为 ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m。`);
@@ -352,6 +382,7 @@
 
   // ---------- wiring ----------
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
+  $('courtOn').addEventListener('change', ()=>{ read(); schedulePost(); });
   sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(id==='edge'||id==='period'||id==='clim'||id==='devType'||id==='devFloors') schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
@@ -363,9 +394,12 @@
     try{
       const r = await fetch('/state'); const d = await r.json(); STATE = d;
       suppressPost = true;
-      const b = d.building, w = d.windows, op = (d.ops||[])[0], h = (d.handle||{}).notch01;
+      const b = d.building, w = d.windows, op = (d.ops||[]).find(o=>o.type==='notch'), h = (d.handle||{}).notch01;
       $('L').value=b.L; $('W').value=b.W; $('floors').value=b.floors; $('H').value=b.H; $('slab').value=b.slab||0.35; $('az0').value=b.az0; $('wwr').value=Math.round(w.wwr*100); $('sill').value=w.sill;
       if(op){ $('edge').value=op.edge; $('nw').value=op.width; const useH = h && h.at > (op.at||''); $('pos').value = useH?h.pos:op.pos; $('nd').value = useH?h.depth:op.depth; if(h) lastHandleAt = h.at; }
+      const opC = (d.ops||[]).find(o=>o.type==='court'), hC = (d.handle||{}).court01;
+      $('courtOn').checked = !!opC;
+      if(opC){ $('cw').value=opC.width; $('cd').value=opC.depth; const useC = hC && hC.at > (opC.at||''); $('cu').value = useC?hC.pos_u:opC.pos_u; $('cv').value = useC?hC.pos_v:opC.pos_v; if(hC) lastHandleAtC = hC.at; }
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; }
       const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100); }
       read(); suppressPost = false;

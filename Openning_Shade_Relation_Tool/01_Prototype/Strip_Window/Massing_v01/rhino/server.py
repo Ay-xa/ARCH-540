@@ -53,23 +53,21 @@ def check_ops(ops):
     for i, o in enumerate(ops[:20]):
         if not isinstance(o, dict):
             raise ValueError("ops items must be objects")
-        if o.get("type") != "notch":
-            raise ValueError("ops[%d].type: only 'notch' in Massing_v01" % i)
-        if o.get("edge") not in EDGES:
-            raise ValueError("ops[%d].edge must be A/B/C/D" % i)
+        if o.get("type") not in ("notch", "court"):
+            raise ValueError("ops[%d].type: notch / court in Massing_v01" % i)
         if o.get("propagate", "up") != "up":
             raise ValueError("ops[%d].propagate: only 'up' in Massing_v01" % i)
-        out.append({
-            "id": str(o.get("id") or "notch%02d" % (i + 1))[:16],
-            "type": "notch",
-            "floor": int(num(o.get("floor", 1), 1, 30, "ops.floor")),
-            "propagate": "up",
-            "edge": o["edge"],
-            "pos": num(o.get("pos"), 0, 1, "ops.pos"),
-            "width": num(o.get("width"), 0, 80, "ops.width"),
-            "depth": num(o.get("depth"), 0, 30, "ops.depth"),
-            "at": now(),                                   # 页面改了就盖新时间戳；GH 用它和 handle.at 比谁后动
-        })
+        common = {"id": str(o.get("id") or "%s%02d" % (o["type"], i + 1))[:16], "type": o["type"],
+                  "floor": int(num(o.get("floor", 1), 1, 30, "ops.floor")), "propagate": "up",
+                  "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth"),
+                  "at": now()}                              # 页面改了就盖新时间戳；GH 用它和 handle.at 比谁后动
+        if o["type"] == "notch":
+            if o.get("edge") not in EDGES:
+                raise ValueError("ops[%d].edge must be A/B/C/D" % i)
+            common.update({"edge": o["edge"], "pos": num(o.get("pos"), 0, 1, "ops.pos")})
+        else:
+            common.update({"pos_u": num(o.get("pos_u"), 0, 1, "ops.pos_u"), "pos_v": num(o.get("pos_v"), 0, 1, "ops.pos_v")})
+        out.append(common)
     return out
 
 
