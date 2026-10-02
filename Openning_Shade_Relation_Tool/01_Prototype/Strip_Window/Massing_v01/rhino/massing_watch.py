@@ -23,14 +23,33 @@ def key(path):
     return tuple(k) + tuple(sorted(pts))
 
 
+def keep_alive(ghdoc):
+    """2026-10-02 自己给自己排下一次（0.5 s 后），不再只靠 Trigger：Trigger 的定时器在自动保存 / 跑别的脚本后会悄悄停掉，
+    页面的改动就没人读了。ScheduleSolution 是 GH 文档自己的机制，Trigger 停了也照跑；有排程在等时不重复排。"""
+    import time
+    now_ = time.time()
+    if now_ - sc.sticky.get("massing_watch_next", 0.0) < 0.45:
+        return
+    sc.sticky["massing_watch_next"] = now_
+    me = ghenv.Component
+    def tick(d):
+        me.ExpireSolution(False)
+    try:
+        ghdoc.ScheduleSolution(500, gh.Kernel.GH_Document.GH_ScheduleDelegate(tick))
+    except Exception:
+        pass
+
+
 def main(path):
+    ghdoc = ghenv.Component.OnPingDocument()
+    if ghdoc:
+        keep_alive(ghdoc)
     if not path:
         return "no path"
     k = key(path)
     if sc.sticky.get("massing_watch_key") == k:
         return "idle"
     sc.sticky["massing_watch_key"] = k
-    ghdoc = ghenv.Component.OnPingDocument()
     comp = ghdoc.FindObject(System.Guid(SYNC_GUID), True) if ghdoc else None
     if comp is None:
         return "sync component not found"

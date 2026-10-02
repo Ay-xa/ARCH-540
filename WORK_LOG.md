@@ -555,6 +555,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 用户定名 **MassShadeLight**。中文页标题 / 抬头、英文生成表都改了。
 - 用户：对比页里的「剖面」（section）去掉，读图页也只留读图部分。原因：剖面卡是后加的，没进「非设计视图隐藏」那条 CSS。补进去后：设计页有平面 / 立面段 / 剖面 / 解读；对比页只有方案列表 + 对比；读图页只有读图卡。两页自测 19/19。
 
+**README 素材：来源、GIF；看门狗自排程（同日续）**
+- 来源：用户给 https://phichina.com/passive-house-requirements.html ，第 4 条「一年中高于 25 °C 的小时不超过 10 %」；页面无版本号，记「2026-10-02 访问」。5 % 建议值是工具自己的，README 里分开写。已记入 `README_material.md`。
+- 例子：用户要 GIF。旧截图抬头还是旧名字，所以英文页重新抓了四帧（设计 + 平面、立面段表、剖面、对比），加两张 Rhino 渲染，Pillow 拼成 `screenshots/demo.gif`（6 帧、800×640、1.3 MB，每帧 3–3.5 s，底部英文说明）。抓对比帧时临时存了 Umbrella / Pivot 两个方案，截完已删，装置还原为伞式。
+- 又一次发现 Trigger 定时器自己停了（02:10–02:58 之间，没有我的操作；Rhino 自动保存前后）。改 `massing_watch.py`：每次跑完用 `ScheduleSolution(500)` 给自己排下一次，0.45 s 内有排程就不重复；Trigger 停了也照跑。验证：把 Trigger 锁住、touch state.json，watch_key 照样跟上。massing.gh 已保存。
+- 剖面图例按字符估宽（CJK 11.2 px、其他 6.3 px）并靠左夹住，英文长句不再被裁。对比句「higher / lower / same」前补空格。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
