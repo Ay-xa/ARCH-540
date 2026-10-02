@@ -83,7 +83,6 @@
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
   .plan{flex:1 1 640px;max-width:900px}
   #section{width:100%;height:auto;display:block}
-  table.heat tr.pick{cursor:pointer} table.heat tr.pick.on td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
   .plan svg{width:100%;height:auto;display:block}
   .interp p{margin:6px 0;font-size:13px}
   @media (max-width:760px){
@@ -319,10 +318,10 @@
   </div>
 
   <div class="card" id="secCard">
-    <div class="bar"><label>剖面</label><select id="secSeg" style="width:auto;max-width:260px;padding:2px 6px;font-size:12px"></select><b id="secSum"></b></div>
+    <div class="bar"><label>剖面</label><b id="secSum"></b></div>
     <svg id="section" viewBox="0 0 640 320" role="img" aria-label="所选立面段的窗洞剖面：窗台、窗头、遮阳装置与太阳角"></svg>
-    <div class="note" id="secNote">选一段墙（上面表格点一行也行）。</div>
-    <div class="note">剖面：外面在左，房间在右。黑色粗线是遮阳装置的侧影。红色是高温时段的直射光，橙色是冬季直射光，角度是这个朝向在那段时间里的直射加权平均剖面角（气象数据）；两条细虚线是夏至、冬至正午的实际太阳角（按气候站纬度）。光线被装置挡掉的部分不画；穿过板缝的用淡色画。</div>
+    <div class="note" id="secNote">等待数据。</div>
+    <div class="note">切在遮阳装置上：自动取装了装置、过热最高的那段外墙（没装置时画窗洞本身）。外面在左，房间在右。黑色粗线是遮阳装置的侧影。红色是高温时段的直射光，橙色是冬季直射光，角度是这个朝向在那段时间里的直射加权平均剖面角（气象数据）；两条细虚线是夏至、冬至正午的实际太阳角（按气候站纬度）。光线被装置挡掉的部分不画；穿过板缝的用淡色画。</div>
   </div>
 
   <div class="card interp" id="interpCard">
@@ -524,7 +523,7 @@
     const expoAvg = expo ? rows.reduce((a,x,i)=>a+(expo[i]==null?1:expo[i])*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
     const vis = i => showF==='all' || String(rows[i].floor)===showF;
     const totalView = rows.reduce((a,x)=>a+(x.dev?x.dev.view:1)*x.len,0)/Math.max(1e-9,rows.reduce((a,x)=>a+x.len,0));
-    $('segBody').innerHTML = rows.map((x,i)=> !vis(i) ? '' : `<tr data-i="${i}" class="pick${i===secSel?' on':''}" title="点一下：在下面的剖面里看这一段"><td>${nF>1?'F'+x.floor+' ':''}${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${viewOf(x)}</td><td class="${cls(rows0[i].r.ovh)}">${fmt(rows0[i].r.ovh,1)} %</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(rows0[i].r.DF)}">${fmt(rows0[i].r.DF,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${expoCell(i)}${sunCell(i)}</tr>`).join('')
+    $('segBody').innerHTML = rows.map((x,i)=> !vis(i) ? '' : `<tr><td>${nF>1?'F'+x.floor+' ':''}${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${viewOf(x)}</td><td class="${cls(rows0[i].r.ovh)}">${fmt(rows0[i].r.ovh,1)} %</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(rows0[i].r.DF)}">${fmt(rows0[i].r.DF,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${expoCell(i)}${sunCell(i)}</tr>`).join('')
       + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${expoAvg==null?'':fmt(expoAvg*100,0)+' %'}</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
     $('rOvhDev').innerHTML = `<span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span> → <span class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</span>`;
     $('rDFDev').innerHTML = `<span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span> → <span class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</span>`;
@@ -539,15 +538,10 @@
   }
 
   // ---------- section (2026-10-02): one wall segment cut through its window — sill / head / device / sun angles ----------
-  let secSel = null;
-  $('secSeg').addEventListener('change', ()=>{ secSel = parseInt($('secSeg').value,10); if(window.__rows && STATE) render(STATE); });
-  $('segBody').addEventListener('click', e=>{ const tr = e.target.closest('tr'); if(!tr || tr.dataset.i==null) return; secSel = parseInt(tr.dataset.i,10); if(window.__rows && STATE) render(STATE); });
+  let secSel = 0;
   function renderSection(d, rows, rows0){
     const svg = $('section'); if(!rows || !rows.length){ svg.innerHTML = ''; $('secSum').textContent = ''; return; }
-    const sel = $('secSeg'); const sig = rows.map(x=>x.floor+x.edge).join('|');
-    if(sel.dataset.sig !== sig){ sel.innerHTML = rows.map((x,i)=>`<option value="${i}">F${x.floor} ${x.edge} · ${ENGINE.dirName(x.az)} ${fmt(x.az,0)}° · ${fmt(x.len,1)} m</option>`).join(''); sel.dataset.sig = sig; }
-    if(secSel==null || secSel>=rows.length){ let best=-1, bv=-1; rows.forEach((x,i)=>{ const v = (x.winArea>0 ? x.r.hotPer : -1) + (x.dev && x.dev.units>0 ? 1e6 : 0) + (String(x.loop||'outer').startsWith('outer') ? 1e3 : 0); if(v>bv){ bv=v; best=i; } }); secSel = best<0?0:best; }   // 默认：外圈、装了装置、过热最高的那一段
-    sel.value = String(secSel);
+    { let best=-1, bv=-1; rows.forEach((x,i)=>{ const v = (x.winArea>0 ? x.r.hotPer : -1) + (x.dev && x.dev.units>0 ? 1e6 : 0) + (String(x.loop||'outer').startsWith('outer') ? 1e3 : 0); if(v>bv){ bv=v; best=i; } }); secSel = best<0?0:best; }   // 切在装置上：外圈、装了装置、过热最高的那一段（2026-10-02 用户：不用每面墙都展示）
     const x = rows[secSel], r = x.r, r0 = rows0 ? rows0[secSel].r : r, dv = x.dev && x.dev.units>0 ? x.dev : null;
     const H = P.H, slab = P.slab, sill = P.sill, winH = d.results.winH, head = sill+winH, Dr = Math.min(P.depth, 6), wall = 0.3;
     const dst = P.standoff, w = P.unitW, tiltDeg = dv && dv.tilt!=null ? dv.tilt : P.tilt, th = tiltDeg*Math.PI/180, cT = Math.cos(th), sT = Math.sin(th);

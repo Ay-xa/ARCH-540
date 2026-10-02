@@ -505,6 +505,9 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 质量：四种装置各截了一张（screenshots/page_section_*.jpg）。看得清关系；伞式单元 3.7 m 宽时六角比层高还高，剖面一眼就能看出来，这是模型本身的尺度问题，不是画错。自测 19/19。
 - 浏览器截图的小技巧：页面窄时把 svg 的 outerHTML 临时替换进 body 再截，比 resize 清楚。
 
+**剖面只切装置（同日续）**
+- 用户：不用每面墙都展示，只展示切到遮阳装置的剖面。去掉了段下拉和表格点行；剖面自动取外圈、装了装置、过热最高的那段，标题写明是哪一段。没装置时画窗洞本身。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
