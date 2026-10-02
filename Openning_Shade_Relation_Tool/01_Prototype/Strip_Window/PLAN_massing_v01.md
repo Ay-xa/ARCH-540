@@ -158,6 +158,11 @@ Strip_Window/
 
 ---
 
+## 8b. 2026-10-03 的两处环境改动
+
+- **预览配色**：三个 Custom Preview（楼板浅灰不透明、窗条蓝半透明、装置橙不透明）；脚本组件和 LB 日照组件的默认预览关闭（要看日照色网格时右键 Direct Sun Hours → Preview）。
+- **看门组件**：Trigger 不再直接重算 `massing sync`，而是每 0.5 s 触发 `massing watch`（`massing_watch.py`），它只在 state.json 或手柄点变化时才让主组件重算。效果：模型不再每半秒闪一次；链路不变。
+
 ## 9. 已定与待定
 
 - 已定：遮阳第一刀不做；指标用共享引擎；凹口默认在 A 边（朝南）。

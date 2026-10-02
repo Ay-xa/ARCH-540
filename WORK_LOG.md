@@ -411,5 +411,11 @@ Records are appended after each session. Most recent entry is at the bottom.
 **Grasshopper 预览配色（同日续）**
 - 用户：红色透明体块看不清。加三个 Custom Preview（`preview floors / windows / devices`），材质直接写在 M 端的 PersistentData（`GH_Material(Color)`）：楼板 (228,224,214) 不透明、窗条 (80,150,230) α150、装置 (196,104,38) 不透明。`massing sync` 和两个 LB Direct Sun Hours 的组件预览设 Hidden（LB 的日照色网格与窗条同面会闪烁；要看日照色时右键该组件 → Preview 打开即可）。截图 `screenshots/rhino_preview_colours.jpg`。
 
+**模型闪动 → 看门组件（同日续）**
+- 原因：Trigger 每 0.5 s 直接重算 `massing sync`，下游 Custom Preview 每次清掉重画；以前红线框不显眼，实体材质后整栋在闪。
+- 改法：新组件 `massing watch`（`massing_watch.py`）：Trigger 只触发它；它比对 state.json 的 mtime / size 和两个手柄点坐标（sticky `massing_watch_key`），变了才 `ScheduleSolution` 去 `ExpireSolution` 主组件（按 InstanceGuid 59ab856d 找）。空闲时状态 `idle`，预览不再重画。
+- GH 改 Timer 目标要用 `RemoveTarget / AddTarget`，`Targets.Clear()` 对返回的副本无效。
+- 验证：页面改装置 → seq 27→28、日照重算；Rhino 平移 notch01 → json handle 跟着更新；空闲时 watch = idle。
+
 **Next session: suggested starting point**
 - 方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
