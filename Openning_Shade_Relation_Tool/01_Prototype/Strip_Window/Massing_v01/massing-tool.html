@@ -217,9 +217,11 @@
   </div>
 
   <div class="card plan" id="planCard">
-    <div class="bar"><label>平面</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select><b id="planSum"></b></div>
+    <div class="bar"><label>平面</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select>
+      <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
+      <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
     <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
-    <div class="cap">北朝上。段按过热着色，红点为凹口手柄。</div>
+    <div class="cap">北朝上。底色 = 每一格的过热暴露（或采光）：每格从面向它的墙段取值，按离墙距离衰减，直射条带按太阳角度落在离墙一段距离上（Version_06 的网格规则，墙段代替四面整墙）；庭院挡在中间时不算。灰格 = 离所有外墙都超过房间带进深，立面管不到。鼠标停在格上看数值。段按过热着色；红点凹口手柄、蓝点庭院手柄。</div>
   </div>
 
   <div class="card interp" id="interpCard">
@@ -378,10 +380,40 @@
     window.__rows = rows; window.__agg = agg; window.__agg0 = agg0;
   }
 
+  // ---------- plan grid: every cell takes the engine's kernel from each wall segment that faces it (V06 gridConditions, segments instead of four walls) ----------
+  const pip = (pt, poly) => { let c = false; for(let i=0, j=poly.length-1; i<poly.length; j=i++){ const a=poly[i], b=poly[j]; if(((a[1]>pt[1])!==(b[1]>pt[1])) && (pt[0] < (b[0]-a[0])*(pt[1]-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; };
+  const segX = (a,b,c,d) => { const r=[b[0]-a[0],b[1]-a[1]], s_=[d[0]-c[0],d[1]-c[1]], den=r[0]*s_[1]-r[1]*s_[0]; if(Math.abs(den)<1e-12) return false; const q=[c[0]-a[0],c[1]-a[1]]; const t=(q[0]*s_[1]-q[1]*s_[0])/den, u=(q[0]*r[1]-q[1]*r[0])/den; return t>1e-6&&t<1-1e-6&&u>1e-6&&u<1-1e-6; };
+  function planGrid(F, rows, grid, depth){
+    const per = F.perimeter, holes = F.holes||[]; const xs = per.map(p=>p[0]), ys = per.map(p=>p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const nx = Math.max(1, Math.round((x1-x0)/grid)), ny = Math.max(1, Math.round((y1-y0)/grid)), gx = (x1-x0)/nx, gy = (y1-y0)/ny, half = Math.min(gx,gy)/2;
+    const S = rows.map(x=>{ const r = x.r, dx = x.q[0]-x.p[0], dy = x.q[1]-x.p[1], ln = Math.hypot(dx,dy);
+      return {x, p:x.p, q:x.q, ux:dx/ln, uy:dy/ln, inx:-dy/ln, iny:dx/ln, ln,   // inward normal = −outward (outward = (dy,−dx)/ln, same as massing_sync)
+        DF:r.DF, lam:ENGINE.ZG.lamFac*r.head, hot:r.hotPer, dirH:r.fsH>0?r.dH*(1-r.shH)/r.fsH:0, patchH:ENGINE.sunPatch(r.sill,r.head,r.pH,depth),
+        gain:r.zoneA>0?r.Qgain/r.zoneA:0, dirW:r.fsW>0?r.dW*(1-r.shW)/r.fsW:0, patchW:ENGINE.sunPatch(r.sill,r.head,r.pW,depth)}; });
+    const hedges = []; holes.forEach(hp=> hp.forEach((a,i)=> hedges.push([a, hp[(i+1)%hp.length]])));
+    const cells = [];
+    for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const x = x0+(i+.5)*gx, y = y0+(j+.5)*gy;
+      if(!pip([x,y], per) || holes.some(hp=>pip([x,y], hp))) continue;
+      const c = {x, y, gx, gy, DF:0, Hx:0, Wx:0, inStrip:false, top:null, topV:0, topD:0};
+      S.forEach(sg=>{ const rx = x-sg.p[0], ry = y-sg.p[1], d = rx*sg.inx+ry*sg.iny, t = rx*sg.ux+ry*sg.uy;
+        if(d<=0 || d>depth+half || t<-half || t>sg.ln+half) return;
+        const foot = [x-sg.inx*d, y-sg.iny*d]; if(hedges.some(e=>segX([x,y], foot, e[0], e[1]))) return;   // a courtyard in between blocks it
+        const kd = ENGINE.kernelCell(d-half, d+half, depth, sg.lam, null), kh = ENGINE.kernelCell(d-half, d+half, depth, sg.lam, sg.patchH), kw = ENGINE.kernelCell(d-half, d+half, depth, sg.lam, sg.patchW);
+        const hotK = ENGINE.ZG.mix*kh.one+(1-ENGINE.ZG.mix)*(sg.dirH*kh.u+(1-sg.dirH)*kh.phi), gainK = ENGINE.ZG.mix*kw.one+(1-ENGINE.ZG.mix)*(sg.dirW*kw.u+(1-sg.dirW)*kw.phi);
+        const hx = sg.hot*hotK; c.DF += sg.DF*kd.phi; c.Hx += hx; c.Wx += sg.gain*gainK; if(d<=depth+1e-9) c.inStrip = true;
+        if(hx>c.topV){ c.topV = hx; c.top = sg.x; c.topD = d; } });
+      cells.push(c); }
+    const max = {DF:Math.max(0,...cells.map(c=>c.DF)), Hx:Math.max(0,...cells.map(c=>c.Hx)), Wx:Math.max(0,...cells.map(c=>c.Wx))};
+    const area = cells.length*gx*gy, deep = cells.filter(c=>!c.inStrip).length*gx*gy;
+    return {cells, max, gx, gy, area, deep, depth};
+  }
   function drawPlan(d, rows){
     const svg = $('plan'), b = d.building; const fl = d.results.floors || []; const fi = Math.max(0, fl.findIndex(f=>String(f.i)===$('planFloor').value));
     const F = fl[fi]; const per = F ? F.perimeter : d.results.perimeter; if(!per || !per.length) return;
     rows = rows.filter(x=>x.floor===F.i);   // colour the selected floor's own segments
+    const mode = $('planMode').value, grid = parseFloat($('planGrid').value), depth = ctx(1).depth;
+    const G = planGrid(F, rows, grid, depth); window.__grid = G; window.__gridFloor = F.i;
     const R0 = Math.hypot(b.L, b.W)/2, pad = 2.5, V = 2*(R0+pad);
     svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
     const fs = Math.max(0.5, 12/((svg.clientWidth||330)/V)), n2 = x=>(+x).toFixed(2);
@@ -399,11 +431,14 @@
     // other floors' outlines, dashed, for setbacks
     fl.forEach(g=>{ if(g.i===F.i) return; const gp = g.perimeter.map(p=>[p[0]-cx, -(p[1]-cy)]); o += `<polygon points="${gp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="none" stroke="${ink2}" stroke-width="${n2(fs*0.06)}" stroke-dasharray="${n2(fs*0.3)} ${n2(fs*0.25)}"/>`; });
     holes.forEach(hp=>{ o += `<polygon points="${hp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${css('--bg')}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`; });
+    if(mode!=='none'){ const key = mode==='hot' ? 'Hx' : 'DF', mx = Math.max(1e-9, G.max[key]), col = mode==='hot' ? heat : css('--ok'), unit = mode==='hot' ? ' kWh/m²' : ' %';
+      G.cells.forEach(c=>{ const v = c[key], a = c.inStrip ? 0.08+0.82*v/mx : 0; const fill = c.inStrip ? col : ink2;
+        o += `<rect x="${n2(c.x-c.gx/2-cx)}" y="${n2(-(c.y-cy)-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${fill}" fill-opacity="${(c.inStrip?a:0.12).toFixed(2)}" stroke="none"><title>${c.inStrip ? fmt(v, mode==='hot'?1:1)+unit+(c.top?'（主要来自 '+c.top.edge+'，离墙 '+fmt(c.topD,1)+' m）':'') : '离所有外墙都超过 '+fmt(depth,1)+' m，不在房间带内'}</title></rect>`; }); }
     const allPts = pts.concat(...holes);   // segment order = outer loop then each hole loop (same as rows)
     const segPts = []; rows.forEach((x,i)=>{ segPts.push([[x.p[0]-cx, -(x.p[1]-cy)], [x.q[0]-cx, -(x.q[1]-cy)]]); });
     const mx = Math.max(0.01, ...rows.map(x=>x.r.ovh));
     rows.forEach((x,i)=>{ const [p,q] = segPts[i]; const a = 0.15+0.85*x.r.ovh/Math.max(mx, ENGINE.OVH_LIMIT);
-      o += `<line x1="${n2(p[0])}" y1="${n2(p[1])}" x2="${n2(q[0])}" y2="${n2(q[1])}" stroke="${heat}" stroke-opacity="${a.toFixed(2)}" stroke-width="${n2(fs*0.35)}"><title>${x.edge} ${fmt(x.r.ovh,1)} %</title></line>`; });
+      o += `<line x1="${n2(p[0])}" y1="${n2(p[1])}" x2="${n2(q[0])}" y2="${n2(q[1])}" stroke="${heat}" stroke-opacity="${a.toFixed(2)}" stroke-width="${n2(fs*(mode==='none'?0.35:0.18))}"><title>${x.edge} ${fmt(x.r.ovh,1)} %</title></line>`; });
     const hC = (d.handle||{}).court01, opC2 = (d.ops||[]).find(o=>o.type==='court');
     if(hC && opC2){ o += `<circle cx="${n2(hC.pos_u*b.L-cx)}" cy="${n2(-(hC.pos_v*b.W-cy))}" r="${n2(fs*0.35)}" fill="#285ac8" stroke="${panel}" stroke-width="${n2(fs*0.08)}"/>`; }
     const h = (d.handle||{}).notch01; if(h){ const op=(d.ops||[]).find(o=>o.type==='notch'); const E = {A:[[0,0],[1,0],[0,1],b.L],B:[[b.L,0],[0,1],[-1,0],b.W],C:[[b.L,b.W],[-1,0],[0,-1],b.L],D:[[0,b.W],[0,-1],[1,0],b.W]}[op.edge];
@@ -416,7 +451,7 @@
       const [lx,ly] = R([mxy[0]+nx*0.9*fs, mxy[1]+ny*0.9*fs]);
       if(x.len>2.5) o += `<text x="${n2(lx)}" y="${n2(ly)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.75)}" fill="${ink2}">${x.edge}</text>`; });
     svg.innerHTML = o;
-    $('planSum').textContent = `F${F.i} · ${rows.length} 段 · ${fmt(F.area,0)} m²`;
+    $('planSum').textContent = `F${F.i} · ${rows.length} 段 · ${fmt(F.area,0)} m²` + (mode==='hot' ? ` · 过热暴露最高 ${fmt(G.max.Hx,1)} kWh/m²` : mode==='df' ? ` · 采光最高 ${fmt(G.max.DF,1)} %` : '') + (G.deep>0.5 ? ` · ${fmt(100*G.deep/G.area,0)} % 面积在房间带外` : '');
   }
 
   function interpret(d, rows, agg, agg0){
@@ -450,6 +485,12 @@
       const onBase = pt => ({A:Math.abs(pt[1])<1e-6, B:Math.abs(pt[0]-P.L)<1e-6, C:Math.abs(pt[1]-P.W)<1e-6, D:Math.abs(pt[0])<1e-6})[op.edge];
       const inner = pieces.filter(x=>x.p && x.q && !(onBase(x.p) && onBase(x.q))).map(x=>[x.edge, sun.perSegment[rows.indexOf(x)]]).filter(a=>a[1]!=null);
       ps.push(`Ladybug 直射日照（${{summer:'夏季',winter:'冬季',annual:'全年'}[sun.period]||sun.period}）：最多的是 ${hi[0]}（${fmt(hi[1],0)} h），最少的是 ${lo[0]}（${fmt(lo[1],0)} h）${inner.length?`；凹口内的 ${inner.map(a=>a[0]+' '+fmt(a[1],0)+' h').join('、')} 被凹口两侧的楼板遮住了一部分`:''}。`); }
+    const PG = window.__grid;
+    if(PG && PG.cells.length){ const hot = PG.cells.filter(c=>c.inStrip).slice().sort((a,b)=>b.Hx-a.Hx)[0]; const cool = PG.cells.filter(c=>c.inStrip).slice().sort((a,b)=>a.Hx-b.Hx)[0];
+      const near = (x=>x? (lab(x)) : '—');
+      let t = `平面热力图（F${window.__gridFloor}，格 ${fmt(PG.gx,1)} m，房间带进深 ${fmt(PG.depth,1)} m）：过热暴露最高的一块在 ${hot&&hot.top?near(hot.top)+' 边后 '+fmt(hot.topD,1)+' m':'—'}（${fmt(hot?hot.Hx:0,1)} kWh/m²），最低的在 ${cool&&cool.top?near(cool.top)+' 边后 '+fmt(cool.topD,1)+' m':'—'}（${fmt(cool?cool.Hx:0,1)} kWh/m²）`;
+      if(PG.deep>0.5) t += `；有 ${fmt(100*PG.deep/PG.area,0)} % 的楼板离所有外墙都超过 ${fmt(PG.depth,1)} m，不在任何房间带里，立面对它没有影响，这块面积要靠人工照明`;
+      t += '。'; ps.push(t); }
     const expo = window.__expo;
     if(expo){ const rows0 = window.__rows0, rowsFree = calcSegs(d.results.segments, d.results.winH, false, null), aFree = aggregate(rowsFree), a0 = window.__agg0dev;   // 都不装遮阳：自由墙面 vs 算进自遮挡
       const shaded = rows0.map((x,i)=>({x, e:expo[i], i, drop:rowsFree[i].r.ovh - x.r.ovh})).filter(o=>o.e!=null && o.e<0.9);
@@ -473,7 +514,7 @@
   $('courtOn').addEventListener('change', ()=>{ read(); schedulePost(); });
   sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
-  $('planFloor').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
+  ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
@@ -518,6 +559,10 @@
     eq('knee split: 2 window groups', rk.groups.length, 2); eq('knee lowers overheating', rk.ovh < rows[0].r.ovh ? 1 : 0, 1);
     const re = calcSegs([bs[0]], 1.192, false, [0.5])[0].r; eq('expo 0.5 lowers overheating', re.ovh < rows[0].r.ovh ? 1 : 0, 1); eq('expo 0.5 keeps DF', re.DF, rows[0].r.DF);
     eq('expo 1 identical', calcSegs([bs[0]], 1.192, false, [1])[0].r.ovh, rows[0].r.ovh);
+    const Fq = {perimeter:[[0,0],[30,0],[30,16],[0,16]], holes:[]}; const rq = bs.map((x,i)=>Object.assign({}, x, {p:[[0,0],[30,0],[30,16],[0,16]][i], q:[[30,0],[30,16],[0,16],[0,0]][i]}));
+    const Gq = planGrid(Fq, calcSegs(rq, 1.192), 1, 5); eq('grid 30×16 cells', Gq.cells.length, 480);
+    const near = Gq.cells.find(c=>Math.abs(c.x-15.5)<1e-6 && Math.abs(c.y-0.5)<1e-6), far = Gq.cells.find(c=>Math.abs(c.x-15.5)<1e-6 && Math.abs(c.y-4.5)<1e-6), mid = Gq.cells.find(c=>Math.abs(c.x-15.5)<1e-6 && Math.abs(c.y-8.5)<1e-6);
+    eq('cell near A hotter than 4 m in', near.Hx > far.Hx ? 1 : 0, 1); eq('mid-plan cell outside strips', mid.inStrip ? 1 : 0, 0); eq('near cell mainly from A', near.top.edge==='A'?1:0, 1);
     window.__test = T; console.log('massing self-test', T.filter(t=>!t[1]).length===0 ? 'ALL PASS' : 'FAIL', T);
   }
 })();
