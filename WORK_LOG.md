@@ -514,6 +514,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 点 + 新增凹口：不再盲目复制当前这个再挪 0.35，而是试一圈位置（同边 ±0.35、四条边 0.5 / 0.25 / 0.75，深的放不下再试 3 m 深），挑第一个在所有楼层都不重叠、也不把已有庭院挤掉的；都不行才复制并标 ⚠。
 - 验证：当前方案点 + 得到「#3 D 深 3.0」无警告（之前得到 B 0.83 ⚠ 或把庭院挤没）。页面规则和 Rhino 警告逐层一致。自测 19/19。
 
+**周边环境（同日续）**
+- 用户给了一张参考图（白模 + 虚线地块 + 双坡小房子 + 针叶树 + 人），要在主建筑周围生成 context，只为好看、不求准确。
+- 新脚本 `rhino/context_gen.py`：在 Rhino 里整段运行即可（MCP 用 exec 跑）。50×50 m 地块对准主建筑中心（从 state.json 读 L、W），薄底板 + 实体小薄片拼的虚线边界（线型在 Arctic 里看不清）；260×260 m 街区，用地 16×24 m、街 8 m，背靠背两排，房子 8–12 × 9–13 m、檐口 5.6–6.8 m、双坡（20 % 平顶），朝街、带点随机；树：针叶（锥）/ 阔叶（球）6:4，地块里 34 棵、周边按面积撒；人：圆柱 + 球，60 个，六成在地块里。参数（SEED / LOT / AREA / 密度）都在文件头。旧环境按图层清掉再生成。
+- 图层 Context::Ground / Lot / Houses / Trees / People；主建筑仍是 GH 预览，不受影响；环境不进 Ladybug 遮挡，数字不变。
+- 显示：Perspective 切到 Arctic + 平行投影，截图 `screenshots/rhino_context_v2.png`（122 栋、211 棵树、60 人）。
+- 保存：massing.3dm 仍是只读（旧实例的锁），`doc.Save()` 失败；用 `doc.WriteFile` 写到 scratch 再拷回，文件从 ~0.5 MB 变 18.8 MB（带渲染网格）。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
