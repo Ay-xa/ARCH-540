@@ -153,6 +153,7 @@ Strip_Window/
 3. 操作词汇：~~庭院~~ **庭院已做（2026-10-02）**：`ops` 里第二条 `{type:'court', pos_u, pos_v, width, depth}`，中心手柄 `court01`（蓝点）；周界 = 外圈 + 内圈（顺时针，墙朝天井），内墙段 Y1–Y4；楼板实体带洞（Extrusion 内轮廓只能在 z=0 做一次再逐层平移）；庭院离外墙 ≥ 1 m、与凹口挨着时忽略并写警告。**U 形、移边、楼层组 2026-10-02 已做**：凹口深度放开到对面墙前 1 m（深过一半即 U 形）；`building.groups = {podium, setback:{A,B,C,D}}`，第 1 组按基底矩形、第 2 组四边各自向内退（退台 = 上部楼层的移边）；每个操作 `apply: all / g1 / g2`；每层自己的周界与立面段（`results.segments[].floor`，`results.floors[].rect / group / perimeter / holes`），引擎按段逐层算（floors = 1），页面段表可按层筛选、平面可选层并虚线叠出其他层轮廓。父子比例（F3 = F2 × 0.7）待做。
 4. 平面热力图：网格改为"每格找最近墙段"，接回引擎的网格条件。
 5. Claude 读图填卡接到网页；解读由模板换成模型。
+6. **体量自遮挡进过热 2026-10-03 已做**：GH 里第二个 LB Direct Sun Hours（遮挡只有楼板，不含装置）；`massing sun` 另接 SunPath 的太阳向量，按每段外法线数出"自由墙面"的日照小时；写回 `results.sun.massOnly / free / expo`（expo = 只有楼板遮挡 ÷ 自由墙面）。引擎新字段 `seg.expo` 只折减直射（季节累计 `fs = 1 − d·(1 − (1 − sh)·expo)`，逐时 `beam × expo`），缺省 1 与 V06 逐位相同。页面段表加「受晒」列，过热两列已含折减；解读加自遮挡句（按过热降幅排，庭院被上层盖住时说明）。近似：按分析期平均套到全年；散射与采光不折。两边气候已是同一文件（`EPW[clim]` 与 `CLIM[clim].file` 同名）。
 
 ---
 

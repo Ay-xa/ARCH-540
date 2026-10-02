@@ -52,3 +52,11 @@
 ```
 
 经 http 打开自检页：`python -m http.server 8766 --directory Passivehouse_Tool/01_Prototypes`，然后访问 `http://localhost:8766/_shared/engine-test.html`。
+
+
+## 2026-10-03：体量自遮挡（seg.expo）
+
+- `seg.expo`：0–1，这段墙在体量自遮挡后的受晒比例。来源是 Ladybug 直射日照小时：有楼板（凹口两侧、庭院四壁、退台）遮挡时的小时数 ÷ 同朝向自由墙面的小时数。
+- 只折减直射：季节累计里 `fs = 1 − d·(1 − (1 − sh)·expo)`（挑檐先挡掉 sh，剩下的再乘受晒比例）；逐时模拟里 `beam0 *= expo`。散射与采光不动（日照小时给不出天空可见度）。
+- 缺省 1：`fsOf` 走 `1 − d·sh` 的原式，逐时 `× 1`，所有数值与 V06 逐位相同（engine-test 不变）。
+- 近似：受晒比例按分析期（夏 / 冬 / 全年）平均，套用到全年每小时；早上被挡和中午被挡算成一样。

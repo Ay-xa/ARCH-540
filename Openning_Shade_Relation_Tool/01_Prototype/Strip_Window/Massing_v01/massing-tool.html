@@ -193,7 +193,7 @@
   <div class="card" id="dataCard">
     <div class="bar"><label>立面段 · 过热与采光</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">全部楼层</option></select><b id="dataSum"></b></div>
     <table class="heat">
-      <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>视野</th><th>过热 无板</th><th>有板</th><th>采光 无板</th><th>有板</th><th id="sunHead">日照</th></tr></thead>
+      <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>视野</th><th>过热 无板</th><th>有板</th><th>采光 无板</th><th>有板</th><th>受晒</th><th id="sunHead">日照</th></tr></thead>
       <tbody id="segBody"><tr><td colspan="9" class="cap">等待 Rhino 写回立面段…</td></tr></tbody>
     </table>
     <div class="readout" style="margin-top:6px">
@@ -203,7 +203,7 @@
       <span>整栋采光（无凹口 → 有凹口，均无板）</span><span id="rDF">—</span>
       <span>冬季净得热（无板 → 有板）</span><span id="rNet">—</span>
     </div>
-    <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。这两列是引擎估算。<br>日照 = Ladybug「Direct Sun Hours」：分析期内窗条每点被太阳直射的小时数，三层平均，楼板（含凹口两侧）和遮阳装置作遮挡，不含周边建筑，也不含云（几何日照，不是辐射量）；入射辐射要装 Radiance 以后才能接。</div>
+    <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。这两列是引擎估算，已含「受晒」折减。<br>受晒 = 体量自遮挡后这段墙还能晒到的直射小时占同朝向自由墙面的比例（Ladybug：只有楼板遮挡 ÷ 没有遮挡），引擎用它折减直射得热，散射和采光不折；按分析期平均，套到全年。100 % = 没被自己的体量挡。<br>日照 = Ladybug「Direct Sun Hours」：分析期内窗条每点被太阳直射的小时数，三层平均，楼板（含凹口两侧）和遮阳装置作遮挡，不含周边建筑，也不含云（几何日照，不是辐射量）；入射辐射要装 Radiance 以后才能接。</div>
   </div>
 
   <div class="card plan" id="planCard">
@@ -298,9 +298,9 @@
 
   // ---------- engine ----------
   function ctx(floors){ const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A); return {H:P.H, floors:floors||1, depth:Math.min(P.depth, Math.min(P.L,P.W)/2), A, clim:P.clim, mass:P.mass, vent:P.vent}; }
-  function calcSegs(segs, winH, withDev){
+  function calcSegs(segs, winH, withDev, expo){   // expo：每段受晒比例数组（Ladybug 自遮挡），缺省全 1
     const c = ctx(1);   // 每段按自己的楼层单独算（楼层组之后各层周界不同）
-    return segs.map(s=>{ const dv = withDev && s.dev && s.dev.units>0 ? s.dev : null;
+    return segs.map((s,i)=>{ const dv = withDev && s.dev && s.dev.units>0 ? s.dev : null; const ex = expo && expo[i]!=null ? expo[i] : 1;
       let wins = [];
       if(winH>0.01){
         if(!dv) wins = [{w:s.len, h:winH, sill:P.sill}];
@@ -311,7 +311,7 @@
           if(oL>0.05) wins.push({w:oL, h:winH, sill:P.sill});
         } else wins = [{w:s.len, h:winH, sill:P.sill, screen:dv.screen, screenDay:dv.screenDay}];
       }
-      const r = ENGINE.calcSegment({len:s.len, az:s.az, oh:0, windows:wins}, c); return Object.assign({}, s, {r}); });
+      const r = ENGINE.calcSegment({len:s.len, az:s.az, oh:0, windows:wins, expo:ex}, c); return Object.assign({}, s, {r, expo:ex}); });
   }
   function aggregate(rows){ let za=0, ov=0, lw=0, df=0, net=0; rows.forEach(x=>{ za+=x.r.zoneA; ov+=x.r.ovh*x.r.zoneA; lw+=x.len; df+=x.r.DF*x.len; net+=x.r.net; }); return {ovh:za?ov/za:0, DF:lw?df/lw:0, net}; }
   function baseSegs(res){ // each floor's plain rectangle (with its group's setbacks), no ops — page-side, same azimuth rule as massing_sync.py
@@ -328,7 +328,9 @@
     const res = d.results, winH = res.winH;
     $('rAt').textContent = res.at.slice(11,19); $('rSegs').textContent = res.segments.length+' 段（'+res.floors.length+' 层）'; $('rArea').textContent = res.floors.map(f=>fmt(f.area,0)).join(' / ')+' m²'; $('rWinH').textContent = fmt(winH,2)+' m';
     if(!ENGINE){ $('segBody').innerHTML = '<tr><td colspan="6" class="bad">引擎未加载</td></tr>'; return; }
-    const rows0 = calcSegs(res.segments, winH, false), rows = calcSegs(res.segments, winH, true), base = calcSegs(baseSegs(res), winH, false);
+    const sunOk = res.sun && res.sun.perSegment && res.sun.perSegment.length === res.segments.length ? res.sun : null;
+    const expo = sunOk && sunOk.expo && sunOk.expo.length === res.segments.length ? sunOk.expo : null;
+    const rows0 = calcSegs(res.segments, winH, false, expo), rows = calcSegs(res.segments, winH, true, expo), base = calcSegs(baseSegs(res), winH, false);
     // floor selectors
     const nF = res.floors.length, fsel = $('floorSel'), psel = $('planFloor');
     const sig = res.floors.map(f=>f.i+':'+f.group).join(',');
@@ -336,7 +338,7 @@
     if(psel.options.length !== nF){ psel.innerHTML = res.floors.map(f=>`<option value="${f.i}">F${f.i}</option>`).join(''); psel.value = String(nF); }
     const showF = fsel.value;
     const agg0dev = aggregate(rows0);
-    const sun = res.sun && res.sun.perSegment && res.sun.perSegment.length === rows.length ? res.sun : null;
+    const sun = sunOk;
     const PER = {summer:'夏季', winter:'冬季', annual:'全年'};
     $('sunHead').textContent = sun ? `日照 h（${PER[sun.period]||sun.period}）` : '日照';
     const sunMax = sun ? Math.max(1, ...sun.perSegment.filter(v=>v!=null)) : 1;
@@ -344,13 +346,15 @@
     const sunCell = i => sun ? (sun.perSegment[i]==null ? '<td>—</td>' : `<td style="color:color-mix(in srgb,var(--heat) ${Math.round(30+70*sun.perSegment[i]/sunMax)}%,var(--ink-2))">${fmt(sun.perSegment[i],0)}</td>`) : '<td class="cap">计算中</td>';
     const sunAvg = sun ? rows.reduce((a,x,i)=>a+(sun.perSegment[i]||0)*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
     const viewOf = x => x.dev ? fmt(x.dev.view*100,0)+' %' : '—';
+    const expoCell = i => expo ? (expo[i]==null ? '<td>—</td>' : `<td class="${expo[i]>=0.9?'ok':expo[i]>=0.6?'warn':'bad'}">${fmt(expo[i]*100,0)} %</td>`) : '<td class="cap">待日照</td>';
+    const expoAvg = expo ? rows.reduce((a,x,i)=>a+(expo[i]==null?1:expo[i])*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
     const vis = i => showF==='all' || String(rows[i].floor)===showF;
     const totalView = rows.reduce((a,x)=>a+(x.dev?x.dev.view:1)*x.len,0)/Math.max(1e-9,rows.reduce((a,x)=>a+x.len,0));
-    $('segBody').innerHTML = rows.map((x,i)=> !vis(i) ? '' : `<tr><td>${nF>1?'F'+x.floor+' ':''}${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${viewOf(x)}</td><td class="${cls(rows0[i].r.ovh)}">${fmt(rows0[i].r.ovh,1)} %</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(rows0[i].r.DF)}">${fmt(rows0[i].r.DF,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${sunCell(i)}</tr>`).join('')
-      + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
+    $('segBody').innerHTML = rows.map((x,i)=> !vis(i) ? '' : `<tr><td>${nF>1?'F'+x.floor+' ':''}${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${viewOf(x)}</td><td class="${cls(rows0[i].r.ovh)}">${fmt(rows0[i].r.ovh,1)} %</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(rows0[i].r.DF)}">${fmt(rows0[i].r.DF,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${expoCell(i)}${sunCell(i)}</tr>`).join('')
+      + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${expoAvg==null?'':fmt(expoAvg*100,0)+' %'}</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
     $('rOvhDev').innerHTML = `<span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span> → <span class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</span>`;
     $('rDFDev').innerHTML = `<span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span> → <span class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</span>`;
-    window.__sun = sun;
+    window.__sun = sun; window.__expo = expo;
     $('rOvh').innerHTML = `<span class="${cls(agg0.ovh)}">${fmt(agg0.ovh,1)} %</span> → <span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span>`;
     $('rDF').innerHTML = `<span class="${dcls(agg0.DF)}">${fmt(agg0.DF,1)} %</span> → <span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span>`;
     $('rNet').textContent = `${fmt(agg0dev.net,0)} → ${fmt(agg.net,0)} kWh/a`;
@@ -431,6 +435,18 @@
       const onBase = pt => ({A:Math.abs(pt[1])<1e-6, B:Math.abs(pt[0]-P.L)<1e-6, C:Math.abs(pt[1]-P.W)<1e-6, D:Math.abs(pt[0])<1e-6})[op.edge];
       const inner = pieces.filter(x=>x.p && x.q && !(onBase(x.p) && onBase(x.q))).map(x=>[x.edge, sun.perSegment[rows.indexOf(x)]]).filter(a=>a[1]!=null);
       ps.push(`Ladybug 直射日照（${{summer:'夏季',winter:'冬季',annual:'全年'}[sun.period]||sun.period}）：最多的是 ${hi[0]}（${fmt(hi[1],0)} h），最少的是 ${lo[0]}（${fmt(lo[1],0)} h）${inner.length?`；凹口内的 ${inner.map(a=>a[0]+' '+fmt(a[1],0)+' h').join('、')} 被凹口两侧的楼板遮住了一部分`:''}。`); }
+    const expo = window.__expo;
+    if(expo){ const rows0 = window.__rows0, rowsFree = calcSegs(d.results.segments, d.results.winH, false, null), aFree = aggregate(rowsFree), a0 = window.__agg0dev;   // 都不装遮阳：自由墙面 vs 算进自遮挡
+      const shaded = rows0.map((x,i)=>({x, e:expo[i], i, drop:rowsFree[i].r.ovh - x.r.ovh})).filter(o=>o.e!=null && o.e<0.9);
+      const covered = shaded.filter(o=>o.e<=0.001 && /^court/.test(o.x.loop||''));
+      const telling = shaded.filter(o=>o.drop>0.05).sort((a,b)=>b.drop-a.drop).slice(0,3);
+      if(shaded.length){ let t = `体量自遮挡：${shaded.length} 段墙被自己的体量挡住了一部分太阳`;
+        if(telling.length) t += `，对过热影响最大的是 ${telling.map(o=>`${lab(o.x)}（受晒 ${fmt(o.e*100,0)} %，过热 ${fmt(rowsFree[o.i].r.ovh,1)} % → ${fmt(o.x.r.ovh,1)} %）`).join('、')}`;
+        else t += `，但这些段本来就不热，过热几乎没变`;
+        if(covered.length) t += `；庭院四壁受晒 0 %，因为庭院只开在第 1 组，上面的楼层把它盖住了，直射完全进不来`;
+        t += `。不装遮阳时，算进自遮挡整栋过热从 ${fmt(aFree.ovh,1)} % 到 ${fmt(a0.ovh,1)} %。`; ps.push(t); }
+      else ps.push(`体量自遮挡：所有墙段受晒都在 90 % 以上，这个体量基本不遮自己。`); }
+    else ps.push(`<span class="cap">体量自遮挡待 Ladybug 第二次日照算完后才计入（表里「受晒」列）。</span>`);
     ps.push(`<span class="cap">模板句，数字全部来自引擎与 Ladybug；以后由模型改写成设计语言。</span>`);
     $('interp').innerHTML = ps.map(p=>`<p>${p}</p>`).join('');
   }
@@ -482,6 +498,8 @@
     eq('device screen lowers overheating', rs.ovh < rows[0].r.ovh ? 1 : 0, 1); eq('device screenDay lowers DF', rs.DF < rows[0].r.DF ? 1 : 0, 1);
     const rk = calcSegs([Object.assign({}, bs[0], {dev:{kind:'knee', c:1, fA:0.4, gapH:0.5, D:1.9, tS:0.2, tD:0.14, units:10}})], 1.192, true)[0].r;
     eq('knee split: 2 window groups', rk.groups.length, 2); eq('knee lowers overheating', rk.ovh < rows[0].r.ovh ? 1 : 0, 1);
+    const re = calcSegs([bs[0]], 1.192, false, [0.5])[0].r; eq('expo 0.5 lowers overheating', re.ovh < rows[0].r.ovh ? 1 : 0, 1); eq('expo 0.5 keeps DF', re.DF, rows[0].r.DF);
+    eq('expo 1 identical', calcSegs([bs[0]], 1.192, false, [1])[0].r.ovh, rows[0].r.ovh);
     window.__test = T; console.log('massing self-test', T.filter(t=>!t[1]).length===0 ? 'ALL PASS' : 'FAIL', T);
   }
 })();

@@ -382,6 +382,18 @@ Records are appended after each session. Most recent entry is at the bottom.
 建议顺序：自遮挡进过热 → 装置按立面分设 → 方案对比。
 关机前状态：Rhino / GH / state.json 已存；凹口此时在 B 边 pos 0.39（用户拖过手柄），庭院只作用第 1 组，顶层 A/C 各退 3 m，竖轴折板 45°，32 段，日照结果齐全。
 
+## 2026-10-03 — Massing_v01：体量自遮挡进过热
+
+- 规则：每段 `expo` = Ladybug 直射日照小时（遮挡只有楼板）÷ 同朝向自由墙面的小时；引擎 `seg.expo` 只折减直射，缺省 1 与 V06 逐位相同（engine-test 49/49 仍过，版本 2026-10-03）。
+- GH：复制一个 LB Direct Sun Hours（`SunHoursMass`，context 只接 floors）；`massing sun` 加输入 `resMass`、`vecs`；`massing_rad.py` 重写，自由墙面小时 = 太阳向量里照得到外法线的个数（SunPath 向量从太阳指向地面、只含地平线以上，timestep 1）。写回 `results.sun.massOnly / free / expo`。
+- 页面：`calcSegs(segs, winH, withDev, expo)`；段表加「受晒」列（≥90 绿 / ≥60 黄 / 其余红）；解读加自遮挡句；自检 +3（15 项）。
+- 验证（凹口 B 边 + 庭院第 1 组 + 顶层 A/C 退 3 m，夏季）：凹口内 B2/B3/B4 受晒 47 / 63 / 56 %，庭院四壁 0 %（被顶层盖住，物理上对），其余 100 %；整栋受晒 81 %。
+- 气候一致性：`massing_sync.EPW[clim]` 与 `CLIM[clim].file` 是同一个 EPW 文件名，三个气候都对上，不需要运行时检查。
+- 坑：
+  - LB 组件都是 GhPython（同一个 ComponentGuid），**不能用 ComponentGuid 找 LB 组件**，我按它删掉了 ImportEPW / AnalysisPeriod / SunPath，靠从磁盘重开 massing.gh 救回。只按 InstanceGuid 或 NickName 找。
+  - LB 组件会在脚本里自己改 NickName，`SunHoursMass` 这个昵称跑一次就变回 `DirectSunHours`；记 InstanceGuid（55422f50…）。
+  - 复制 LB 组件：`GH_DocumentIO.Copy(Local, True)`（按选中）→ `Paste` → **`Document.MutateAllIds()`** → `MergeDocument`；不 Mutate 会因 InstanceGuid 重复而炸，而且会留下同 guid 的幽灵对象。
+  - `EmitObject(ComponentGuid)` 生成的是空的 Python 组件，没有 LB 的脚本和端口。
+
 **Next session: suggested starting point**
-- 先补「体量自遮挡进过热」：用 Ladybug 每段日照小时相对无遮挡基准的比例，修正引擎每段的太阳得热（一条规则即可），并检查引擎气候预设与 EPW 同一地点。
-- 之后：装置按立面 / 按组分设 → 方案对比（存几个状态并排）→ 父子比例、平面网格改"找最近墙段"、动态调节规则、单文件打包、Radiance。
+- 装置按立面 / 按组分设 → 方案对比（存几个状态并排）→ 父子比例、平面网格改"找最近墙段"、动态调节规则、单文件打包、Radiance。

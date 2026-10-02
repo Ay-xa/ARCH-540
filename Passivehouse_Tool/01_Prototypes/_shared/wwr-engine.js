@@ -64,6 +64,8 @@ function simulateHours(p,hr,sun){
   const scr=(p.screen==null)?1:clamp(p.screen,0,1);   // 2026-09-30 新增：固定外屏（如穿孔板）的透光系数，默认 1 = 无屏，数值与 V06 相同
   // 2026-10-01 新增：每组窗可带自己的挑檐与透光系数（G.oh 外缘深度、G.ohIn 内缘离墙距离、G.ohGap 挑檐到窗头距离、G.ohOp 挑檐不透光率、G.scr 透光系数）；缺省回落到段的 p.oh / 0 / 0.05 / 1 / scr，此时算式与 V06 相同
   const gOh=G=>G.oh!=null?G.oh:p.oh, anyOh=groups.some(G=>gOh(G)>0);
+  // 2026-10-03 新增：p.expo = 体量自遮挡后的受晒比例 0–1（由 Ladybug 日照小时得出：有楼板遮挡 / 自由墙面），只折减直射；缺省 1 = 自由墙面，算式与 V06 相同
+  const expo=(p.expo==null)?1:clamp(p.expo,0,1);
   const fsh=(x,gap,h,t)=>clamp((x*t-gap)/h,0,1);
   let Ti=20, h25=0, Tmax=-99, Qsol_a=0;
   for(let i=0;i<8760;i++){
@@ -71,7 +73,7 @@ function simulateHours(p,hr,sun){
     const al=sun.alt[i];
     if(al>0&&(hr.G[i]>0||hr.B[i]>0)){
       const cd=Math.cos(rad(sun.az[i]-p.az)), c=Math.cos(rad(al))*cd;
-      const beam0=c>0?hr.B[i]*c:0;
+      const beam0=c>0?hr.B[i]*c*expo:0;
       const prof=(beam0>0&&anyOh)?Math.atan(Math.tan(rad(al))/cd)*180/Math.PI:0;
       for(let gI=0;gI<nG;gI++){const G=groups[gI];let beam=beam0;const oh=gOh(G);
         if(beam>0&&oh>0){const t=Math.tan(rad(prof)),gap=G.ohGap!=null?G.ohGap:0.05,op=G.ohOp!=null?G.ohOp:1,inn=G.ohIn||0;
@@ -115,6 +117,8 @@ function calcSegment(seg,ctx){
   const A=ctx.A, len=seg.len, az=norm(seg.az), H=ctx.H, Hc=H-0.3, floors=ctx.floors, depth=ctx.depth, oh=seg.oh||0;
   // 2026-09-30 新增：seg.screen = 固定外屏（穿孔板等）的透光系数 0–1，对直射、散射、采光一起折减；缺省 1 = 无屏，所有数值与 V06 相同
   const scr=(seg.screen==null)?1:clamp(seg.screen,0,1);
+  const expo=(seg.expo==null)?1:clamp(seg.expo,0,1);   // 2026-10-03 新增：体量自遮挡后的受晒比例（见 simulateHours），只作用于直射部分；缺省 1
+  const fsOf=(d,sh)=>expo===1?1-d*sh:1-d*(1-(1-sh)*expo);   // 直射里被挑檐挡掉 sh，剩下的再乘受晒比例；expo = 1 时与 V06 逐位相同
   const scrD=(seg.screenDay==null)?scr:clamp(seg.screenDay,0,1);   // 采光可用单独的透光系数（穿孔板对漫射光的透过率低于开孔率）；缺省与 screen 相同
   // 分组：w,h,sill 完全相同的窗归一组
   const groups=[];
@@ -142,17 +146,17 @@ function calcSegment(seg,ctx){
   // 挑檐遮挡按每组窗高算；立面级 sh*/fs* 按玻璃面积加权（一组时即该组的值）
   const shadeG=(g,p)=>{if(!(g.oh>0))return 0;const t=Math.tan(rad(p)),f=x=>clamp((x*t-g.ohGap)/g.h,0,1);return g.ohOp*(f(g.oh)-(g.ohIn>0?f(g.ohIn):0));};
   let Qgain=0,Qsum=0,Qhot=0,shWa=0,shSa=0,shHa=0;
-  groups.forEach(g=>{const shW=shadeG(g,pW),shS=shadeG(g,pS),shH=shadeG(g,pH),fsW=1-dW*shW,fsS=1-dS*shS,fsH=1-dH*shH;
+  groups.forEach(g=>{const shW=shadeG(g,pW),shS=shadeG(g,pS),shH=shadeG(g,pH),fsW=fsOf(dW,shW),fsS=fsOf(dS,shS),fsH=fsOf(dH,shH);
     g.shW=shW;g.shS=shS;g.shH=shH;g.fsW=fsW;g.fsS=fsS;g.fsH=fsH;
     Qgain+=g.AgT*A.g*0.8*Gw*fsW*0.9*g.scr; Qsum+=g.AgT*A.g*0.8*Gs*fsS*g.scr; Qhot+=g.AgT*A.g*0.8*gH*fsH*g.scr;
     shWa+=shW*g.AgT;shSa+=shS*g.AgT;shHa+=shH*g.AgT;});
-  const shW=has&&AgT>0?shWa/AgT:0, shS=has&&AgT>0?shSa/AgT:0, shH=has&&AgT>0?shHa/AgT:0, fsW=1-dW*shW, fsS=1-dS*shS, fsH=1-dH*shH;
+  const shW=has&&AgT>0?shWa/AgT:0, shS=has&&AgT>0?shSa/AgT:0, shH=has&&AgT>0?shHa/AgT:0, fsW=fsOf(dW,shW), fsS=fsOf(dS,shS), fsH=fsOf(dH,shH);
   const Qloss=has?((Uw-A.Uwall)*AwT+A.psiI*PT)*A.Gt:0;
   const net=Qgain-Qloss, netPer=AwT>0?net/AwT:null;
   const zoneA=len*depth*floors, sumPer=Qsum/zoneA, hotPer=Qhot/zoneA, lossPer=Qloss/zoneA;
   const mass=MASS[seg.mass||ctx.mass], vent=VENT[seg.vent||ctx.vent];
   const Htr=A.Uwall*(len*H*floors-AwT+len*depth)+(has?Uw*AwT+A.psiI*PT:0);
-  const sim=simulateHours({az,groups:has?groups.map(g=>({Ag:g.AgT,hw:g.h,oh:g.oh,ohIn:g.ohIn,ohGap:g.ohGap,ohOp:g.ohOp,scr:g.scr})):[{Ag:0,hw:1}],g:A.g,oh,Htr,V:zoneA*Hc,C:mass.c*zoneA,Qint:A.qint*zoneA,nHyg:A.nHyg,etaHR:A.etaHR,ventAch:vent.ach,screen:scr},HOURLY[ctx.clim],sunFor(ctx.clim));
+  const sim=simulateHours({az,groups:has?groups.map(g=>({Ag:g.AgT,hw:g.h,oh:g.oh,ohIn:g.ohIn,ohGap:g.ohGap,ohOp:g.ohOp,scr:g.scr})):[{Ag:0,hw:1}],g:A.g,oh,Htr,V:zoneA*Hc,C:mass.c*zoneA,Qint:A.qint*zoneA,nHyg:A.nHyg,etaHR:A.etaHR,ventAch:vent.ach,screen:scr,expo},HOURLY[ctx.clim],sunFor(ctx.clim));
   // 采光：每组按自己的可见天空角，按每米墙玻璃面积相加（一组时 = V06 的 vt·agPerM·theta·0.9/(Asurf·0.75)）
   const Asurf=2*depth+2*Hc;
   let DF=0,agPerM=0,thetaA=0,alphaTopA=0;
@@ -174,7 +178,7 @@ function calcSegment(seg,ctx){
     gain:netPer==null?null:100*clamp((netPer+40)/100,0,1),
     heat:ovhScore(sim.ovh)
   };
-  return {len,az,oh,screen:scr,screenDay:scrD,head,sill,hw,totW,n,wi,has,Uw,frameFrac,AwT,AgT,PT,wwrAct,Gw,Gs,dW,dS,pW,pS,shW,shS,fsW,fsS,
+  return {len,az,oh,screen:scr,screenDay:scrD,expo,head,sill,hw,totW,n,wi,has,Uw,frameFrac,AwT,AgT,PT,wwrAct,Gw,Gs,dW,dS,pW,pS,shW,shS,fsW,fsS,
     Qgain,Qloss,net,netPer,Qsum,sumPer,Qhot,hotPer,gH,dH,pH,shH,fsH,lossPer,zoneA,sim,ovh:sim.ovh,h25:sim.h25,TmaxIn:sim.Tmax,Htr,DF,theta,alphaTop,limit,cover,gap,uni,sc,Hc,
     Wx:zoneA>0?Qgain/zoneA:0, Hx:hotPer,   // 网格 / 分区用的两个暴露度别名（与 V06 gridConditions 的定义相同）
     groups:groups.map(g=>({w:g.w,h:g.h,sill:g.sill,count:g.count,Aw1:g.Aw1,Ag1:g.Ag1,Uw:g.Uw,theta:g.theta,scr:g.scr,scrD:g.scrD,oh:g.oh,ohIn:g.ohIn,ohGap:g.ohGap,ohOp:g.ohOp})),
@@ -310,5 +314,5 @@ function digestV06(){
 window.WWR={DIRS,OVH_LIMIT,OVH_GOOD,ovhScore,MASS,VENT,HOT_TIP,clamp,rad,norm,interpN,dirName,sunPos,sunFor,simulateHours,
   windowsFromWwr,calcSegment,calcFacadeFromWwr,aggregateBuilding,segmentsForWall,
   ZG,kernelCell,sunPatch,KEYS4,gridCells,gridConditions,COND,ramp,condScore,suitability,suitGrid,stripMean,
-  V06_DEFAULT,digestV06,version:'2026-10-01'};
+  V06_DEFAULT,digestV06,version:'2026-10-03'};
 })();
