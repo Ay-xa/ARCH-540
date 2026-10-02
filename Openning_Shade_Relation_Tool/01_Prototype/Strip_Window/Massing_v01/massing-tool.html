@@ -166,7 +166,7 @@
           <tr data-k="B"><td id="facLabB">B</td><td><input type="checkbox" id="fOnB" checked></td><td><input type="range" id="fTiltB" min="0" max="90" step="1" value="45"></td><td><output id="fTiltBOut"></output></td></tr>
           <tr data-k="C"><td id="facLabC">C</td><td><input type="checkbox" id="fOnC" checked></td><td><input type="range" id="fTiltC" min="0" max="90" step="1" value="45"></td><td><output id="fTiltCOut"></output></td></tr>
           <tr data-k="D"><td id="facLabD">D</td><td><input type="checkbox" id="fOnD" checked></td><td><input type="range" id="fTiltD" min="0" max="90" step="1" value="45"></td><td><output id="fTiltDOut"></output></td></tr>
-          <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt" checked></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
+          <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt"></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
         </table>
         <div class="cap">凹口两侧和凹口底的墙跟着它所在的边（B2 / B3 / B4 跟 B 边）；庭院四面内墙单独一组。</div></div>
       <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
@@ -534,7 +534,7 @@
       if(opC){ $('cw').value=opC.width; $('cd').value=opC.depth; $('applyC').value = opC.apply||'all'; const useC = hC && hC.at > (opC.at||''); $('cu').value = useC?hC.pos_u:opC.pos_u; $('cv').value = useC?hC.pos_v:opC.pos_v; if(hC) lastHandleAtC = hC.at; }
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; }
       const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
-        FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : true; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
+        FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
       if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }
       setConn(true, '已连接本地服务');

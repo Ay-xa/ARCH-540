@@ -395,6 +395,19 @@ def device_units(seg, sh, i_floor, z0, H, s_idx, band):
 
 
 # ---------------- 生成 ----------------
+def slab_brep(pts, holes, H):
+    """一层楼板实体：平面面（外圈 + 洞）再沿法线拉 H。2026-10-03 改法：Extrusion.AddInnerProfile 在外圈不从原点出发时
+    （退台层）会把洞放错位置，ToBrep 报「2d curve is not inside surface domain」，顶层只画出一部分。"""
+    def closed(ps):
+        return rg.Polyline([rg.Point3d(q[0], q[1], 0.0) for q in ps] + [rg.Point3d(ps[0][0], ps[0][1], 0.0)]).ToNurbsCurve()
+    breps = rg.Brep.CreatePlanarBreps([closed(pts)] + [closed(h) for h in holes], 0.001)
+    if not breps:
+        return None
+    face = breps[0].Faces[0]
+    n = face.NormalAt(face.Domain(0).Mid, face.Domain(1).Mid)
+    return rg.Brep.CreateFromOffsetFace(face, H if n.Z > 0 else -H, 0.001, False, True)
+
+
 def floor_outline(b, i, ops, warnings):
     """第 i 层：返回 (外圈顶点, 边名, 洞列表, 组号, 矩形)"""
     rect, group = floor_rect(b, i)
@@ -429,13 +442,11 @@ def build(d):
         segs = segments_of(pts, names, float(b["az0"]), "outer", i + 1)
         for ci, (hp, hn) in enumerate(zip(holes, hole_names)):
             segs += segments_of(hp, hn, float(b["az0"]), "court%d" % (ci + 1), i + 1)
-        poly = rg.Polyline([rg.Point3d(p[0], p[1], 0.0) for p in pts] + [rg.Point3d(pts[0][0], pts[0][1], 0.0)])
-        ext = rg.Extrusion.Create(poly.ToNurbsCurve(), H, True)
-        if ext:
-            for hp in holes:
-                hc = rg.Polyline([rg.Point3d(p[0], p[1], 0.0) for p in hp] + [rg.Point3d(hp[0][0], hp[0][1], 0.0)]).ToNurbsCurve()
-                ext.AddInnerProfile(hc)
-            fb = ext.ToBrep(); fb.Translate(rg.Vector3d(0, 0, i * H)); floors.append(fb)
+        fb = slab_brep(pts, holes, H)
+        if fb:
+            fb.Translate(rg.Vector3d(0, 0, i * H)); floors.append(fb)
+        else:
+            warnings.append("F%d: slab solid failed" % (i + 1))
         use_dev = sh.get("type") in ("bifoldV", "pivot", "bifoldH", "umbrella") and (sh.get("floors", "all") == "all" or i >= 1)
         for si, s in enumerate(segs):
             p, q = s["p"], s["q"]

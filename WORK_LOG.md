@@ -417,5 +417,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - GH 改 Timer 目标要用 `RemoveTarget / AddTarget`，`Targets.Clear()` 对返回的副本无效。
 - 验证：页面改装置 → seq 27→28、日照重算；Rhino 平移 notch01 → json handle 跟着更新；空闲时 watch = idle。
 
+**顶层庭院失效 + 庭院默认不装 + 第三刀计划（同日续）**
+- 用户重读方向文档的要求、报顶层墙面消失、要加体块 / 多凹口多庭院独立控制（tab）。
+- 顶层 bug：数据正确（段、面积都在），是 Rhino 实体无效。`Extrusion.AddInnerProfile` 在外圈不从原点出发时（退台层矩形从 (0,3) 起）把洞放错，`ToBrep` 报 "2d curve is not inside surface domain"。改 `slab_brep`：`CreatePlanarBreps(外圈+洞)` → `CreateFromOffsetFace` 拉一层高，三层都有效（720 m³ 核对）。
+- 庭院内墙默认不装装置（页面默认不勾；旧 json 无 facades 时也按不装）。
+- 写了 `PLAN_massing_v02_ops.md`：对照两份方向文档的进度表（落后两处：Rhino 直接拖边 / 拖角；操作只能各一个）；五件事：修顶层（已）、庭院不装（已）、多凹口多庭院 tab、加体块（与凹口对称、向外长）、楼层组三组（可选）；四个待用户定的问题。
+- 注意：用户在自己的浏览器里操作页面时 seq 会跳（27→50），我的标签页里 courtOn 等控件会随 state 变；验证前先看 ops。
+
 **Next session: suggested starting point**
-- 方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
+- 按 PLAN_massing_v02_ops.md 的顺序：ops 放开数量 → GH 多凹口 → 页面 tab → 加体块。方案对比、窗按立面分设排在其后。
+- 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
