@@ -133,16 +133,16 @@
   </details>
 
   <details class="grp" id="g4" open>
-    <summary><span>遮阳装置（机构库 #1）</span><b id="g4Sum"></b></summary>
+    <summary><span>遮阳装置（机构库）</span><b id="g4Sum"></b></summary>
     <div class="body">
       <div class="two">
         <div class="ctl"><div class="row"><label for="devType">装置</label></div>
-          <select id="devType"><option value="bifoldV" selected>膝盖式折板 · 竖轴</option><option value="none">无装置</option></select></div>
+          <select id="devType"><option value="none">无装置</option><option value="pivot">#0 中轴转动板</option><option value="bifoldV" selected>#1 膝盖式折板 · 竖轴</option><option value="bifoldH">#2 膝盖式折板 · 横轴</option><option value="umbrella">#3 伞式六角折板</option></select></div>
         <div class="ctl"><div class="row"><label for="devFloors">覆盖层</label></div>
           <select id="devFloors"><option value="all" selected>全部楼层</option><option value="2+">2 层以上</option></select></div>
       </div>
-      <div class="ctl"><div class="row"><label for="tilt">折角（0 贴平 · 90 全折）</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
-      <div class="ctl"><div class="row"><label for="unitW">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
+      <div class="ctl"><div class="row"><label for="tilt" id="tiltLabel">折角（0 贴平 · 90 全折）</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
+      <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度（两片贴平时）</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
       <div class="ctl"><div class="row"><label for="standoff">离墙距离</label><output id="standoffOut"></output></div><input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"></div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="thick">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
@@ -153,7 +153,7 @@
         <div class="ctl"><div class="row"><label for="perfMin">穿孔率 下限</label><output id="perfMinOut"></output></div><input id="perfMin" type="range" min="0" max="90" step="1" value="10"></div>
         <div class="ctl"><div class="row"><label for="perfMax">穿孔率 上限</label><output id="perfMaxOut"></output></div><input id="perfMax" type="range" min="0" max="90" step="1" value="30"></div>
       </div>
-      <div class="cap">两片等长，一侧固定一侧沿导轨滑，折线向外凸；每段墙从中间排满，相邻单元固定边交替。Grasshopper 画出来并作为日照的遮挡；过热与采光按翻译规则：投影 = 2·半片·cos折角 + 2·板厚·sin折角，穿孔逐板随机，漫射光另乘孔壁因子。</div>
+      <div class="cap" id="devCap"></div>
     </div>
   </details>
 
@@ -212,6 +212,13 @@
   const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
   const dec = {L:0, W:0, floors:0, az0:0, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
+  const MECH = {
+    none:    {tilt:'—', unitW:'—', cap:'不装遮阳装置。'},
+    pivot:   {tilt:'倾角（0 平行立面 · 90 垂直）', unitW:'单片宽度', cap:'#0 一片板绕自己的竖向中轴转一个倾角，相邻板正负交替，每段墙从中间排满。面状遮挡：投影 = 板宽·cos倾角 + 板厚·sin倾角。'},
+    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽度（两片贴平时）', cap:'#1 两片等长，一侧固定一侧沿导轨滑，折线向外凸，固定边交替。面状遮挡：投影 = 2·半片·cos折角 + 2·板厚·sin折角。'},
+    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'整板宽度（一个开间）', cap:'#2 横向折线，板高一层：顶边固定、底边沿立面上滑，膝盖向外凸。板盖住的窗条上部按面状挡；膝盖以下露出的窗条按「穿孔挑檐」交给引擎用太阳角度算；Ladybug 里膝盖是真实遮挡。'},
+    umbrella:{tilt:'折角（0 六角全闭 · 90 六角星全开）', unitW:'单元宽度（六角平边距）', cap:'#3 六角形六个花瓣沿径向折痕折起，角点固定，盖住的面积随 cos折角 收缩成六角星；单元以窗条中心为中心。面状遮挡，覆盖率按六角星在窗条范围内采样。'}
+  };
   const P = {};
   let STATE = null, lastResultsAt = '', lastSunAt = '', lastHandleAt = '', lastHandleAtC = '', suppressPost = false, postTimer = null;
 
@@ -222,7 +229,8 @@
     $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} 层 · 窗墙比 ${P.wwr}%`;
     $('g2Sum').textContent = (P.nd>0 ? `凹口 ${P.edge} 深 ${fmt(P.nd,1)}` : '无凹口') + (P.courtOn ? ` · 庭院 ${fmt(P.cw,1)}×${fmt(P.cd,1)}` : '');
     ['cu','cv','cw','cd'].forEach(id=> $(id).disabled = !P.courtOn);
-    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `折角 ${P.tilt}° · 单元 ${fmt(P.unitW,1)} m`;
+    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${P.tilt}° · ${fmt(P.unitW,1)} m`;
+    const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
 
@@ -273,8 +281,17 @@
   function ctx(){ const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A); return {H:P.H, floors:P.floors, depth:Math.min(P.depth, Math.min(P.L,P.W)/2), A, clim:P.clim, mass:P.mass, vent:P.vent}; }
   function calcSegs(segs, winH, withDev){
     const c = ctx();
-    return segs.map(s=>{ const dv = withDev && s.dev ? s.dev : null;
-      const wins = winH>0.01 ? [dv ? {w:s.len, h:winH, sill:P.sill, screen:dv.screen, screenDay:dv.screenDay} : {w:s.len, h:winH, sill:P.sill}] : [];
+    return segs.map(s=>{ const dv = withDev && s.dev && s.dev.units>0 ? s.dev : null;
+      let wins = [];
+      if(winH>0.01){
+        if(!dv) wins = [{w:s.len, h:winH, sill:P.sill}];
+        else if(dv.kind==='knee'){   // 横轴折板：屏后的上部 / 膝盖挑檐下的开口 / 没被单元盖住的长度
+          const cL = dv.c*s.len, oL = (1-dv.c)*s.len;
+          if(cL>0.05 && dv.fA*winH>0.01) wins.push({w:cL, h:dv.fA*winH, sill:P.sill+(1-dv.fA)*winH, screen:dv.tS, screenDay:dv.tD});
+          if(cL>0.05 && (1-dv.fA)*winH>0.01) wins.push({w:cL, h:(1-dv.fA)*winH, sill:P.sill, oh:dv.D, ohIn:0, ohGap:dv.gapH, ohOpacity:1-dv.tS});
+          if(oL>0.05) wins.push({w:oL, h:winH, sill:P.sill});
+        } else wins = [{w:s.len, h:winH, sill:P.sill, screen:dv.screen, screenDay:dv.screenDay}];
+      }
       const r = ENGINE.calcSegment({len:s.len, az:s.az, oh:0, windows:wins}, c); return Object.assign({}, s, {r}); });
   }
   function aggregate(rows){ let za=0, ov=0, lw=0, df=0, net=0; rows.forEach(x=>{ za+=x.r.zoneA; ov+=x.r.ovh*x.r.zoneA; lw+=x.len; df+=x.r.DF*x.len; net+=x.r.net; }); return {ovh:za?ov/za:0, DF:lw?df/lw:0, net}; }
@@ -370,7 +387,7 @@
     const dov = agg0dev.ovh - agg0.ovh, ddf = agg0dev.DF - agg0.DF;
     ps.push(`和不开凹口的矩形相比（都不装遮阳），整栋过热 ${dov>=0?'上升':'下降'} ${fmt(Math.abs(dov),1)} 个百分点，采光 ${ddf>=0?'上升':'下降'} ${fmt(Math.abs(ddf),2)} 个百分点；立面总长从 ${fmt(2*(P.L+P.W),1)} m 变为 ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m。`);
     if(P.devType!=='none'){ const nU = rows.reduce((a,x)=>a+(x.dev?x.dev.units:0),0); const worstD = rows.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
-      ps.push(`装上折板（折角 ${P.tilt}°，每层 ${nU} 个单元）后，整栋过热从 ${fmt(agg0dev.ovh,1)} % 到 ${fmt(agg.ovh,1)} %，采光从 ${fmt(agg0dev.DF,1)} % 到 ${fmt(agg.DF,1)} %，视野通透 ${fmt(totalView*100,0)} %；仍最热的是 ${worstD.edge}（${fmt(worstD.r.ovh,1)} %）。`); }
+      ps.push(`装上${$('devType').selectedOptions[0].textContent.replace(/^#\d+ /,'')}（${P.tilt}°，每层 ${nU} 个单元）后，整栋过热从 ${fmt(agg0dev.ovh,1)} % 到 ${fmt(agg.ovh,1)} %，采光从 ${fmt(agg0dev.DF,1)} % 到 ${fmt(agg.DF,1)} %，视野通透 ${fmt(totalView*100,0)} %；仍最热的是 ${worstD.edge}（${fmt(worstD.r.ovh,1)} %）。`); }
     const sun = window.__sun;
     if(sun){ const order = rows.map((x,i)=>[x.edge, sun.perSegment[i]]).filter(a=>a[1]!=null).sort((a,b)=>b[1]-a[1]); const lo = order[order.length-1], hi = order[0];
       const onBase = pt => ({A:Math.abs(pt[1])<1e-6, B:Math.abs(pt[0]-P.L)<1e-6, C:Math.abs(pt[1]-P.W)<1e-6, D:Math.abs(pt[0])<1e-6})[op.edge];
@@ -422,6 +439,8 @@
     eq('zoneA = len·depth·floors', rows[0].r.zoneA, 30*5*3, 1e-6);
     const rs = calcSegs([Object.assign({}, bs[0], {dev:{screen:0.5, screenDay:0.4, view:0.3, units:5}})], 1.192, true)[0].r;
     eq('device screen lowers overheating', rs.ovh < rows[0].r.ovh ? 1 : 0, 1); eq('device screenDay lowers DF', rs.DF < rows[0].r.DF ? 1 : 0, 1);
+    const rk = calcSegs([Object.assign({}, bs[0], {dev:{kind:'knee', c:1, fA:0.4, gapH:0.5, D:1.9, tS:0.2, tD:0.14, units:10}})], 1.192, true)[0].r;
+    eq('knee split: 2 window groups', rk.groups.length, 2); eq('knee lowers overheating', rk.ovh < rows[0].r.ovh ? 1 : 0, 1);
     window.__test = T; console.log('massing self-test', T.filter(t=>!t[1]).length===0 ? 'ALL PASS' : 'FAIL', T);
   }
 })();

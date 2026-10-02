@@ -95,8 +95,8 @@ def check_run(r):
 def check_shading(sh):
     if not isinstance(sh, dict):
         raise ValueError("shading must be an object")
-    if sh.get("type") not in ("none", "bifoldV"):
-        raise ValueError("shading.type must be none/bifoldV (Massing_v01)")
+    if sh.get("type") not in ("none", "pivot", "bifoldV", "bifoldH", "umbrella"):
+        raise ValueError("shading.type must be none/pivot/bifoldV/bifoldH/umbrella")
     out = {"type": sh["type"],
            "unitW": num(sh.get("unitW", 3.0), 0.4, 6, "shading.unitW"),
            "tilt": num(sh.get("tilt", 45), 0, 90, "shading.tilt"),

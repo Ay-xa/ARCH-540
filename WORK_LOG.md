@@ -361,6 +361,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - **坑**：内轮廓逐层平移后 2 层以上的洞丢失（AddInnerProfile 只认轮廓平面上的曲线），症状是庭院内墙日照全为 0；改成 z=0 做一次实体再 `Translate` 逐层。诊断方法：取窗条网格面心沿法线偏 0.1 m，`IsPointInside` + `RayShoot` 朝太阳。
 - 页面：拓扑操作组分凹口 / 庭院两块，庭院有开关、中心 u/v、宽、深；段表多 4 行内墙；平面画洞和蓝点；解读多一句。验证（庭院 6×6，无装置）：Y1 北 20 h、Y2 东 266 h、Y3 南 419 h、Y4 西 239 h；过热 Y4 9.8 %、Y3 9.2 %。
 
+**其余三个机构条目进 GH（同日续）**
+- `massing_sync.py`：`device_units` 改为按 `shading.type` 分派：`dev_pivot`（单片绕中轴转，正负交替）、`dev_bifoldV`、`dev_bifoldH`（两片横向折板，顶边固定；写回 `kind:'knee'` + c / fA / gapH / D / tS / tD）、`dev_umbrella`（六角伞，中心 + 6 角点 + 6 折痕点，12 三角面；覆盖率用与页面相同的六角星采样）。面状类统一走 `_areal()`。
+- 页面：下拉四条目 + 无装置，每条目自己的滑块文字和说明；引擎侧横轴折板把窗拆成屏后 / 挑檐下 / 无遮三组（引擎每扇窗的 oh / ohIn / ohGap / ohOpacity 字段派上用场）；自检 +2（12 项）。
+- 验证（凹口 + 庭院，45°，单元 3 m，夏季南向 A1 直射日照）：无装置 887 h → 中轴转动板 437 h、竖轴折板 376 h、伞式六角 428 h、横轴折板 211 h（膝盖挡高角太阳最狠）。
+- 坑：在 `run_python` 里 `time.sleep` 会卡住 Rhino 主线程，GH 的 Timer 不会跑；要等 GH 反应必须从外面（Bash）改文件再等。
+
 **Next session: suggested starting point**
 - 装 Radiance 后接回入射辐射（同一条链，写回多一个字段）。
-- 第二刀其余：中轴转动板 / 横轴折板 / 伞式六角移植到 GH；U 形 / 移边；楼层组；平面网格改"找最近墙段"；装置按立面分别设。
+- 装置按立面分别设；U 形 / 移边；楼层组；平面网格改"找最近墙段"；动态调节规则。

@@ -8,8 +8,10 @@
 #   court  庭院：pos_u / pos_v（中心在平面上的比例坐标）、width（沿 L）、depth（沿 W）。手柄 = 庭院中心。
 # 周界 = 外圈（逆时针，外法线向外）+ 每个庭院一个内圈（顺时针，"外法线"朝天井）；内圈的墙段命名 Y1–Y4。
 # 手柄：Rhino「Handles」图层上名为 op.id 的点。谁后动谁算数：op.at（页面）与 handle.at（Rhino）比时间戳。
-# 遮阳装置（第二刀）：机构库 #1 竖轴膝盖折板，参数卡在 json 的 shading；沿每段墙排布（含庭院内墙），每段写回 dev = {screen, screenDay, view, units}
-# （与 Strip Window 页面同一套规则：投影 = 2·半片·cosθ + 2·厚·sinθ，从固定边起算；穿孔逐板随机；漫射光孔壁因子 K = 1/(1+0.75·孔深/孔径)）。
+# 遮阳装置（第二刀）：机构库四个条目（pivot 中轴转动板 / bifoldV 竖轴膝盖折板 / bifoldH 横轴膝盖折板 / umbrella 伞式六角折板），参数卡在 json 的 shading；
+# 沿每段墙排布（含庭院内墙），每段写回 dev：面状类 {kind:'areal', screen, screenDay, view, units}；
+# 横轴折板 {kind:'knee', c 盖住的长度比, fA 盖住的窗条高度比, gapH 膝盖到开口顶, D 挑檐深, tS/tD 透光}（页面把窗拆成屏后 / 挑檐下 / 无遮三部分交给引擎）。
+# 规则与 Strip Window 页面相同：投影、逐板随机穿孔、漫射光孔壁因子 K = 1/(1+0.75·孔深/孔径)、六角星覆盖率采样。
 # GH 只写 handle / results / updated_by / updated_at；其余字段原样保留。
 import json, os, math, datetime
 import Rhino
@@ -195,35 +197,164 @@ def rng_(seed):
         yield (x >> 8) / float(1 << 23)
 
 
-def device_units(seg, sh, i_floor, z0, H, s_idx):
-    """一段墙上的折板单元 → (面片列表, 翻译 dict)。seg = {p, q, len}；sh = 参数卡。"""
+def _frame(seg):
     p, q, ln = seg["p"], seg["q"], seg["len"]
+    dx, dy = q[0] - p[0], q[1] - p[1]
+    return p, (dx / ln, dy / ln), (dy / ln, -dx / ln), ln
+
+
+def _quad(A, B, z0, z1):
+    """竖向四边形面片：A→B 沿墙，z0→z1 向上。顶点顺序使法线 = (B−A) × z"""
+    m = rg.Mesh()
+    m.Vertices.Add(A[0], A[1], z0); m.Vertices.Add(B[0], B[1], z0); m.Vertices.Add(B[0], B[1], z1); m.Vertices.Add(A[0], A[1], z1)
+    m.Faces.AddFace(0, 1, 2, 3); m.Normals.ComputeNormals(); return m
+
+
+def _perf(sh, seed):
+    K = 1.0 / (1.0 + 0.75 * float(sh["skin"]) / float(sh["holeD"])) if float(sh["holeD"]) > 0 else 0.0
+    lo, hi = float(sh["perfMin"]), float(sh["perfMax"])
+    r = rng_(seed)
+    return K, (lambda: lo + (hi - lo) * next(r))
+
+
+def _areal(ln, n_units, proj, ratios, K):
+    opqS = sum(proj * (1.0 - x) for x in ratios); opqD = sum(proj * (1.0 - x * K) for x in ratios)
+    return {"kind": "areal", "screen": round(1.0 - opqS / ln, 4), "screenDay": round(1.0 - opqD / ln, 4), "view": round(1.0 - n_units * proj / ln, 4), "units": n_units}
+
+
+NONE = {"kind": "areal", "screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 0}
+
+
+def dev_bifoldV(seg, sh, z0, H, seed):
+    """#1 膝盖式折板·竖轴：两片等长，一端固定一端滑，折线向外凸"""
+    p, (ux, uy), (nx, ny), ln = _frame(seg)
     w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
-    if n_units <= 0:
-        return [], {"screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 0}
+    if n_units <= 0: return [], NONE
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     a = w / 2.0; t = float(sh["thick"]); dst = float(sh["standoff"])
     proj = min(w, 2 * a * cT + 2 * t * sT)
-    K = 1.0 / (1.0 + 0.75 * float(sh["skin"]) / float(sh["holeD"])) if float(sh["holeD"]) > 0 else 0.0
-    lo, hi = float(sh["perfMin"]), float(sh["perfMax"])
-    dx, dy = q[0] - p[0], q[1] - p[1]; ux, uy = dx / ln, dy / ln; nx, ny = dy / ln, -dx / ln
-    off = (ln - n_units * w) / 2.0
-    meshes, opqS, opqD = [], 0.0, 0.0
-    r = rng_(991 + s_idx * 17 + i_floor * 101)
+    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    meshes, ratios = [], []
     for k in range(n_units):
-        ratio = lo + (hi - lo) * next(r)
+        ratios.append(nxt())
         sign = 1 if (sh.get("fixed", "alt") == "same" or k % 2 == 0) else -1
-        s0 = off + k * w
-        fx = s0 if sign > 0 else s0 + w
+        s0 = off + k * w; fx = s0 if sign > 0 else s0 + w
         P = lambda u_, o_: (p[0] + ux * u_ + nx * (dst + o_), p[1] + uy * u_ + ny * (dst + o_))
         f = P(fx, 0.0); knee = P(fx + sign * a * cT, a * sT); e = P(fx + sign * 2 * a * cT, 0.0)
-        for A, B in ((f, knee), (knee, e)):
+        meshes.append(_quad(f, knee, z0, z0 + H)); meshes.append(_quad(knee, e, z0, z0 + H))
+    return meshes, _areal(ln, n_units, proj, ratios, K)
+
+
+def dev_pivot(seg, sh, z0, H, seed):
+    """#0 中轴转动板：一片板绕自己的竖向中轴转一个倾角，相邻板正负交替"""
+    p, (ux, uy), (nx, ny), ln = _frame(seg)
+    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    if n_units <= 0: return [], NONE
+    th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
+    t = float(sh["thick"]); dst = float(sh["standoff"])
+    proj = min(w, w * cT + t * sT)
+    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    meshes, ratios = [], []
+    for k in range(n_units):
+        ratios.append(nxt())
+        sign = 1 if (sh.get("fixed", "alt") == "same" or k % 2 == 0) else -1
+        cx = off + k * w + w / 2.0
+        C = (p[0] + ux * cx + nx * dst, p[1] + uy * cx + ny * dst)
+        hx, hy = (w / 2.0) * (cT * ux * sign + sT * nx), (w / 2.0) * (cT * uy * sign + sT * ny)
+        A, B = (C[0] - hx, C[1] - hy), (C[0] + hx, C[1] + hy)
+        if sign < 0: A, B = B, A
+        meshes.append(_quad(A, B, z0, z0 + H))
+    return meshes, _areal(ln, n_units, proj, ratios, K)
+
+
+def dev_bifoldH(seg, sh, z0, H, seed, band):
+    """#2 膝盖式折板·横轴：顶边固定、底边上滑，膝盖向外凸。上部窗条按面状挡，膝盖以下的窗条在穿孔挑檐下"""
+    p, (ux, uy), (nx, ny), ln = _frame(seg)
+    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    if n_units <= 0: return [], NONE
+    th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
+    a = H / 2.0; dst = float(sh["standoff"])
+    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    meshes, ratios = [], []
+    yk, yb = H - a * cT, H - 2 * a * cT                         # 膝盖高、板底高（相对本层楼板顶）
+    for k in range(n_units):
+        ratios.append(nxt())
+        s0 = off + k * w
+        P = lambda u_, o_: (p[0] + ux * u_ + nx * (dst + o_), p[1] + uy * u_ + ny * (dst + o_))
+        A0, B0 = P(s0, 0.0), P(s0 + w, 0.0); A1, B1 = P(s0, a * sT), P(s0 + w, a * sT)
+        for (a0, b0, za, a1, b1, zb) in ((A0, B0, z0 + H, A1, B1, z0 + yk), (A1, B1, z0 + yk, A0, B0, z0 + yb)):
             m = rg.Mesh()
-            m.Vertices.Add(A[0], A[1], z0); m.Vertices.Add(B[0], B[1], z0); m.Vertices.Add(B[0], B[1], z0 + H); m.Vertices.Add(A[0], A[1], z0 + H)
+            m.Vertices.Add(a0[0], a0[1], za); m.Vertices.Add(b0[0], b0[1], za); m.Vertices.Add(b1[0], b1[1], zb); m.Vertices.Add(a1[0], a1[1], zb)
             m.Faces.AddFace(0, 1, 2, 3); m.Normals.ComputeNormals(); meshes.append(m)
-        opqS += proj * (1.0 - ratio); opqD += proj * (1.0 - ratio * K)
-    cov = n_units * proj
-    return meshes, {"screen": round(1.0 - opqS / ln, 4), "screenDay": round(1.0 - opqD / ln, 4), "view": round(1.0 - cov / ln, 4), "units": n_units}
+    s_, wh = band["sill"], band["winH"]
+    ov = max(0.0, min(s_ + wh, H) - max(s_, yb))
+    fA = min(1.0, ov / wh) if wh > 0 else 0.0
+    openHead = min(yb, s_ + wh); gapH = max(0.0, yk - openHead); D = dst + a * sT
+    tS = sum(ratios) / len(ratios); tD = tS * K
+    c = n_units * w / ln
+    return meshes, {"kind": "knee", "c": round(c, 4), "fA": round(fA, 4), "gapH": round(gapH, 3), "D": round(D, 3), "tS": round(tS, 4), "tD": round(tD, 4),
+                    "screen": round(1.0 - c * fA * (1.0 - tS), 4), "screenDay": round(1.0 - c * fA * (1.0 - tD), 4), "view": round(1.0 - c * fA, 4), "units": n_units}
+
+
+def _star_cover(R, r, w, wh):
+    """六角星（外半径 R、内半径 r，尖角朝上）在 w × wh 的窗条矩形内的覆盖率，采样"""
+    poly = []
+    for i in range(12):
+        t = math.pi / 2 + i * math.pi / 6; rr = R if i % 2 == 0 else r
+        poly.append((rr * math.cos(t), rr * math.sin(t)))
+    def inside(x, y):
+        inn = False; j = 11
+        for i in range(12):
+            xi, yi = poly[i]; xj, yj = poly[j]
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi: inn = not inn
+            j = i
+        return inn
+    NX, NY, hit = 36, 18, 0
+    for j in range(NY):
+        y = -wh / 2.0 + (j + 0.5) * wh / NY
+        for i in range(NX):
+            x = -w / 2.0 + (i + 0.5) * w / NX
+            if inside(x, y): hit += 1
+    return hit / float(NX * NY)
+
+
+def dev_umbrella(seg, sh, z0, H, seed, band):
+    """#3 伞式六角折板：角点固定，折痕外端向外凸、向中心收，覆盖面积随 cos 折角缩小"""
+    p, (ux, uy), (nx, ny), ln = _frame(seg)
+    w = float(sh["unitW"]); n_units = int(ln // w) if w > 0 else 0
+    if n_units <= 0: return [], NONE
+    th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
+    dst = float(sh["standoff"]); R = w / math.sqrt(3.0); rA = R * math.cos(math.pi / 6)
+    K, nxt = _perf(sh, seed); off = (ln - n_units * w) / 2.0
+    zc = z0 + band["sill"] + band["winH"] / 2.0
+    cover = _star_cover(R, rA * cT, w, band["winH"])
+    meshes, ratios = [], []
+    for k in range(n_units):
+        ratios.append(nxt())
+        cx = off + k * w + w / 2.0
+        C = (p[0] + ux * cx + nx * dst, p[1] + uy * cx + ny * dst, zc)
+        m = rg.Mesh(); m.Vertices.Add(C[0], C[1], C[2])
+        for i in range(6):
+            t = math.pi / 2 + i * math.pi / 3
+            m.Vertices.Add(C[0] + R * math.cos(t) * ux, C[1] + R * math.cos(t) * uy, C[2] + R * math.sin(t))
+        for i in range(6):
+            t = math.pi / 2 + i * math.pi / 3 + math.pi / 6; rr = rA * cT
+            m.Vertices.Add(C[0] + rr * math.cos(t) * ux + rA * sT * nx, C[1] + rr * math.cos(t) * uy + rA * sT * ny, C[2] + rr * math.sin(t))
+        for i in range(6):
+            m.Faces.AddFace(0, 1 + i, 7 + i); m.Faces.AddFace(0, 7 + i, 1 + (i + 1) % 6)
+        m.Normals.ComputeNormals(); meshes.append(m)
+    return meshes, _areal(ln, n_units, w * cover, ratios, K)
+
+
+def device_units(seg, sh, i_floor, z0, H, s_idx, band):
+    """按参数卡的 type 分派到机构库条目。返回 (面片列表, 翻译 dict)"""
+    seed = 991 + s_idx * 17 + i_floor * 101
+    t = sh.get("type", "none")
+    if t == "bifoldV": return dev_bifoldV(seg, sh, z0, H, seed)
+    if t == "pivot": return dev_pivot(seg, sh, z0, H, seed)
+    if t == "bifoldH": return dev_bifoldH(seg, sh, z0, H, seed, band)
+    if t == "umbrella": return dev_umbrella(seg, sh, z0, H, seed, band)
+    return [], NONE
 
 
 # ---------------- 生成 ----------------
@@ -280,15 +411,15 @@ def build(d):
                     m.Faces.AddFace(2 * k, 2 * k + 2, 2 * k + 3, 2 * k + 1)
                 m.Normals.ComputeNormals(); m.Compact()
                 meshes.append(m); faces.append(nc)
-        if sh.get("type") == "bifoldV" and (sh.get("floors", "all") == "all" or i >= 1):
+        if sh.get("type") in ("bifoldV", "pivot", "bifoldH", "umbrella") and (sh.get("floors", "all") == "all" or i >= 1):
             for si, s in enumerate(segs):
-                ms, tr = device_units(s, sh, i, i * H, H, si)
+                ms, tr = device_units(s, sh, i, i * H, H, si, {"sill": sill, "winH": winH})
                 dev.extend(ms)
                 if dev_tr[si] is None:
                     dev_tr[si] = tr
     for si, s in enumerate(segs):
         s["winArea"] = round(s["len"] * winH, 3)
-        s["dev"] = dev_tr[si] if dev_tr[si] else {"screen": 1.0, "screenDay": 1.0, "view": 1.0, "units": 0}
+        s["dev"] = dev_tr[si] if dev_tr[si] else dict(NONE)
     res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": True, "nSeg": len(segs),
            "floors": [{"i": i + 1, "area": round(plate_area, 2)} for i in range(N)],
            "perimeter": [[round(p[0], 3), round(p[1], 3)] for p in pts],
