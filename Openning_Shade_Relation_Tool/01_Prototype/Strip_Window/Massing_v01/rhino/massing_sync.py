@@ -100,15 +100,31 @@ def notch_limits(rect, op):
     return E, dmax
 
 
+def notch_span(rect, nt):
+    """2026-10-02 凹口在这条边上的 [a, b]（从边起点量）和深度 d：
+    - 离拐角剩不到 WALL 的薄墙直接去掉：切到拐角；
+    - 深到对面墙前剩不到 WALL：直接切穿（through=True，d = 整个进深）。
+    返回 (a, b, d, E, through)。"""
+    E, dmax = notch_limits(rect, nt)
+    opp = (rect[3] - rect[1]) if nt["edge"] in "AC" else (rect[2] - rect[0])
+    w = min(float(nt["width"]), E); cp = float(nt["pos"]) * E
+    a, b = max(0.0, cp - w / 2.0), min(E, cp + w / 2.0)
+    if a < WALL: a = 0.0
+    if E - b < WALL: b = E
+    d = float(nt["depth"]); through = d >= dmax - 1e-9
+    d = opp if through else min(d, dmax)
+    return a, b, d, E, through
+
+
 def rects_clash(r, others):
     return any(not (r[2] <= o[0] - WALL or r[0] >= o[2] + WALL or r[3] <= o[1] - WALL or r[1] >= o[3] + WALL) for o in others)
 
 
-def outer_loop(rect, notches, warnings=None, floor=0):
+def outer_loop(rect, notches, warnings=None, floor=0, pre=None):
     """外圈：任意个凹口（2026-10-03）。先加的优先；后加的和已接受的凹口挨在 WALL 以内就忽略并写警告。
     段名：每条边从 1 编号，一个凹口占 4 个名（前段、两壁、底），多个凹口接着编——单凹口时与以前完全相同（B1…B5）。
     返回 (顶点, 边名, 接受的凹口矩形)"""
-    accepted, per_edge = [], {}
+    accepted, per_edge = list(pre or []), {}
     for nt in notches:
         if nt.get("width", 0) <= 0.01 or nt.get("depth", 0) <= 0.01:
             continue
@@ -121,28 +137,52 @@ def outer_loop(rect, notches, warnings=None, floor=0):
             continue
         accepted.append(r); per_edge.setdefault(nt["edge"], []).append(nt)
     pts, names = [], []
+    carry = False          # 上一条边的凹口切到了拐角：拐角点不要，这条边从那个凹口的底角点开始
     for S, u, n, E, name in edges(rect):
         lst = sorted(per_edge.get(name, []), key=lambda o: o["pos"])
         if not lst:
-            pts.append(S); names.append(name); continue
+            if carry: names[-1] = name; carry = False
+            else: pts.append(S); names.append(name)
+            continue
         P = lambda t, k: (S[0] + u[0] * t + n[0] * k, S[1] + u[1] * t + n[1] * k)
-        c, prev = 1, S
+        c, prev, first = 1, S, True
         for nt in lst:
-            w = min(nt["width"], E); d = min(nt["depth"], notch_limits(rect, nt)[1]); cp = nt["pos"] * E
-            a, b = max(0.0, cp - w / 2.0), min(E, cp + w / 2.0)
+            a, b, d, _, _ = notch_span(rect, nt)
             if b - a < 0.01 or d < 0.01:
                 continue
-            pts.append(prev); names.append(name + str(c)); c += 1
-            for q, nm in ((P(a, 0), name + str(c)), (P(a, d), name + str(c + 1)), (P(b, d), name + str(c + 2))):
-                pts.append(q); names.append(nm)
-            c += 3; prev = P(b, 0)
-        pts.append(prev); names.append(name + str(c) if c > 1 else name)
-    out_p, out_n = [], []
-    m = len(pts)
-    for i in range(m):
-        p, q = pts[i], pts[(i + 1) % m]
-        if math.hypot(q[0] - p[0], q[1] - p[1]) > 1e-6:
-            out_p.append(p); out_n.append(names[i])
+            if first and a <= 1e-9:               # 2026-10-02 凹口从拐角开口：不加拐角点和近壁，编号照旧跳过 1、2
+                if carry: names[-1] = name + str(c); carry = False
+                c += 2
+            else:
+                if carry: names[-1] = name + str(c); carry = False
+                else: pts.append(prev); names.append(name + str(c))
+                c += 1
+                pts.append(P(a, 0)); names.append(name + str(c)); c += 1
+            pts.append(P(a, d)); names.append(name + str(c)); c += 1
+            pts.append(P(b, d)); names.append(name + str(c)); c += 1
+            first = False
+            if b >= E - 1e-9:                     # 凹口切到这条边的末端拐角：远壁不要，下一条边接着底角点走
+                carry = True; prev = None
+            else:
+                prev = P(b, 0)
+        if not carry and prev is not None:
+            pts.append(prev); names.append(name + str(c) if c > 1 else name)
+    if carry and pts:                               # 最后一条边（D）切到了起点拐角：去掉 A 的起点，D 凹口的底角点接着沿 A 走
+        nmA = names[0]; del pts[0]; del names[0]; names[-1] = nmA
+    out_p, out_n = list(pts), list(names)
+    changed = True                                   # 2026-10-02 去掉零长段和「尖刺」（走过去又原路折回的点，拐角处切穿时会出现）
+    while changed and len(out_p) > 3:
+        changed = False; m = len(out_p)
+        for i in range(m):
+            p, q = out_p[i], out_p[(i + 1) % m]
+            if math.hypot(q[0] - p[0], q[1] - p[1]) <= 1e-6:
+                del out_p[i]; del out_n[i]; changed = True; break
+        if changed: continue
+        for i in range(m):
+            o, p, q = out_p[i - 1], out_p[i], out_p[(i + 1) % m]
+            ux, uy, vx, vy = p[0] - o[0], p[1] - o[1], q[0] - p[0], q[1] - p[1]
+            if abs(ux * vy - uy * vx) < 1e-6 and (ux * vx + uy * vy) < 0:
+                del out_p[i]; del out_n[i]; changed = True; break
     return out_p, out_n, accepted
 
 
@@ -161,12 +201,13 @@ def notch_rect(rect, notch):
     if not notch or notch["depth"] <= 0.01 or notch["width"] <= 0.01:
         return None
     x0, y0, x1, y1 = rect
-    E, dmax = notch_limits(rect, notch); d = min(notch["depth"], dmax); w = notch["width"]; pos = notch["pos"]
+    a, b, d, E, _ = notch_span(rect, notch)
+    if b - a < 0.01: return None
     e = notch["edge"]
-    if e == "A": return (max(x0, x0 + pos * E - w / 2), y0, min(x1, x0 + pos * E + w / 2), y0 + d)
-    if e == "C": return (max(x0, x1 - pos * E - w / 2), y1 - d, min(x1, x1 - pos * E + w / 2), y1)
-    if e == "B": return (x1 - d, max(y0, y0 + pos * E - w / 2), x1, min(y1, y0 + pos * E + w / 2))
-    return (x0, max(y0, y1 - pos * E - w / 2), x0 + d, min(y1, y1 - pos * E + w / 2))
+    if e == "A": return (x0 + a, y0, x0 + b, y0 + d)
+    if e == "C": return (x1 - b, y1 - d, x1 - a, y1)
+    if e == "B": return (x1 - d, y0 + a, x1, y0 + b)
+    return (x0, y1 - b, x0 + d, y1 - a)
 
 
 def clip_loop(pts, names, axis, c, keep_hi, cut_name):
@@ -578,7 +619,20 @@ def floor_outline(b, i, ops, warnings):
     notches = [o for o in ops if o.get("type") == "notch" and applies(o, group)]
     courts = [o for o in ops if o.get("type") == "court" and applies(o, group)]
     splits = [o for o in ops if o.get("type") == "split" and applies(o, group)]
-    pts, names, nrects = outer_loop(rect, notches, warnings, i + 1)
+    # 2026-10-02 切穿的凹口：碰到拐角 = 矩形缩一块（outer_loop 处理）；在中间 = 把楼板切成两块（按分裂处理）
+    keep, thru = [], []
+    for nt in notches:
+        a, b, d, E, through = notch_span(rect, nt)
+        if through and a > 1e-9 and b < E - 1e-9:
+            axis = "x" if nt["edge"] in "AC" else "y"
+            Lax = (rect[2] - rect[0]) if axis == "x" else (rect[3] - rect[1])
+            cp = (a + b) / 2.0
+            pos = cp / Lax if nt["edge"] in "AB" else 1.0 - cp / Lax
+            thru.append({"id": nt.get("id"), "type": "split", "axis": axis, "pos": pos, "gap": b - a, "apply": nt.get("apply", "all"), "_rect": notch_rect(rect, nt)})
+        else:
+            keep.append(nt)
+    pts, names, nrects = outer_loop(rect, keep, warnings, i + 1, pre=[t["_rect"] for t in thru if t["_rect"]])
+    splits = thru + splits
     holes, hole_names, crects = [], [], []
     for ci, co in enumerate(courts):
         r = court_rect(rect, co)
@@ -603,9 +657,10 @@ def floor_outline(b, i, ops, warnings):
         c = lo_end + pos * (hi_end - lo_end)
         lo, hi = c - gap / 2.0, c + gap / 2.0
         band = (lo, y0 - 1.0, hi, y1 + 1.0) if axis == "x" else (x0 - 1.0, lo, x1 + 1.0, hi)
+        own = sp.get("_rect")
         if lo - lo_end < 2 * WALL or hi_end - hi < 2 * WALL:
             warnings.append("F%d: split %s leaves a side too thin, ignored" % (i + 1, sp.get("id")))
-        elif rects_clash(band, nrects) or rects_clash(band, crects):
+        elif rects_clash(band, [r for r in nrects if r != own]) or rects_clash(band, crects):
             warnings.append("F%d: split %s crosses a notch or courtyard, ignored" % (i + 1, sp.get("id")))
         else:
             p1, n1 = clip_loop(pts, names, axis, lo, False, "S1")

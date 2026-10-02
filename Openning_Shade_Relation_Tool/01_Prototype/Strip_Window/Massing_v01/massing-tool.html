@@ -385,11 +385,14 @@
     let x0 = +sb.D||0, y0 = +sb.A||0, x1 = P.L-(+sb.B||0), y1 = P.W-(+sb.C||0);
     if(x1-x0 < 2*WALLm || y1-y0 < 2*WALLm){ const cx=(x0+x1)/2, cy=(y0+y1)/2; x0=Math.min(x0,cx-WALLm); x1=Math.max(x1,cx+WALLm); y0=Math.min(y0,cy-WALLm); y1=Math.max(y1,cy+WALLm); }
     return {rect:[x0+(+sh.x||0), y0+(+sh.y||0), x1+(+sh.x||0), y1+(+sh.y||0)], gi}; }
-  function notchRectOf(rect, n){ if(!n || n.depth<=0.01 || n.width<=0.01) return null; const [x0,y0,x1,y1] = rect; const ac = n.edge==='A'||n.edge==='C'; const E = ac ? x1-x0 : y1-y0; const d = Math.min(n.depth, Math.max(0, (ac ? y1-y0 : x1-x0)-WALLm)), w = n.width, pos = n.pos;
-    if(n.edge==='A') return [Math.max(x0, x0+pos*E-w/2), y0, Math.min(x1, x0+pos*E+w/2), y0+d];
-    if(n.edge==='C') return [Math.max(x0, x1-pos*E-w/2), y1-d, Math.min(x1, x1-pos*E+w/2), y1];
-    if(n.edge==='B') return [x1-d, Math.max(y0, y0+pos*E-w/2), x1, Math.min(y1, y0+pos*E+w/2)];
-    return [x0, Math.max(y0, y1-pos*E-w/2), x0+d, Math.min(y1, y1-pos*E+w/2)]; }
+  function notchSpan(rect, n){ const [x0,y0,x1,y1] = rect; const ac = n.edge==='A'||n.edge==='C'; const E = ac ? x1-x0 : y1-y0, opp = ac ? y1-y0 : x1-x0, dmax = Math.max(0, opp-WALLm);
+    const w = Math.min(n.width, E), cp = n.pos*E; let a = Math.max(0, cp-w/2), b = Math.min(E, cp+w/2); if(a < WALLm) a = 0; if(E-b < WALLm) b = E;   // 离拐角不到 1 m 的薄墙去掉
+    const through = n.depth >= dmax-1e-9; return {a, b, d: through ? opp : Math.min(n.depth, dmax), E, through}; }   // 深到对面墙前不到 1 m = 切穿（同 massing_sync.notch_span）
+  function notchRectOf(rect, n){ if(!n || n.depth<=0.01 || n.width<=0.01) return null; const [x0,y0,x1,y1] = rect; const {a,b,d} = notchSpan(rect, n); if(b-a < 0.01) return null;
+    if(n.edge==='A') return [x0+a, y0, x0+b, y0+d];
+    if(n.edge==='C') return [x1-b, y1-d, x1-a, y1];
+    if(n.edge==='B') return [x1-d, y0+a, x1, y0+b];
+    return [x0, y1-b, x0+d, y1-a]; }
   function courtRectOf(rect, c){ const [x0,y0,x1,y1] = rect, Lr = x1-x0, Wr = y1-y0; const w = Math.min(c.width, Math.max(0, Lr-2*WALLm)), d = Math.min(c.depth, Math.max(0, Wr-2*WALLm)); if(w<0.5 || d<0.5) return null;
     const cx = Math.min(Math.max(x0+c.pos_u*Lr, x0+WALLm+w/2), x1-WALLm-w/2), cy = Math.min(Math.max(y0+c.pos_v*Wr, y0+WALLm+d/2), y1-WALLm-d/2); return [cx-w/2, cy-d/2, cx+w/2, cy+d/2]; }
   const rectsClash = (r, others) => others.some(o => !(r[2] <= o[0]-WALLm || r[0] >= o[2]+WALLm || r[3] <= o[1]-WALLm || r[1] >= o[3]+WALLm));
