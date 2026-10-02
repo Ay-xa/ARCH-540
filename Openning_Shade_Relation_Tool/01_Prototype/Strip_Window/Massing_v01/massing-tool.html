@@ -10,12 +10,12 @@
   :root{
     box-sizing:border-box;
     --bg:#e9e6df; --panel:#f7f5f0; --ink:#23241f; --ink-2:#6b6a63; --line:#cfccc3; --accent:#2f5d8a; --track:#d9d6cd;
-    --ok:#3d7a4a; --warn:#b07a1e; --bad:#b3413a; --heat:#B0283F; --day:#B8890F;
+    --ok:#3d7a4a; --warn:#b07a1e; --bad:#b3413a; --heat:#B0283F; --day:#B8890F; --sun:#D4861A;
   }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91; --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E; }
+    :root:not([data-theme="light"]){ --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91; --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E; --sun:#E8A444; }
   }
-  :root[data-theme="dark"]{ --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91; --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E; }
+  :root[data-theme="dark"]{ --bg:#1c1d1a; --panel:#242521; --ink:#ebe9e2; --ink-2:#9b9a91; --line:#3a3b35; --accent:#8fc0ea; --track:#3a3b35; --heat:#E0566C; --day:#E2B83E; --sun:#E8A444; }
   html{height:100%}
   body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;font-size:14px;line-height:1.4;display:flex;overflow:hidden}
   *,*::before,*::after{box-sizing:inherit}
@@ -278,16 +278,15 @@
   </details>
 
   <details class="grp" id="g3">
-    <summary><span>同步</span><b id="g3Sum"></b></summary>
+    <summary><span>Rhino 状态</span><b id="g3Sum"></b></summary>
     <div class="body">
-      <button id="sync" type="button" class="primary">同步到 Rhino</button>
       <div class="readout">
         <span>Rhino 最近写回</span><span id="rAt">—</span>
         <span>立面段数</span><span id="rSegs">—</span>
         <span>各层面积</span><span id="rArea">—</span>
         <span>窗高</span><span id="rWinH">—</span>
       </div>
-      <div class="note">滑块一动就自动同步，一般不用点这个按钮。Rhino 重算后页面自己更新。</div>
+      <div class="note">滑块一动就自动同步到 Rhino，重算后页面自己更新；这里只是看一眼状态。</div>
     </div>
   </details>
 </aside>
@@ -298,7 +297,7 @@
       <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
       <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
     <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
-    <div class="note">北朝上。底色是每一格的过热暴露或采光，从面向它的墙段按距离摊开；灰格离所有外墙都太远，立面管不到。鼠标停在格上看数值。彩色点是 Rhino 里的手柄。</div>
+    <div class="note">北朝上。外圈是罗盘；两道弧是太阳方位：橙色冬至、红色夏至，弧的两端是日出和日落方向，鼠标停上去看角度。底色是每一格的过热暴露或采光，从面向它的墙段按距离摊开；灰格离所有外墙都太远，立面管不到。彩色点是 Rhino 里的手柄。</div>
   </div>
 
   <div class="card" id="dataCard">
@@ -565,16 +564,26 @@
     rows = rows.filter(x=>x.floor===F.i);   // colour the selected floor's own segments
     const mode = $('planMode').value, grid = parseFloat($('planGrid').value), depth = ctx(1).depth;
     const G = planGrid(F, rows, grid, depth); window.__grid = G; window.__gridFloor = F.i;
-    const cx0 = b.L/2, cy0 = b.W/2; const R0 = Math.max(Math.hypot(b.L, b.W)/2, ...fl.flatMap(g=>(g.plates&&g.plates.length?g.plates:[{perimeter:g.perimeter}]).flatMap(pl=>pl.perimeter.map(p=>Math.hypot(p[0]-cx0, p[1]-cy0))))), pad = 2.5, V = 2*(R0+pad);
+    const cx0 = b.L/2, cy0 = b.W/2; const R0 = Math.max(Math.hypot(b.L, b.W)/2, ...fl.flatMap(g=>(g.plates&&g.plates.length?g.plates:[{perimeter:g.perimeter}]).flatMap(pl=>pl.perimeter.map(p=>Math.hypot(p[0]-cx0, p[1]-cy0))))), pad = 4.6, V = 2*(R0+pad);
     svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
     const fs = Math.max(0.5, 12/((svg.clientWidth||330)/V)), n2 = x=>(+x).toFixed(2);
     const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
     const ink=css('--ink'), ink2=css('--ink-2'), line=css('--line'), panel=css('--panel'), heat=css('--heat');
     // plan coords: x right, y up (Rhino) → svg y down; rotate so north is up: A faces az0, A's outward normal is −Y → rotate by (az0 − 180) clockwise
     const rot = b.az0 - 180, cx = b.L/2, cy = b.W/2;
-    let o = `<circle r="${n2(R0+1.6)}" fill="none" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`;
-    for(let a=0;a<360;a+=45){ const t=a*Math.PI/180, r1=R0+1.6, r2=r1-0.35*fs; o+=`<line x1="${n2(r1*Math.sin(t))}" y1="${n2(-r1*Math.cos(t))}" x2="${n2(r2*Math.sin(t))}" y2="${n2(-r2*Math.cos(t))}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
-    o += `<text x="0" y="${n2(-(R0+1.6)-fs*0.3)}" text-anchor="middle" font-size="${n2(fs)}" font-weight="600" fill="${ink}">北</text>`;
+    // 罗盘环 + 日照弧线（搬自 Version_06 的平面）：外环 15° 刻度；夏至 / 冬至的太阳方位弧，端点 = 日出 / 日落方位；按所选气候站的纬度算
+    const pt = (a,r)=>[r*Math.sin(a*Math.PI/180), -r*Math.cos(a*Math.PI/180)];
+    const arc = (a1,a2,r)=>{ const [x1,y1]=pt(a1,r), [x2,y2]=pt(a2,r); return `M${n2(x1)},${n2(y1)} A${n2(r)},${n2(r)} 0 ${(a2-a1)>180?1:0} 1 ${n2(x2)},${n2(y2)}`; };
+    const lat = (CLIM[P.clim]||CLIM.apNow).lat, cosA = Math.sin(23.44*Math.PI/180)/Math.cos(lat*Math.PI/180), aS = Math.acos(Math.max(-1,Math.min(1,cosA)))*180/Math.PI, aW = 180-aS;
+    const rR = R0+2.4, rS = R0+1.6, rW = R0+1.0, sunC = css('--sun');
+    let o = `<circle r="${n2(rR)}" fill="none" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`;
+    for(let a=0;a<360;a+=15){ const [x1,y1]=pt(a,rR), [x2,y2]=pt(a,rR-(a%45?0.3:0.5)*fs); o += `<line x1="${n2(x1)}" y1="${n2(y1)}" x2="${n2(x2)}" y2="${n2(y2)}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
+    [['北',0],['东',90],['南',180],['西',270]].forEach(([t,a])=>{ const [x,y]=pt(a,rR+fs*0.7); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*(a?0.85:1.05))}" font-weight="${a?500:700}" fill="${a?ink2:ink}">${t}</text>`; });
+    o += `<path d="${arc(aS,360-aS,rS)}" fill="none" stroke="${heat}" stroke-width="${n2(fs*0.14)}" opacity=".7"><title>夏至：太阳从 ${fmt(aS,0)}° 升起、${fmt(360-aS,0)}° 落下</title></path>`;
+    o += `<path d="${arc(aW,360-aW,rW)}" fill="none" stroke="${sunC}" stroke-width="${n2(fs*0.22)}"><title>冬至：太阳从 ${fmt(aW,0)}° 升起、${fmt(360-aW,0)}° 落下</title></path>`;
+    [[aS,heat,rS],[360-aS,heat,rS],[aW,sunC,rW],[360-aW,sunC,rW]].forEach(([a,c,r])=>{ const [x,y]=pt(a,r), [x2,y2]=pt(a,r-0.55*fs); o += `<line x1="${n2(x)}" y1="${n2(y)}" x2="${n2(x2)}" y2="${n2(y2)}" stroke="${c}" stroke-width="${n2(fs*0.14)}"/>`; });
+    { const [x,y]=pt(aW-7,rW-0.75*fs); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${sunC}">冬至</text>`;
+      const [x2,y2]=pt(aS+7,rS+0.6*fs); o += `<text x="${n2(x2)}" y="${n2(y2)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${heat}">夏至</text>`; }
     o += `<g transform="rotate(${rot})">`;
     const platesOf = g => (g.plates && g.plates.length ? g.plates : [{perimeter:g.perimeter, holes:g.holes||[]}]);
     const pts = per.map(p=>[p[0]-cx, -(p[1]-cy)]);
@@ -674,7 +683,6 @@
   sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC','axis','applyS','groupMode','fixed'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
   ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
-  $('sync').addEventListener('click', post);
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
 

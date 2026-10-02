@@ -483,6 +483,10 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 修了一个老问题：`#cmpAside / #readAside` 的内联 `display:flex` 盖过了 `.only-*` 的隐藏规则，对比 / 读图的说明一直在设计 tab 里露着；改成 CSS 规则 + `!important`。
 - 两列里的长标签会折行：长 L / 宽 W、单元宽、板厚（不用）、固定边（不适用）全部缩短，原因放 title 提示。机构库说明改成一句人话。
 
+**平面罗盘 + 日照弧线、去掉同步按钮（同日续）**
+- 从 Version_06 的 renderPlan 搬来：外环 15° 刻度 + 北东南西；夏至（红）/ 冬至（橙）太阳方位弧，端点 = 日出日落方位，按所选气候站纬度算（`acos(sin23.44°/cos lat)`），title 提示角度。viewBox 留白 2.5 → 4.6 m。加 `--sun` 颜色变量。
+- 「同步到 Rhino」按钮删了（滑块本来就自动写入），组改名「Rhino 状态」只留读数。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
