@@ -507,7 +507,7 @@ def _star_cover(R, r, w, wh):
 def dev_umbrella(seg, sh, z0, H, seed, band):
     p, (ux, uy), (nx, ny), ln = _frame(seg)
     w = float(sh["unitW"]); slots = _slots(ln, sh, seed); n_units = len(slots)
-    if n_units <= 0: return [], NONE
+    if n_units <= 0: return [], NONE, []            # 墙段比单元窄时没有单元；三个返回值（骨架列表也要给）
     th = math.radians(float(sh["tilt"])); cT, sT = math.cos(th), math.sin(th)
     dst = float(sh["standoff"]); R = w / math.sqrt(3.0); rA = R * math.cos(math.pi / 6)
     K, nxt = _perf(sh, seed)

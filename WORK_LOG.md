@@ -473,6 +473,10 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 用户要给 #3 加细节：`umbrella_detail()` 每单元 14 根细圆柱（`_rod` = Mesh.CreateFromCylinder）；`device_units` 统一返回 (meshes, tr, detail)，`build/run` 多一个 `detail`，sync 新输出 `devDetail`（第 13 个），Custom Preview「preview detail」深灰；不接 Ladybug context。缓存元组长度改 8。
 - 截图 `screenshots/rhino_umbrella_detail.jpg`。
 
+**#3 加大单元宽度后 Rhino 不显示（同日续）**
+- 原因：`dev_umbrella` 在墙段比单元窄、放不下单元时提前 `return [], NONE`（两个值），而 `build` 现在拆三个值（多了骨架），整个脚本报错，所有输出清空 → Rhino 里什么都不显示。单元宽一加大就有短段放不下，所以才触发。改成 `return [], NONE, []`。
+- 教训：改返回值个数时，所有提前 return 都要一起改；短段（凹口壁 3–4 m）是最常触发边界的地方。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
