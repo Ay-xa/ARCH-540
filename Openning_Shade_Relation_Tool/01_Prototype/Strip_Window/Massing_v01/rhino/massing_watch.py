@@ -1,12 +1,11 @@
 # massing_watch.py — Grasshopper「Python 3 Script」组件「massing watch」的源码（2026-10-03）
-# 作用：Trigger 每 0.5 s 只触发这个小组件；它看 state.json 的修改时间 / 大小和两个手柄点的坐标，
+# 作用：Trigger 每 0.5 s 只触发这个小组件；它看 state.json 的修改时间 / 大小和所有手柄点（名字以 notch / court 开头）的坐标，
 #       有变化才让「massing sync」重算。这样楼板 / 窗条 / 装置的预览不会每半秒清一次（以前整栋模型在闪）。
 # 输入：path（state.json）。输出：status。
-import os, scriptcontext as sc, Rhino, Grasshopper as gh
+import os, scriptcontext as sc, Rhino, Grasshopper as gh, System
 import Rhino.Geometry as rg
 
 SYNC_GUID = "59ab856d-c7e5-44ce-99c9-578fe8373b83"     # massing sync 组件的 InstanceGuid
-HANDLES = ("notch01", "court01")
 
 
 def key(path):
@@ -15,15 +14,13 @@ def key(path):
     except Exception:
         k = [0, 0]
     rdoc = Rhino.RhinoDoc.ActiveDoc
-    for name in HANDLES:
-        for o in rdoc.Objects:
-            if o.Name == name and isinstance(o.Geometry, rg.Point):
-                p = o.Geometry.Location
-                k += [round(p.X, 3), round(p.Y, 3)]
-                break
-        else:
-            k += [None, None]
-    return tuple(k)
+    pts = []
+    for o in rdoc.Objects:
+        nm = o.Name or ""
+        if isinstance(o.Geometry, rg.Point) and (nm.startswith("notch") or nm.startswith("court")):
+            p = o.Geometry.Location
+            pts.append((nm, round(p.X, 3), round(p.Y, 3)))
+    return tuple(k) + tuple(sorted(pts))
 
 
 def main(path):
@@ -43,5 +40,4 @@ def main(path):
     return "changed -> sync"
 
 
-import System
 status = main(path)

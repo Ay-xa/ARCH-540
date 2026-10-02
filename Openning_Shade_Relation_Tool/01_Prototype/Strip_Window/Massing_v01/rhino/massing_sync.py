@@ -44,25 +44,40 @@ def write(p, d):
 
 
 # ---------------- 楼层组 ----------------
+def group_list(b):
+    """楼层组列表 [{n, setback{A,B,C,D}, floors[...]}]（2026-10-03 放开到任意组数）。
+    从 F1 起按每组层数依次分配，最后一组拿剩下的楼层。兼容旧格式 {podium, setback}。"""
+    N = int(b["floors"]); g = b.get("groups") or {}
+    lst = g.get("list")
+    if not isinstance(lst, list) or not lst:
+        podium = int(g.get("podium", N))
+        lst = [{"n": podium, "setback": {}}, {"n": max(0, N - podium), "setback": g.get("setback") or {}}] if 0 <= podium < N else [{"n": N, "setback": {}}]
+    out, used = [], 0
+    for k, gr in enumerate(lst):
+        n = max(0, N - used) if k == len(lst) - 1 else max(0, min(int((gr or {}).get("n", 0)), N - used))
+        out.append({"n": n, "setback": dict((gr or {}).get("setback") or {}), "floors": list(range(used + 1, used + n + 1))})
+        used += n
+    return out
+
+
 def floor_rect(b, i):
-    """第 i 层（0 起）的外矩形 (x0, y0, x1, y1)：第 1 组 = 基底；第 2 组 = 四边各退 setback"""
+    """第 i 层（0 起）的外矩形 (x0, y0, x1, y1) 和组号（1 起）：每组四边各自从基底向内退 setback"""
     L, W = float(b["L"]), float(b["W"])
-    g = b.get("groups") or {}
-    podium = int(g.get("podium", 10 ** 6))
-    if i < podium:
-        return (0.0, 0.0, L, W), 1
-    sb = g.get("setback") or {}
-    x0, y0 = float(sb.get("D", 0)), float(sb.get("A", 0))
-    x1, y1 = L - float(sb.get("B", 0)), W - float(sb.get("C", 0))
+    k, sb = 1, {}
+    for gi, gr in enumerate(group_list(b)):
+        if (i + 1) in gr["floors"]:
+            k, sb = gi + 1, gr["setback"]; break
+    x0, y0 = float(sb.get("D", 0) or 0), float(sb.get("A", 0) or 0)
+    x1, y1 = L - float(sb.get("B", 0) or 0), W - float(sb.get("C", 0) or 0)
     if x1 - x0 < 2 * WALL or y1 - y0 < 2 * WALL:               # 退过头：留一个最小矩形
         cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
         x0, x1 = min(x0, cx - WALL), max(x1, cx + WALL); y0, y1 = min(y0, cy - WALL), max(y1, cy + WALL)
-    return (x0, y0, x1, y1), 2
+    return (x0, y0, x1, y1), k
 
 
 def applies(op, group):
     a = op.get("apply", "all")
-    return a == "all" or (a == "g1" and group == 1) or (a == "g2" and group == 2)
+    return a == "all" or a == "g%d" % group
 
 
 # ---------------- 周界 ----------------
@@ -82,28 +97,50 @@ def notch_limits(rect, op):
     return E, dmax
 
 
-def outer_loop(rect, notch):
+def rects_clash(r, others):
+    return any(not (r[2] <= o[0] - WALL or r[0] >= o[2] + WALL or r[3] <= o[1] - WALL or r[1] >= o[3] + WALL) for o in others)
+
+
+def outer_loop(rect, notches, warnings=None, floor=0):
+    """外圈：任意个凹口（2026-10-03）。先加的优先；后加的和已接受的凹口挨在 WALL 以内就忽略并写警告。
+    段名：每条边从 1 编号，一个凹口占 4 个名（前段、两壁、底），多个凹口接着编——单凹口时与以前完全相同（B1…B5）。
+    返回 (顶点, 边名, 接受的凹口矩形)"""
+    accepted, per_edge = [], {}
+    for nt in notches:
+        if nt.get("width", 0) <= 0.01 or nt.get("depth", 0) <= 0.01:
+            continue
+        r = notch_rect(rect, nt)
+        if not r:
+            continue
+        if rects_clash(r, accepted):
+            if warnings is not None:
+                warnings.append("F%d: notch %s too close to an earlier notch, ignored" % (floor, nt.get("id")))
+            continue
+        accepted.append(r); per_edge.setdefault(nt["edge"], []).append(nt)
     pts, names = [], []
     for S, u, n, E, name in edges(rect):
-        if notch and notch["edge"] == name and notch["width"] > 0.01 and notch["depth"] > 0.01:
-            w = min(notch["width"], E)
-            d = min(notch["depth"], notch_limits(rect, notch)[1])
-            c = notch["pos"] * E
-            a, b = max(0.0, c - w / 2.0), min(E, c + w / 2.0)
+        lst = sorted(per_edge.get(name, []), key=lambda o: o["pos"])
+        if not lst:
+            pts.append(S); names.append(name); continue
+        P = lambda t, k: (S[0] + u[0] * t + n[0] * k, S[1] + u[1] * t + n[1] * k)
+        c, prev = 1, S
+        for nt in lst:
+            w = min(nt["width"], E); d = min(nt["depth"], notch_limits(rect, nt)[1]); cp = nt["pos"] * E
+            a, b = max(0.0, cp - w / 2.0), min(E, cp + w / 2.0)
             if b - a < 0.01 or d < 0.01:
-                pts.append(S); names.append(name); continue
-            P = lambda t, k: (S[0] + u[0] * t + n[0] * k, S[1] + u[1] * t + n[1] * k)
-            for p, nm in ((S, name + "1"), (P(a, 0), name + "2"), (P(a, d), name + "3"), (P(b, d), name + "4"), (P(b, 0), name + "5")):
-                pts.append(p); names.append(nm)
-        else:
-            pts.append(S); names.append(name)
+                continue
+            pts.append(prev); names.append(name + str(c)); c += 1
+            for q, nm in ((P(a, 0), name + str(c)), (P(a, d), name + str(c + 1)), (P(b, d), name + str(c + 2))):
+                pts.append(q); names.append(nm)
+            c += 3; prev = P(b, 0)
+        pts.append(prev); names.append(name + str(c) if c > 1 else name)
     out_p, out_n = [], []
     m = len(pts)
     for i in range(m):
         p, q = pts[i], pts[(i + 1) % m]
         if math.hypot(q[0] - p[0], q[1] - p[1]) > 1e-6:
             out_p.append(p); out_n.append(names[i])
-    return out_p, out_n
+    return out_p, out_n, accepted
 
 
 def court_rect(rect, op):
@@ -166,6 +203,27 @@ def find_handle(rdoc, name):
         if o.Name == name and isinstance(o.Geometry, rg.Point):
             return o
     return None
+
+
+def ensure_handles(rdoc, ops, rect, notes):
+    """2026-10-03：每条操作一个手柄点（凹口红、庭院蓝），新操作补点，删掉的操作删点"""
+    import System
+    ids = set(op["id"] for op in ops if op.get("type") in HANDLE_KEYS)
+    for op in ops:
+        if op.get("type") in HANDLE_KEYS and find_handle(rdoc, op["id"]) is None:
+            attr = Rhino.DocObjects.ObjectAttributes()
+            attr.Name = op["id"]
+            li = rdoc.Layers.FindName("Handles")
+            if li is not None:
+                attr.LayerIndex = li.Index
+            attr.ObjectColor = System.Drawing.Color.FromArgb(200, 40, 40) if op["type"] == "notch" else System.Drawing.Color.FromArgb(40, 90, 200)
+            attr.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject
+            rdoc.Objects.AddPoint(params_to_point(rect, op), attr)
+            notes.append("%s handle created" % op["id"])
+    for o in list(rdoc.Objects):
+        nm = o.Name or ""
+        if isinstance(o.Geometry, rg.Point) and (nm.startswith("notch") or nm.startswith("court")) and nm not in ids:
+            rdoc.Objects.Delete(o.Id, True); notes.append("%s handle removed" % nm)
 
 
 def handle_to_params(pt, rect, op):
@@ -411,17 +469,19 @@ def slab_brep(pts, holes, H):
 def floor_outline(b, i, ops, warnings):
     """第 i 层：返回 (外圈顶点, 边名, 洞列表, 组号, 矩形)"""
     rect, group = floor_rect(b, i)
-    notch = next((o for o in ops if o.get("type") == "notch" and applies(o, group)), None)
+    notches = [o for o in ops if o.get("type") == "notch" and applies(o, group)]
     courts = [o for o in ops if o.get("type") == "court" and applies(o, group)]
-    pts, names = outer_loop(rect, notch)
-    holes, hole_names = [], []
-    nr = notch_rect(rect, notch)
+    pts, names, nrects = outer_loop(rect, notches, warnings, i + 1)
+    holes, hole_names, crects = [], [], []
     for ci, co in enumerate(courts):
         r = court_rect(rect, co)
         if not r:
             warnings.append("F%d: courtyard %s too small, ignored" % (i + 1, co.get("id"))); continue
-        if nr and not (r[2] <= nr[0] - WALL or r[0] >= nr[2] + WALL or r[3] <= nr[1] - WALL or r[1] >= nr[3] + WALL):
-            warnings.append("F%d: courtyard %s overlaps the notch, ignored" % (i + 1, co.get("id"))); continue
+        if rects_clash(r, nrects):
+            warnings.append("F%d: courtyard %s overlaps a notch, ignored" % (i + 1, co.get("id"))); continue
+        if rects_clash(r, crects):
+            warnings.append("F%d: courtyard %s too close to an earlier courtyard, ignored" % (i + 1, co.get("id"))); continue
+        crects.append(r)
         hp, hn = court_loop(r, "Y" if ci == 0 else "Y%d_" % (ci + 1))
         holes.append(hp); hole_names.append(hn)
     return pts, names, holes, hole_names, group, rect
@@ -483,7 +543,7 @@ def build(d):
            "shading": {"type": sh.get("type", "none"), "units": sum(s["dev"]["units"] for s in segs_all),
                        "facades": {k: {"on": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[0],
                                        "tilt": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[1]} for k in FACADE_KEYS}},
-           "groups": {"podium": int((b.get("groups") or {}).get("podium", N)), "setback": (b.get("groups") or {}).get("setback", {})}}
+           "groups": {"list": group_list(b), "podium": group_list(b)[0]["n"]}}
     return floors, wins, res, meshes, faces, dev
 
 
@@ -499,6 +559,11 @@ def run(path):
     changed_file = st.get("massing_stamp") != d.get("updated_at")
     handle_moved, handle_written = False, False
     notes = []
+    if changed_file:
+        ensure_handles(rdoc, ops, base_rect, notes)
+        stale = [hid for hid in (d.get("handle") or {}) if hid not in set(o.get("id") for o in ops)]
+        for hid in stale:
+            del d["handle"][hid]; handle_written = True
     for idx, op in enumerate(ops):
         if op.get("type") not in HANDLE_KEYS:
             continue
@@ -552,8 +617,8 @@ def run(path):
     else:
         st["massing_stamp"] = d.get("updated_at")
     opsum = " ".join("%s(%s→%s)" % (o.get("type"), o.get("id"), o.get("apply", "all")) for o in d.get("ops") or [])
-    status = "seq %d | %d floors (podium %d) | %d segments | %s | device %s x%d | %s" % (
-        res["seq"], len(res["floors"]), res["groups"]["podium"], len(res["segments"]), opsum, res["shading"]["type"], res["shading"]["units"], "; ".join(notes + res["warnings"]) or "ok")
+    status = "seq %d | %d floors in %d groups | %d segments | %s | device %s x%d | %s" % (
+        res["seq"], len(res["floors"]), len(res["groups"]["list"]), len(res["segments"]), opsum, res["shading"]["type"], res["shading"]["units"], "; ".join(notes + res["warnings"]) or "ok")
     st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"], dev)
     return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev
 

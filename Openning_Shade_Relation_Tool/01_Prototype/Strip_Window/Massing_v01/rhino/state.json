@@ -1,20 +1,42 @@
 {
   "version": 1,
   "building": {
-    "floors": 3,
+    "floors": 5,
     "H": 3.0,
     "slab": 0.35,
     "L": 30.0,
     "W": 16.0,
     "az0": 180.0,
     "groups": {
-      "podium": 2,
-      "setback": {
-        "A": 3.0,
-        "B": 0.0,
-        "C": 3.0,
-        "D": 0.0
-      }
+      "list": [
+        {
+          "n": 2,
+          "setback": {
+            "A": 0.0,
+            "B": 0.0,
+            "C": 0.0,
+            "D": 0.0
+          }
+        },
+        {
+          "n": 1,
+          "setback": {
+            "A": 2.0,
+            "B": 0.0,
+            "C": 3.0,
+            "D": 0.0
+          }
+        },
+        {
+          "n": 1,
+          "setback": {
+            "A": 0.0,
+            "B": 0.0,
+            "C": 0.0,
+            "D": 0.0
+          }
+        }
+      ]
     }
   },
   "ops": [
@@ -26,9 +48,21 @@
       "propagate": "up",
       "width": 6.0,
       "depth": 4.0,
-      "at": "2026-10-01T20:52:03.150",
+      "at": "2026-10-01T21:06:01.625",
       "edge": "B",
       "pos": 0.36
+    },
+    {
+      "id": "notch02",
+      "type": "notch",
+      "apply": "all",
+      "floor": 1,
+      "propagate": "up",
+      "width": 6.0,
+      "depth": 4.0,
+      "at": "2026-10-01T21:06:01.625",
+      "edge": "A",
+      "pos": 0.71
     },
     {
       "id": "court01",
@@ -38,8 +72,20 @@
       "propagate": "up",
       "width": 6.0,
       "depth": 6.0,
-      "at": "2026-10-01T20:52:03.150",
+      "at": "2026-10-01T21:06:01.625",
       "pos_u": 0.33,
+      "pos_v": 0.5
+    },
+    {
+      "id": "court02",
+      "type": "court",
+      "apply": "all",
+      "floor": 1,
+      "propagate": "up",
+      "width": 6.0,
+      "depth": 6.0,
+      "at": "2026-10-01T21:06:01.625",
+      "pos_u": 0.68,
       "pos_v": 0.5
     }
   ],
@@ -48,7 +94,7 @@
     "sill": 0.75
   },
   "run": {
-    "seq": 52,
+    "seq": 61,
     "period": "summer",
     "clim": "apNow"
   },
@@ -56,19 +102,29 @@
     "notch01": {
       "pos": 0.36,
       "depth": 4.0,
-      "at": "2026-10-01T20:52:03.150"
+      "at": "2026-10-01T21:06:01.625"
     },
     "court01": {
       "pos_u": 0.33,
       "pos_v": 0.5,
-      "at": "2026-10-01T20:52:03.150"
+      "at": "2026-10-01T21:06:01.625"
+    },
+    "notch02": {
+      "pos": 0.71,
+      "depth": 4.0,
+      "at": "2026-10-01T21:06:01.625"
+    },
+    "court02": {
+      "pos_u": 0.68,
+      "pos_v": 0.5,
+      "at": "2026-10-01T21:06:01.625"
     }
   },
   "results": {
-    "seq": 52,
-    "at": "2026-10-01T20:52:03.710",
+    "seq": 61,
+    "at": "2026-10-01T21:06:01.750",
     "floorsSame": false,
-    "nSeg": 36,
+    "nSeg": 96,
     "floors": [
       {
         "i": 1,
@@ -79,10 +135,26 @@
           30.0,
           16.0
         ],
-        "area": 420.0,
+        "area": 360.0,
         "perimeter": [
           [
             0.0,
+            0.0
+          ],
+          [
+            18.3,
+            0.0
+          ],
+          [
+            18.3,
+            4.0
+          ],
+          [
+            24.3,
+            4.0
+          ],
+          [
+            24.3,
             0.0
           ],
           [
@@ -130,6 +202,24 @@
             ],
             [
               12.9,
+              11.0
+            ]
+          ],
+          [
+            [
+              23.4,
+              5.0
+            ],
+            [
+              17.4,
+              5.0
+            ],
+            [
+              17.4,
+              11.0
+            ],
+            [
+              23.4,
               11.0
             ]
           ]
@@ -144,10 +234,26 @@
           30.0,
           16.0
         ],
-        "area": 420.0,
+        "area": 360.0,
         "perimeter": [
           [
             0.0,
+            0.0
+          ],
+          [
+            18.3,
+            0.0
+          ],
+          [
+            18.3,
+            4.0
+          ],
+          [
+            24.3,
+            4.0
+          ],
+          [
+            24.3,
             0.0
           ],
           [
@@ -195,6 +301,24 @@
             ],
             [
               12.9,
+              11.0
+            ]
+          ],
+          [
+            [
+              23.4,
+              5.0
+            ],
+            [
+              17.4,
+              5.0
+            ],
+            [
+              17.4,
+              11.0
+            ],
+            [
+              23.4,
               11.0
             ]
           ]
@@ -205,35 +329,51 @@
         "group": 2,
         "rect": [
           0.0,
-          3.0,
+          2.0,
           30.0,
           13.0
         ],
-        "area": 240.0,
+        "area": 246.0,
         "perimeter": [
           [
             0.0,
-            3.0
+            2.0
+          ],
+          [
+            18.3,
+            2.0
+          ],
+          [
+            18.3,
+            6.0
+          ],
+          [
+            24.3,
+            6.0
+          ],
+          [
+            24.3,
+            2.0
           ],
           [
             30.0,
-            3.0
+            2.0
           ],
           [
             30.0,
-            3.6
+            2.96
           ],
           [
             26.0,
-            3.6
+            2.96
           ],
           [
             26.0,
-            9.6
+            8.96
           ],
           [
             30.0,
-            9.6
+            8.96
           ],
           [
             30.0,
@@ -242,6 +382,87 @@
           [
             0.0,
             13.0
+          ]
+        ],
+        "holes": [
+          [
+            [
+              12.9,
+              4.5
+            ],
+            [
+              6.9,
+              4.5
+            ],
+            [
+              6.9,
+              10.5
+            ],
+            [
+              12.9,
+              10.5
+            ]
+          ]
+        ]
+      },
+      {
+        "i": 4,
+        "group": 3,
+        "rect": [
+          0.0,
+          0.0,
+          30.0,
+          16.0
+        ],
+        "area": 360.0,
+        "perimeter": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            18.3,
+            0.0
+          ],
+          [
+            18.3,
+            4.0
+          ],
+          [
+            24.3,
+            4.0
+          ],
+          [
+            24.3,
+            0.0
+          ],
+          [
+            30.0,
+            0.0
+          ],
+          [
+            30.0,
+            2.76
+          ],
+          [
+            26.0,
+            2.76
+          ],
+          [
+            26.0,
+            8.76
+          ],
+          [
+            30.0,
+            8.76
+          ],
+          [
+            30.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
           ]
         ],
         "holes": [
@@ -262,6 +483,123 @@
               12.9,
               11.0
             ]
+          ],
+          [
+            [
+              23.4,
+              5.0
+            ],
+            [
+              17.4,
+              5.0
+            ],
+            [
+              17.4,
+              11.0
+            ],
+            [
+              23.4,
+              11.0
+            ]
+          ]
+        ]
+      },
+      {
+        "i": 5,
+        "group": 3,
+        "rect": [
+          0.0,
+          0.0,
+          30.0,
+          16.0
+        ],
+        "area": 360.0,
+        "perimeter": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            18.3,
+            0.0
+          ],
+          [
+            18.3,
+            4.0
+          ],
+          [
+            24.3,
+            4.0
+          ],
+          [
+            24.3,
+            0.0
+          ],
+          [
+            30.0,
+            0.0
+          ],
+          [
+            30.0,
+            2.76
+          ],
+          [
+            26.0,
+            2.76
+          ],
+          [
+            26.0,
+            8.76
+          ],
+          [
+            30.0,
+            8.76
+          ],
+          [
+            30.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ]
+        ],
+        "holes": [
+          [
+            [
+              12.9,
+              5.0
+            ],
+            [
+              6.9,
+              5.0
+            ],
+            [
+              6.9,
+              11.0
+            ],
+            [
+              12.9,
+              11.0
+            ]
+          ],
+          [
+            [
+              23.4,
+              5.0
+            ],
+            [
+              17.4,
+              5.0
+            ],
+            [
+              17.4,
+              11.0
+            ],
+            [
+              23.4,
+              11.0
+            ]
           ]
         ]
       }
@@ -269,12 +607,108 @@
     "segments": [
       {
         "floor": 1,
-        "edge": "A",
+        "edge": "A1",
         "loop": "outer",
         "az": 180.0,
-        "len": 30.0,
+        "len": 18.3,
         "p": [
           0.0,
+          0.0
+        ],
+        "q": [
+          18.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5288,
+          "screenDay": 0.4959,
+          "view": 0.423,
+          "units": 6,
+          "tilt": 60.0
+        },
+        "winArea": 21.823
+      },
+      {
+        "floor": 1,
+        "edge": "A2",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 4.0,
+        "p": [
+          18.3,
+          0.0
+        ],
+        "q": [
+          18.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6399,
+          "screenDay": 0.6151,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 1,
+        "edge": "A3",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          18.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5011,
+          "screenDay": 0.4739,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "A4",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 4.0,
+        "p": [
+          24.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6135,
+          "screenDay": 0.5969,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 1,
+        "edge": "A5",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 5.7,
+        "p": [
+          24.3,
           0.0
         ],
         "q": [
@@ -283,56 +717,896 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5273,
+          "screen": 0.7812,
+          "screenDay": 0.7533,
+          "view": 0.6913,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 6.797
+      },
+      {
+        "floor": 1,
+        "edge": "B1",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 2.76,
+        "p": [
+          30.0,
+          0.0
+        ],
+        "q": [
+          30.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 3.291
+      },
+      {
+        "floor": 1,
+        "edge": "B2",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 4.0,
+        "p": [
+          30.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6619,
+          "screenDay": 0.6303,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 1,
+        "edge": "B3",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          26.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5349,
+          "screenDay": 0.4972,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "B4",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 4.0,
+        "p": [
+          26.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6355,
+          "screenDay": 0.6121,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 1,
+        "edge": "B5",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 7.24,
+        "p": [
+          30.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6063,
+          "screenDay": 0.5776,
+          "view": 0.5139,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 8.634
+      },
+      {
+        "floor": 1,
+        "edge": "C",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 30.0,
+        "p": [
+          30.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5068,
+          "screenDay": 0.4778,
+          "view": 0.4134,
+          "units": 10,
+          "tilt": 60.0
+        },
+        "winArea": 35.775
+      },
+      {
+        "floor": 1,
+        "edge": "D",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 16.0,
+        "p": [
+          0.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5693,
+          "screenDay": 0.5323,
+          "view": 0.4501,
+          "units": 5,
+          "tilt": 60.0
+        },
+        "winArea": 19.08
+      },
+      {
+        "floor": 1,
+        "edge": "Y1",
+        "loop": "court1",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y2",
+        "loop": "court1",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y3",
+        "loop": "court1",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y4",
+        "loop": "court1",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y2_1",
+        "loop": "court2",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y2_2",
+        "loop": "court2",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y2_3",
+        "loop": "court2",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 1,
+        "edge": "Y2_4",
+        "loop": "court2",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "A1",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 18.3,
+        "p": [
+          0.0,
+          0.0
+        ],
+        "q": [
+          18.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5355,
+          "screenDay": 0.5006,
+          "view": 0.423,
+          "units": 6,
+          "tilt": 60.0
+        },
+        "winArea": 21.823
+      },
+      {
+        "floor": 2,
+        "edge": "A2",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 4.0,
+        "p": [
+          18.3,
+          0.0
+        ],
+        "q": [
+          18.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6908,
+          "screenDay": 0.6502,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 2,
+        "edge": "A3",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          18.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5578,
+          "screenDay": 0.513,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "A4",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 4.0,
+        "p": [
+          24.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6644,
+          "screenDay": 0.632,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 2,
+        "edge": "A5",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 5.7,
+        "p": [
+          24.3,
+          0.0
+        ],
+        "q": [
+          30.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.7553,
+          "screenDay": 0.7354,
+          "view": 0.6913,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 6.797
+      },
+      {
+        "floor": 2,
+        "edge": "B1",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 2.76,
+        "p": [
+          30.0,
+          0.0
+        ],
+        "q": [
+          30.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 3.291
+      },
+      {
+        "floor": 2,
+        "edge": "B2",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 4.0,
+        "p": [
+          30.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6248,
+          "screenDay": 0.6047,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 2,
+        "edge": "B3",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          26.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5329,
+          "screenDay": 0.4958,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "B4",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 4.0,
+        "p": [
+          26.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6864,
+          "screenDay": 0.6472,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 2,
+        "edge": "B5",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 7.24,
+        "p": [
+          30.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6047,
+          "screenDay": 0.5765,
+          "view": 0.5139,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 8.634
+      },
+      {
+        "floor": 2,
+        "edge": "C",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 30.0,
+        "p": [
+          30.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5224,
+          "screenDay": 0.4886,
+          "view": 0.4134,
+          "units": 10,
+          "tilt": 60.0
+        },
+        "winArea": 35.775
+      },
+      {
+        "floor": 2,
+        "edge": "D",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 16.0,
+        "p": [
+          0.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5447,
+          "screenDay": 0.5153,
+          "view": 0.4501,
+          "units": 5,
+          "tilt": 60.0
+        },
+        "winArea": 19.08
+      },
+      {
+        "floor": 2,
+        "edge": "Y1",
+        "loop": "court1",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y2",
+        "loop": "court1",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y3",
+        "loop": "court1",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y4",
+        "loop": "court1",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y2_1",
+        "loop": "court2",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y2_2",
+        "loop": "court2",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y2_3",
+        "loop": "court2",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 2,
+        "edge": "Y2_4",
+        "loop": "court2",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 3,
+        "edge": "A1",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 18.3,
+        "p": [
+          0.0,
+          2.0
+        ],
+        "q": [
+          18.3,
+          2.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.523,
           "screenDay": 0.492,
-          "view": 0.4134,
-          "units": 10,
+          "view": 0.423,
+          "units": 6,
           "tilt": 60.0
         },
-        "winArea": 35.775
+        "winArea": 21.823
       },
       {
-        "floor": 1,
-        "edge": "B1",
+        "floor": 3,
+        "edge": "A2",
         "loop": "outer",
         "az": 90.0,
-        "len": 2.76,
-        "p": [
-          30.0,
-          0.0
-        ],
-        "q": [
-          30.0,
-          2.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 3.291
-      },
-      {
-        "floor": 1,
-        "edge": "B2",
-        "loop": "outer",
-        "az": 0.0,
         "len": 4.0,
         "p": [
-          30.0,
-          2.76
+          18.3,
+          2.0
         ],
         "q": [
-          26.0,
-          2.76
+          18.3,
+          6.0
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.6267,
-          "screenDay": 0.606,
+          "screen": 0.6538,
+          "screenDay": 0.6247,
           "view": 0.56,
           "units": 1,
           "tilt": 60.0
@@ -340,546 +1614,90 @@
         "winArea": 4.77
       },
       {
-        "floor": 1,
-        "edge": "B3",
+        "floor": 3,
+        "edge": "A3",
         "loop": "outer",
-        "az": 90.0,
+        "az": 180.0,
         "len": 6.0,
         "p": [
-          26.0,
-          2.76
+          18.3,
+          6.0
         ],
         "q": [
-          26.0,
-          8.76
+          24.3,
+          6.0
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4961,
-          "screenDay": 0.4704,
+          "screen": 0.4972,
+          "screenDay": 0.4712,
           "view": 0.4134,
           "units": 2,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 1,
-        "edge": "B4",
-        "loop": "outer",
-        "az": 180.0,
-        "len": 4.0,
-        "p": [
-          26.0,
-          8.76
-        ],
-        "q": [
-          30.0,
-          8.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.6883,
-          "screenDay": 0.6485,
-          "view": 0.56,
-          "units": 1,
-          "tilt": 60.0
-        },
-        "winArea": 4.77
-      },
-      {
-        "floor": 1,
-        "edge": "B5",
-        "loop": "outer",
-        "az": 90.0,
-        "len": 7.24,
-        "p": [
-          30.0,
-          8.76
-        ],
-        "q": [
-          30.0,
-          16.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.6228,
-          "screenDay": 0.589,
-          "view": 0.5139,
-          "units": 2,
-          "tilt": 60.0
-        },
-        "winArea": 8.634
-      },
-      {
-        "floor": 1,
-        "edge": "C",
-        "loop": "outer",
-        "az": 0.0,
-        "len": 30.0,
-        "p": [
-          30.0,
-          16.0
-        ],
-        "q": [
-          0.0,
-          16.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5244,
-          "screenDay": 0.4899,
-          "view": 0.4134,
-          "units": 10,
-          "tilt": 60.0
-        },
-        "winArea": 35.775
-      },
-      {
-        "floor": 1,
-        "edge": "D",
-        "loop": "outer",
-        "az": 270.0,
-        "len": 16.0,
-        "p": [
-          0.0,
-          16.0
-        ],
-        "q": [
-          0.0,
-          0.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5728,
-          "screenDay": 0.5347,
-          "view": 0.4501,
-          "units": 5,
-          "tilt": 60.0
-        },
-        "winArea": 19.08
-      },
-      {
-        "floor": 1,
-        "edge": "Y1",
-        "loop": "court1",
-        "az": 0.0,
-        "len": 6.0,
-        "p": [
-          12.9,
-          5.0
-        ],
-        "q": [
-          6.9,
-          5.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 1,
-        "edge": "Y2",
-        "loop": "court1",
-        "az": 90.0,
-        "len": 6.0,
-        "p": [
-          6.9,
-          5.0
-        ],
-        "q": [
-          6.9,
-          11.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 1,
-        "edge": "Y3",
-        "loop": "court1",
-        "az": 180.0,
-        "len": 6.0,
-        "p": [
-          6.9,
-          11.0
-        ],
-        "q": [
-          12.9,
-          11.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 1,
-        "edge": "Y4",
-        "loop": "court1",
-        "az": 270.0,
-        "len": 6.0,
-        "p": [
-          12.9,
-          11.0
-        ],
-        "q": [
-          12.9,
-          5.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 2,
-        "edge": "A",
-        "loop": "outer",
-        "az": 180.0,
-        "len": 30.0,
-        "p": [
-          0.0,
-          0.0
-        ],
-        "q": [
-          30.0,
-          0.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5312,
-          "screenDay": 0.4946,
-          "view": 0.4134,
-          "units": 10,
-          "tilt": 60.0
-        },
-        "winArea": 35.775
-      },
-      {
-        "floor": 2,
-        "edge": "B1",
-        "loop": "outer",
-        "az": 90.0,
-        "len": 2.76,
-        "p": [
-          30.0,
-          0.0
-        ],
-        "q": [
-          30.0,
-          2.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 3.291
-      },
-      {
-        "floor": 2,
-        "edge": "B2",
-        "loop": "outer",
-        "az": 0.0,
-        "len": 4.0,
-        "p": [
-          30.0,
-          2.76
-        ],
-        "q": [
-          26.0,
-          2.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.6776,
-          "screenDay": 0.6411,
-          "view": 0.56,
-          "units": 1,
-          "tilt": 60.0
-        },
-        "winArea": 4.77
-      },
-      {
-        "floor": 2,
-        "edge": "B3",
-        "loop": "outer",
-        "az": 90.0,
-        "len": 6.0,
-        "p": [
-          26.0,
-          2.76
-        ],
-        "q": [
-          26.0,
-          8.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5528,
-          "screenDay": 0.5096,
-          "view": 0.4134,
-          "units": 2,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 2,
-        "edge": "B4",
-        "loop": "outer",
-        "az": 180.0,
-        "len": 4.0,
-        "p": [
-          26.0,
-          8.76
-        ],
-        "q": [
-          30.0,
-          8.76
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.6512,
-          "screenDay": 0.6229,
-          "view": 0.56,
-          "units": 1,
-          "tilt": 60.0
-        },
-        "winArea": 4.77
-      },
-      {
-        "floor": 2,
-        "edge": "B5",
-        "loop": "outer",
-        "az": 90.0,
-        "len": 7.24,
-        "p": [
-          30.0,
-          8.76
-        ],
-        "q": [
-          30.0,
-          16.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.6212,
-          "screenDay": 0.5879,
-          "view": 0.5139,
-          "units": 2,
-          "tilt": 60.0
-        },
-        "winArea": 8.634
-      },
-      {
-        "floor": 2,
-        "edge": "C",
-        "loop": "outer",
-        "az": 0.0,
-        "len": 30.0,
-        "p": [
-          30.0,
-          16.0
-        ],
-        "q": [
-          0.0,
-          16.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5283,
-          "screenDay": 0.4926,
-          "view": 0.4134,
-          "units": 10,
-          "tilt": 60.0
-        },
-        "winArea": 35.775
-      },
-      {
-        "floor": 2,
-        "edge": "D",
-        "loop": "outer",
-        "az": 270.0,
-        "len": 16.0,
-        "p": [
-          0.0,
-          16.0
-        ],
-        "q": [
-          0.0,
-          0.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 0.5702,
-          "screenDay": 0.5329,
-          "view": 0.4501,
-          "units": 5,
-          "tilt": 60.0
-        },
-        "winArea": 19.08
-      },
-      {
-        "floor": 2,
-        "edge": "Y1",
-        "loop": "court1",
-        "az": 0.0,
-        "len": 6.0,
-        "p": [
-          12.9,
-          5.0
-        ],
-        "q": [
-          6.9,
-          5.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 2,
-        "edge": "Y2",
-        "loop": "court1",
-        "az": 90.0,
-        "len": 6.0,
-        "p": [
-          6.9,
-          5.0
-        ],
-        "q": [
-          6.9,
-          11.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 2,
-        "edge": "Y3",
-        "loop": "court1",
-        "az": 180.0,
-        "len": 6.0,
-        "p": [
-          6.9,
-          11.0
-        ],
-        "q": [
-          12.9,
-          11.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
-          "tilt": 60.0
-        },
-        "winArea": 7.155
-      },
-      {
-        "floor": 2,
-        "edge": "Y4",
-        "loop": "court1",
-        "az": 270.0,
-        "len": 6.0,
-        "p": [
-          12.9,
-          11.0
-        ],
-        "q": [
-          12.9,
-          5.0
-        ],
-        "dev": {
-          "kind": "areal",
-          "screen": 1.0,
-          "screenDay": 1.0,
-          "view": 1.0,
-          "units": 0,
           "tilt": 60.0
         },
         "winArea": 7.155
       },
       {
         "floor": 3,
-        "edge": "A",
+        "edge": "A4",
         "loop": "outer",
-        "az": 180.0,
-        "len": 30.0,
+        "az": 270.0,
+        "len": 4.0,
         "p": [
-          0.0,
-          3.0
+          24.3,
+          6.0
         ],
         "q": [
-          30.0,
-          3.0
+          24.3,
+          2.0
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5234,
-          "screenDay": 0.4892,
-          "view": 0.4134,
-          "units": 10,
+          "screen": 0.6274,
+          "screenDay": 0.6065,
+          "view": 0.56,
+          "units": 1,
           "tilt": 60.0
         },
-        "winArea": 35.775
+        "winArea": 4.77
+      },
+      {
+        "floor": 3,
+        "edge": "A5",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 5.7,
+        "p": [
+          24.3,
+          2.0
+        ],
+        "q": [
+          30.0,
+          2.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.7293,
+          "screenDay": 0.7175,
+          "view": 0.6913,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 6.797
       },
       {
         "floor": 3,
         "edge": "B1",
         "loop": "outer",
         "az": 90.0,
-        "len": 0.6,
+        "len": 0.96,
         "p": [
           30.0,
-          3.0
+          2.0
         ],
         "q": [
           30.0,
-          3.6
+          2.96
         ],
         "dev": {
           "kind": "areal",
@@ -889,7 +1707,7 @@
           "units": 0,
           "tilt": 60.0
         },
-        "winArea": 0.716
+        "winArea": 1.145
       },
       {
         "floor": 3,
@@ -899,16 +1717,16 @@
         "len": 4.0,
         "p": [
           30.0,
-          3.6
+          2.96
         ],
         "q": [
           26.0,
-          3.6
+          2.96
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.6406,
-          "screenDay": 0.6156,
+          "screen": 0.6758,
+          "screenDay": 0.6399,
           "view": 0.56,
           "units": 1,
           "tilt": 60.0
@@ -923,16 +1741,16 @@
         "len": 6.0,
         "p": [
           26.0,
-          3.6
+          2.96
         ],
         "q": [
           26.0,
-          9.6
+          8.96
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4922,
-          "screenDay": 0.4678,
+          "screen": 0.531,
+          "screenDay": 0.4945,
           "view": 0.4134,
           "units": 2,
           "tilt": 60.0
@@ -947,16 +1765,16 @@
         "len": 4.0,
         "p": [
           26.0,
-          9.6
+          8.96
         ],
         "q": [
           30.0,
-          9.6
+          8.96
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.6142,
-          "screenDay": 0.5974,
+          "screen": 0.6494,
+          "screenDay": 0.6217,
           "view": 0.56,
           "units": 1,
           "tilt": 60.0
@@ -968,10 +1786,10 @@
         "edge": "B5",
         "loop": "outer",
         "az": 90.0,
-        "len": 3.4,
+        "len": 4.04,
         "p": [
           30.0,
-          9.6
+          8.96
         ],
         "q": [
           30.0,
@@ -979,13 +1797,13 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.6341,
-          "screenDay": 0.587,
-          "view": 0.4824,
+          "screen": 0.6398,
+          "screenDay": 0.6164,
+          "view": 0.5644,
           "units": 1,
           "tilt": 60.0
         },
-        "winArea": 4.054
+        "winArea": 4.818
       },
       {
         "floor": 3,
@@ -1003,8 +1821,8 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5322,
-          "screenDay": 0.4953,
+          "screen": 0.5146,
+          "screenDay": 0.4832,
           "view": 0.4134,
           "units": 10,
           "tilt": 60.0
@@ -1016,27 +1834,411 @@
         "edge": "D",
         "loop": "outer",
         "az": 270.0,
-        "len": 10.0,
+        "len": 11.0,
         "p": [
           0.0,
           13.0
         ],
         "q": [
           0.0,
-          3.0
+          2.0
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5755,
-          "screenDay": 0.5434,
-          "view": 0.4721,
+          "screen": 0.6177,
+          "screenDay": 0.5874,
+          "view": 0.5201,
           "units": 3,
           "tilt": 60.0
         },
-        "winArea": 11.925
+        "winArea": 13.117
       },
       {
         "floor": 3,
+        "edge": "Y1",
+        "loop": "court1",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          4.5
+        ],
+        "q": [
+          6.9,
+          4.5
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 3,
+        "edge": "Y2",
+        "loop": "court1",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          4.5
+        ],
+        "q": [
+          6.9,
+          10.5
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 3,
+        "edge": "Y3",
+        "loop": "court1",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          10.5
+        ],
+        "q": [
+          12.9,
+          10.5
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 3,
+        "edge": "Y4",
+        "loop": "court1",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          10.5
+        ],
+        "q": [
+          12.9,
+          4.5
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "A1",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 18.3,
+        "p": [
+          0.0,
+          0.0
+        ],
+        "q": [
+          18.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5298,
+          "screenDay": 0.4966,
+          "view": 0.423,
+          "units": 6,
+          "tilt": 60.0
+        },
+        "winArea": 21.823
+      },
+      {
+        "floor": 4,
+        "edge": "A2",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 4.0,
+        "p": [
+          18.3,
+          0.0
+        ],
+        "q": [
+          18.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6168,
+          "screenDay": 0.5992,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 4,
+        "edge": "A3",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          18.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5539,
+          "screenDay": 0.5103,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "A4",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 4.0,
+        "p": [
+          24.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6784,
+          "screenDay": 0.6417,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 4,
+        "edge": "A5",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 5.7,
+        "p": [
+          24.3,
+          0.0
+        ],
+        "q": [
+          30.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.765,
+          "screenDay": 0.7422,
+          "view": 0.6913,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 6.797
+      },
+      {
+        "floor": 4,
+        "edge": "B1",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 2.76,
+        "p": [
+          30.0,
+          0.0
+        ],
+        "q": [
+          30.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 3.291
+      },
+      {
+        "floor": 4,
+        "edge": "B2",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 4.0,
+        "p": [
+          30.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6388,
+          "screenDay": 0.6144,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 4,
+        "edge": "B3",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          26.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5291,
+          "screenDay": 0.4932,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "B4",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 4.0,
+        "p": [
+          26.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6124,
+          "screenDay": 0.5962,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 4,
+        "edge": "B5",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 7.24,
+        "p": [
+          30.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6501,
+          "screenDay": 0.6078,
+          "view": 0.5139,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 8.634
+      },
+      {
+        "floor": 4,
+        "edge": "C",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 30.0,
+        "p": [
+          30.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5185,
+          "screenDay": 0.4859,
+          "view": 0.4134,
+          "units": 10,
+          "tilt": 60.0
+        },
+        "winArea": 35.775
+      },
+      {
+        "floor": 4,
+        "edge": "D",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 16.0,
+        "p": [
+          0.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5835,
+          "screenDay": 0.5421,
+          "view": 0.4501,
+          "units": 5,
+          "tilt": 60.0
+        },
+        "winArea": 19.08
+      },
+      {
+        "floor": 4,
         "edge": "Y1",
         "loop": "court1",
         "az": 0.0,
@@ -1060,7 +2262,7 @@
         "winArea": 7.155
       },
       {
-        "floor": 3,
+        "floor": 4,
         "edge": "Y2",
         "loop": "court1",
         "az": 90.0,
@@ -1084,7 +2286,7 @@
         "winArea": 7.155
       },
       {
-        "floor": 3,
+        "floor": 4,
         "edge": "Y3",
         "loop": "court1",
         "az": 180.0,
@@ -1108,7 +2310,7 @@
         "winArea": 7.155
       },
       {
-        "floor": 3,
+        "floor": 4,
         "edge": "Y4",
         "loop": "court1",
         "az": 270.0,
@@ -1119,6 +2321,582 @@
         ],
         "q": [
           12.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "Y2_1",
+        "loop": "court2",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "Y2_2",
+        "loop": "court2",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "Y2_3",
+        "loop": "court2",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 4,
+        "edge": "Y2_4",
+        "loop": "court2",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "A1",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 18.3,
+        "p": [
+          0.0,
+          0.0
+        ],
+        "q": [
+          18.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5365,
+          "screenDay": 0.5013,
+          "view": 0.423,
+          "units": 6,
+          "tilt": 60.0
+        },
+        "winArea": 21.823
+      },
+      {
+        "floor": 5,
+        "edge": "A2",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 4.0,
+        "p": [
+          18.3,
+          0.0
+        ],
+        "q": [
+          18.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6678,
+          "screenDay": 0.6343,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 5,
+        "edge": "A3",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          18.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          4.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.552,
+          "screenDay": 0.509,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "A4",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 4.0,
+        "p": [
+          24.3,
+          4.0
+        ],
+        "q": [
+          24.3,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6414,
+          "screenDay": 0.6161,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 5,
+        "edge": "A5",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 5.7,
+        "p": [
+          24.3,
+          0.0
+        ],
+        "q": [
+          30.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.7391,
+          "screenDay": 0.7242,
+          "view": 0.6913,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 6.797
+      },
+      {
+        "floor": 5,
+        "edge": "B1",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 2.76,
+        "p": [
+          30.0,
+          0.0
+        ],
+        "q": [
+          30.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 3.291
+      },
+      {
+        "floor": 5,
+        "edge": "B2",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 4.0,
+        "p": [
+          30.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          2.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6898,
+          "screenDay": 0.6495,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 5,
+        "edge": "B3",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          26.0,
+          2.76
+        ],
+        "q": [
+          26.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5271,
+          "screenDay": 0.4918,
+          "view": 0.4134,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "B4",
+        "loop": "outer",
+        "az": 180.0,
+        "len": 4.0,
+        "p": [
+          26.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          8.76
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.6634,
+          "screenDay": 0.6313,
+          "view": 0.56,
+          "units": 1,
+          "tilt": 60.0
+        },
+        "winArea": 4.77
+      },
+      {
+        "floor": 5,
+        "edge": "B5",
+        "loop": "outer",
+        "az": 90.0,
+        "len": 7.24,
+        "p": [
+          30.0,
+          8.76
+        ],
+        "q": [
+          30.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5999,
+          "screenDay": 0.5732,
+          "view": 0.5139,
+          "units": 2,
+          "tilt": 60.0
+        },
+        "winArea": 8.634
+      },
+      {
+        "floor": 5,
+        "edge": "C",
+        "loop": "outer",
+        "az": 0.0,
+        "len": 30.0,
+        "p": [
+          30.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          16.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5224,
+          "screenDay": 0.4886,
+          "view": 0.4134,
+          "units": 10,
+          "tilt": 60.0
+        },
+        "winArea": 35.775
+      },
+      {
+        "floor": 5,
+        "edge": "D",
+        "loop": "outer",
+        "az": 270.0,
+        "len": 16.0,
+        "p": [
+          0.0,
+          16.0
+        ],
+        "q": [
+          0.0,
+          0.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 0.5589,
+          "screenDay": 0.5251,
+          "view": 0.4501,
+          "units": 5,
+          "tilt": 60.0
+        },
+        "winArea": 19.08
+      },
+      {
+        "floor": 5,
+        "edge": "Y1",
+        "loop": "court1",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y2",
+        "loop": "court1",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          5.0
+        ],
+        "q": [
+          6.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y3",
+        "loop": "court1",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          6.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y4",
+        "loop": "court1",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          12.9,
+          11.0
+        ],
+        "q": [
+          12.9,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y2_1",
+        "loop": "court2",
+        "az": 0.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          5.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y2_2",
+        "loop": "court2",
+        "az": 90.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          5.0
+        ],
+        "q": [
+          17.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y2_3",
+        "loop": "court2",
+        "az": 180.0,
+        "len": 6.0,
+        "p": [
+          17.4,
+          11.0
+        ],
+        "q": [
+          23.4,
+          11.0
+        ],
+        "dev": {
+          "kind": "areal",
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
+          "tilt": 60.0
+        },
+        "winArea": 7.155
+      },
+      {
+        "floor": 5,
+        "edge": "Y2_4",
+        "loop": "court2",
+        "az": 270.0,
+        "len": 6.0,
+        "p": [
+          23.4,
+          11.0
+        ],
+        "q": [
+          23.4,
           5.0
         ],
         "dev": {
@@ -1133,10 +2911,12 @@
       }
     ],
     "winH": 1.192,
-    "warnings": [],
+    "warnings": [
+      "F3: courtyard court02 overlaps a notch, ignored"
+    ],
     "shading": {
       "type": "bifoldV",
-      "units": 90,
+      "units": 157,
       "facades": {
         "A": {
           "on": true,
@@ -1161,111 +2941,313 @@
       }
     },
     "groups": {
-      "podium": 2,
-      "setback": {
-        "A": 3.0,
-        "B": 0.0,
-        "C": 3.0,
-        "D": 0.0
-      }
+      "list": [
+        {
+          "n": 2,
+          "setback": {
+            "A": 0.0,
+            "B": 0.0,
+            "C": 0.0,
+            "D": 0.0
+          },
+          "floors": [
+            1,
+            2
+          ]
+        },
+        {
+          "n": 1,
+          "setback": {
+            "A": 2.0,
+            "B": 0.0,
+            "C": 3.0,
+            "D": 0.0
+          },
+          "floors": [
+            3
+          ]
+        },
+        {
+          "n": 2,
+          "setback": {
+            "A": 0.0,
+            "B": 0.0,
+            "C": 0.0,
+            "D": 0.0
+          },
+          "floors": [
+            4,
+            5
+          ]
+        }
+      ],
+      "podium": 2
     },
     "sun": {
       "period": "summer",
       "unit": "h",
       "perSegment": [
-        280.2,
+        286.0,
+        157.8,
+        131.8,
+        166.0,
+        546.2,
         715.0,
         109.0,
-        214.0,
-        295.0,
-        428.4,
-        90.1,
-        335.5,
+        216.8,
+        261.5,
+        415.1,
+        79.9,
+        326.9,
         0.0,
-        78.0,
-        212.0,
-        52.8,
-        570.4,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        13.7,
+        477.8,
+        190.0,
+        129.3,
+        174.2,
+        666.8,
         715.0,
         109.0,
-        230.5,
-        381.2,
-        467.1,
-        134.7,
-        365.2,
+        208.0,
+        262.2,
+        439.0,
+        89.1,
+        358.6,
+        0.0,
+        15.0,
+        107.0,
+        15.8,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        21.2,
+        40.5,
+        0.0,
+        66.5,
+        157.0,
+        715.0,
+        109.0,
+        233.7,
+        317.8,
+        431.8,
+        57.4,
+        351.8,
+        0.0,
+        61.2,
+        196.0,
+        40.0,
+        294.8,
+        160.5,
+        179.8,
+        191.8,
+        561.5,
+        715.0,
+        109.0,
+        285.3,
+        354.0,
+        458.7,
+        90.1,
+        344.2,
         0.0,
         219.8,
         369.0,
         204.7,
-        570.4,
+        0.0,
+        219.8,
+        369.0,
+        204.7,
+        582.4,
+        238.0,
+        431.3,
+        291.0,
+        713.8,
         715.0,
         109.0,
         401.3,
         445.2,
-        461.0,
+        509.3,
         134.7,
-        434.4,
+        420.6,
+        59.2,
+        499.0,
+        676.3,
+        460.7,
         59.2,
         499.0,
         676.3,
         460.7
       ],
       "perWindow": [
-        280.2,
+        286.0,
+        157.8,
+        131.8,
+        166.0,
+        546.2,
         715.0,
         109.0,
-        214.0,
-        295.0,
-        428.4,
-        90.1,
-        335.5,
+        216.8,
+        261.5,
+        415.1,
+        79.9,
+        326.9,
         0.0,
-        78.0,
-        212.0,
-        52.8,
-        570.4,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        13.7,
+        477.8,
+        190.0,
+        129.3,
+        174.2,
+        666.8,
         715.0,
         109.0,
-        230.5,
-        381.2,
-        467.1,
-        134.7,
-        365.2,
+        208.0,
+        262.2,
+        439.0,
+        89.1,
+        358.6,
+        0.0,
+        15.0,
+        107.0,
+        15.8,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        21.2,
+        40.5,
+        0.0,
+        66.5,
+        157.0,
+        715.0,
+        109.0,
+        233.7,
+        317.8,
+        431.8,
+        57.4,
+        351.8,
+        0.0,
+        61.2,
+        196.0,
+        40.0,
+        294.8,
+        160.5,
+        179.8,
+        191.8,
+        561.5,
+        715.0,
+        109.0,
+        285.3,
+        354.0,
+        458.7,
+        90.1,
+        344.2,
         0.0,
         219.8,
         369.0,
         204.7,
-        570.4,
+        0.0,
+        219.8,
+        369.0,
+        204.7,
+        582.4,
+        238.0,
+        431.3,
+        291.0,
+        713.8,
         715.0,
         109.0,
         401.3,
         445.2,
-        461.0,
+        509.3,
         134.7,
-        434.4,
+        420.6,
+        59.2,
+        499.0,
+        676.3,
+        460.7,
         59.2,
         499.0,
         676.3,
         460.7
       ],
-      "at": "2026-10-01T20:52:05.714",
+      "at": "2026-10-01T21:06:04.323",
       "massOnly": [
+        887.0,
+        349.2,
+        273.7,
+        309.5,
         887.0,
         715.0,
         243.0,
-        447.7,
-        490.0,
+        421.5,
+        398.2,
         715.0,
         523.0,
         695.0,
         0.0,
-        78.0,
-        212.0,
-        52.8,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        13.8,
+        0.0,
+        13.7,
+        887.0,
+        358.8,
+        247.0,
+        303.2,
         887.0,
         715.0,
-        244.5,
-        477.3,
+        243.0,
+        432.0,
+        463.0,
+        715.0,
+        523.0,
+        695.0,
+        0.0,
+        15.0,
+        107.0,
+        15.8,
+        0.0,
+        0.3,
+        0.0,
+        7.2,
+        52.3,
+        211.8,
+        0.0,
+        167.0,
+        170.5,
+        715.0,
+        243.0,
+        482.0,
+        514.8,
+        715.0,
+        274.4,
+        695.0,
+        0.0,
+        61.2,
+        196.0,
+        40.0,
+        887.0,
+        377.0,
+        369.0,
+        350.0,
+        887.0,
+        715.0,
+        243.0,
+        531.3,
         581.5,
         715.0,
         523.0,
@@ -1274,6 +3256,14 @@
         219.8,
         369.0,
         204.7,
+        0.0,
+        219.8,
+        369.0,
+        204.7,
+        887.0,
+        553.8,
+        676.3,
+        509.5,
         887.0,
         715.0,
         254.2,
@@ -1285,19 +3275,15 @@
         59.2,
         499.0,
         676.3,
+        460.7,
+        59.2,
+        499.0,
+        676.3,
         460.7
       ],
       "free": [
         887.0,
         715.0,
-        523.0,
-        715.0,
-        887.0,
-        715.0,
-        523.0,
-        695.0,
-        523.0,
-        715.0,
         887.0,
         695.0,
         887.0,
@@ -1312,6 +3298,14 @@
         715.0,
         887.0,
         695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        887.0,
+        695.0,
         887.0,
         715.0,
         523.0,
@@ -1319,6 +3313,66 @@
         887.0,
         715.0,
         523.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        523.0,
+        715.0,
+        887.0,
+        715.0,
+        523.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        523.0,
+        715.0,
+        887.0,
+        715.0,
+        523.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        887.0,
+        695.0,
+        887.0,
+        715.0,
+        523.0,
+        715.0,
+        887.0,
+        715.0,
+        523.0,
+        695.0,
+        523.0,
+        715.0,
+        887.0,
         695.0,
         523.0,
         715.0,
@@ -1327,21 +3381,69 @@
       ],
       "expo": [
         1.0,
+        0.488,
+        0.309,
+        0.445,
+        1.0,
         1.0,
         0.465,
-        0.626,
-        0.552,
+        0.59,
+        0.449,
         1.0,
         1.0,
         1.0,
         0.0,
-        0.109,
-        0.239,
-        0.076,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.019,
+        0.0,
+        0.02,
+        1.0,
+        0.502,
+        0.278,
+        0.436,
         1.0,
         1.0,
-        0.467,
-        0.668,
+        0.465,
+        0.604,
+        0.522,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.021,
+        0.121,
+        0.023,
+        0.0,
+        0.0,
+        0.0,
+        0.01,
+        0.059,
+        0.296,
+        0.0,
+        0.24,
+        0.192,
+        1.0,
+        0.465,
+        0.674,
+        0.58,
+        1.0,
+        0.525,
+        1.0,
+        0.0,
+        0.086,
+        0.221,
+        0.058,
+        1.0,
+        0.527,
+        0.416,
+        0.504,
+        1.0,
+        1.0,
+        0.465,
+        0.743,
         0.656,
         1.0,
         1.0,
@@ -1350,6 +3452,14 @@
         0.307,
         0.416,
         0.295,
+        0.0,
+        0.307,
+        0.416,
+        0.295,
+        1.0,
+        0.775,
+        0.762,
+        0.733,
         1.0,
         1.0,
         0.486,
@@ -1361,12 +3471,16 @@
         0.113,
         0.698,
         0.762,
+        0.663,
+        0.113,
+        0.698,
+        0.762,
         0.663
       ]
     }
   },
   "updated_by": "gh",
-  "updated_at": "2026-10-01T20:52:05.714",
+  "updated_at": "2026-10-01T21:06:04.323",
   "shading": {
     "type": "bifoldV",
     "unitW": 3.0,

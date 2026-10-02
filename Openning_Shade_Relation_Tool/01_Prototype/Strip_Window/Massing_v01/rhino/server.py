@@ -8,7 +8,7 @@
 
 不做任何几何计算。启动：双击 start_server.bat，或 `python server.py`。加 --no-browser 不自动打开浏览器。
 """
-import json, os, sys, threading, webbrowser, datetime
+import json, re, os, sys, threading, webbrowser, datetime
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 PORT = 8768
@@ -45,7 +45,17 @@ def check_building(b):
         "az0": num(b.get("az0"), 0, 360, "building.az0"),
     }
     g = b.get("groups")
-    if isinstance(g, dict):
+    if isinstance(g, dict) and isinstance(g.get("list"), list):        # 2026-10-03：任意组数 [{n, setback}]
+        lst = []
+        for gr in g["list"][:8]:
+            gr = gr if isinstance(gr, dict) else {}
+            sb = gr.get("setback") or {}
+            lst.append({"n": int(num(gr.get("n", 0), 0, 30, "groups.list.n")),
+                        "setback": dict((k, num(sb.get(k, 0), 0, 30, "groups.list.setback." + k)) for k in EDGES)})
+        if not lst:
+            raise ValueError("groups.list must have at least one group")
+        out["groups"] = {"list": lst}
+    elif isinstance(g, dict):
         sb = g.get("setback") or {}
         out["groups"] = {"podium": int(num(g.get("podium", out["floors"]), 0, 30, "groups.podium")),
                          "setback": dict((k, num(sb.get(k, 0), 0, 30, "groups.setback." + k)) for k in EDGES)}
@@ -63,8 +73,8 @@ def check_ops(ops):
             raise ValueError("ops[%d].type: notch / court in Massing_v01" % i)
         if o.get("propagate", "up") != "up":
             raise ValueError("ops[%d].propagate: only 'up' in Massing_v01" % i)
-        if o.get("apply", "all") not in ("all", "g1", "g2"):
-            raise ValueError("ops[%d].apply must be all/g1/g2" % i)
+        if not re.match(r"^(all|g[1-8])$", str(o.get("apply", "all"))):
+            raise ValueError("ops[%d].apply must be all or g1…g8" % i)
         common = {"id": str(o.get("id") or "%s%02d" % (o["type"], i + 1))[:16], "type": o["type"], "apply": o.get("apply", "all"),
                   "floor": int(num(o.get("floor", 1), 1, 30, "ops.floor")), "propagate": "up",
                   "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth"),
@@ -76,6 +86,9 @@ def check_ops(ops):
         else:
             common.update({"pos_u": num(o.get("pos_u"), 0, 1, "ops.pos_u"), "pos_v": num(o.get("pos_v"), 0, 1, "ops.pos_v")})
         out.append(common)
+    ids = [o["id"] for o in out]
+    if len(set(ids)) != len(ids):
+        raise ValueError("ops ids must be unique")
     return out
 
 

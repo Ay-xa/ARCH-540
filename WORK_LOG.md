@@ -424,6 +424,14 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 写了 `PLAN_massing_v02_ops.md`：对照两份方向文档的进度表（落后两处：Rhino 直接拖边 / 拖角；操作只能各一个）；五件事：修顶层（已）、庭院不装（已）、多凹口多庭院 tab、加体块（与凹口对称、向外长）、楼层组三组（可选）；四个待用户定的问题。
 - 注意：用户在自己的浏览器里操作页面时 seq 会跳（27→50），我的标签页里 courtOn 等控件会随 state 变；验证前先看 ops。
 
+**多凹口 / 多庭院 / 任意楼层组（同日续）**
+- 用户：先不做加体块；做多操作 tab；楼层组只能调第一组 → 放开到任意组。
+- 改动见 PLAN_massing_v02_ops.md「已做」。要点：`group_list()` 最后一组拿余数；`outer_loop` 多凹口按矩形外扩 WALL 判碰、先加优先；段名连续编号与单凹口兼容；`ensure_handles` 自动增删手柄点；页面 `LIST = {groups, notches, courts}` + `tabs()`，滑块编辑选中条，`pick()` 先把滑块写回再切换。
+- 坑：
+  - 停服务时用 `CommandLine -like '*server.py*'` 把 Rhino 的 `pyminilsp_server.py`（脚本编辑器的语言服务）也杀了；要按完整路径匹配。GH 没受影响。
+  - 解读里"有凹口被忽略"的判断用 `/notch/` 会把 "courtyard … overlaps a notch" 也算进去，改成 `/^F\d+: notch/`。
+  - 旧 json 的 `groups.setback` 转成新格式时归到第 2 组，第 2 组的 C 退 3 m 因此保留了——这是对的，但第一次看会以为是新加的。
+
 **Next session: suggested starting point**
-- 按 PLAN_massing_v02_ops.md 的顺序：ops 放开数量 → GH 多凹口 → 页面 tab → 加体块。方案对比、窗按立面分设排在其后。
+- 方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例 / 动态调节 / 一键启动 / 可信度说明。加体块按用户意见暂缓。
 - 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
