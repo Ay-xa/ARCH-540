@@ -82,7 +82,16 @@ def check_windows(w):
 def check_run(r):
     if not isinstance(r, dict):
         raise ValueError("run must be an object")
-    return {"seq": int(num(r.get("seq"), 0, 1e9, "run.seq"))}
+    out = {"seq": int(num(r.get("seq"), 0, 1e9, "run.seq"))}
+    if r.get("period") is not None:
+        if r["period"] not in ("summer", "winter", "annual"):
+            raise ValueError("run.period must be summer/winter/annual")
+        out["period"] = r["period"]
+    if r.get("clim") is not None:
+        if r["clim"] not in ("apNow", "hbNow", "f2080"):
+            raise ValueError("run.clim must be apNow/hbNow/f2080")
+        out["clim"] = r["clim"]
+    return out
 
 
 CHECK = {"building": check_building, "ops": check_ops, "windows": check_windows, "run": check_run}

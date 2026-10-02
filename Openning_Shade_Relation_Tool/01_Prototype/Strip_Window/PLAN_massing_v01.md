@@ -125,8 +125,12 @@ Strip_Window/
 | 4 | GH：立面分段 + 带窗预览；写回 `results.segments` | 凹口后段数 4 → 7，每段朝向正确（手算对照） | 看一眼 Rhino |
 | 5 | 网页：三组滑块、同步、段表（引擎）、模板解读、手柄回流、自检 | 改滑块 → Rhino 变 → 表变；拖点 → 滑块变 | 浏览器里试 |
 | 6 | 边界、截图、WORK_LOG、提交 | 全过 | 看结果 |
+| 7 | Ladybug：EPW（随页面气候选择）+ 分析期（夏 / 冬 / 全年）+ SunPath → **Direct Sun Hours**（分析面 = 窗条网格，context = 楼板）→ 按段写回 `results.sun` | 换分析期，北向冬季 0 h；凹口两侧段低于同向的直段 | 无 |
+| 8 | 页面：段表加「直射日照」列，解读加一句；分析期下拉 | 切换分析期 ≤ 10 s 刷新 | 浏览器里试 |
 
 **第 4 步之前不碰网页**。
+
+**第 7 步的一处替换（2026-10-02）**：计划写的是入射辐射，但 Ladybug 的天空矩阵需要 Radiance，这台电脑没装，所以第一刀的 Ladybug 指标改为「直射日照小时」（纯几何，不需要 Radiance，也不含云）。装好 Radiance 后把 `LB Cumulative Sky Matrix + LB Incident Radiation` 接回同一条链即可，写回脚本只需多一个字段。
 
 ---
 

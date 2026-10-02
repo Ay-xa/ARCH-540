@@ -342,6 +342,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - Massing_v01 可复现：双击 `rhino/start_server.bat`；Rhino 打开 `massing.3dm`，Grasshopper 打开 `massing.gh`；页面 `http://localhost:8768/`。
 - 共同近似见 MECHANISMS.md；竖鳍的角度效果、平面网格的"找最近墙段"、动态调节规则未做。
 
+**第 7–8 步（同日续）**
+- Ladybug 已装；`LB Cumulative Sky Matrix` 报「No Radiance installation」，入射辐射做不了 → 改用 `LB SunPath + LB Direct Sun Hours`（纯几何，不含云）。链：sync 输出 epw 路径（随页面气候选择）/ north / m0 m1 / winMesh（每扇窗条沿长度 ~1 m 一格的网格，法线朝外）/ winFaces / nSeg → LB Import EPW → LB Analysis Period → SunPath（hoys、north_）→ Direct Sun Hours（_grid_size 必填，给了滑块 1.0；context = 楼板；_run = Toggle）→「massing sun」Python 按面数归到窗、按「窗序号 % 段数」归到段，写回 `results.sun {period, unit:h, perSegment, perWindow, at}`。
+- sync 写回时若几何与分析期没变则保留上次的 `sun`；sun 写回脚本在文件缺 `sun` 时也重写。
+- 页面：段表加「直射日照」列（按分析期标题，颜色随值），分析期下拉（夏 / 冬 / 全年）与气候一起写进 `run`，解读多一句（最多 / 最少 / 凹口内各段）。验证：夏季 A1 887 h、凹口两侧 A2 423 / A4 385、北 523；切冬季 ≤ 10 s 刷新，北 0 h、南 806 h。
+- Gotchas：`SetSource()` 之后 `MarshOutputs` 会被重置为 False，每次重载源码都要再设；页面与服务字段同时改时要重启本地服务（旧进程还在跑旧校验，会悄悄丢字段）。
+
 **Next session: suggested starting point**
-- 第 7–8 步：GH 加 EPW + 分析期 + LB Incident Radiation（分析面 = 窗条，context = 楼板）→ 写回每段辐射 → 页面段表加一列，运行改按钮触发。
-- 第二刀：机构库条目移植到 GH（先竖轴膝盖折板，沿每段墙排布）；庭院 / U 形操作；楼层组。
+- 装 Radiance 后接回入射辐射（同一条链，写回多一个字段）。
+- 第二刀：机构库条目移植到 GH（先竖轴膝盖折板，沿每段墙排布，作为 Direct Sun Hours 的 context）；庭院 / U 形操作；楼层组。

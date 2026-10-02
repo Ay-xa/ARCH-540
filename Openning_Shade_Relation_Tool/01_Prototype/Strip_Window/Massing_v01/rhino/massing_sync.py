@@ -1,5 +1,7 @@
 # massing_sync.py — Grasshopper「Python 3 Script」组件「massing sync」的源码（Massing_v01，PLAN_massing_v01 §4）
-# 由 Trigger 每 0.5 s 触发。输入：path（state.json 路径）。输出：floors（楼板 Brep）、windows（窗条面）、status（文字）。
+# 由 Trigger 每 0.5 s 触发。输入：path（state.json 路径）。
+# 输出：floors（楼板 Brep）、windows（窗条面）、status（文字）；给 Ladybug 的 winMesh（每扇窗条一个网格，沿长度分格）、winFaces（每个网格的面数）、
+#       epw（气象文件路径）、north（Ladybug 的 north_：+Y 到北的逆时针角度）、m0 / m1（分析期起止月）。
 # 做的事：读 json → 周界（矩形减凹口，三层同形）→ 楼板预览 → 立面分段 → 窗条预览 → 写回 handle / results。
 # 手柄：Rhino「Handles」图层上名为 ops.id 的点。谁后动谁算数：ops.at（页面）与 handle.at（Rhino）比时间戳。
 # GH 只写 handle / results / updated_by / updated_at；其余字段原样保留。
@@ -10,6 +12,9 @@ import scriptcontext as sc
 
 TOL = 0.005          # m；手柄位置差小于这个值视为没动
 OFF = 0.02           # 窗条面往外偏移，避免和楼板面重叠闪烁
+EPW_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(path)) if 'path' in dir() and path else ".", "..", "..", "..", "..", "..", "Passivehouse_Tool", "02_Data", "EPW"))
+EPW = {"apNow": "CAN_BC_Vancouver.Intl.AP.718920_CWEC2020.epw", "hbNow": "CAN_BC_Vancouver.Harbour.CS.712010_TMYx.2009-2023.epw", "f2080": "MORPHED_SSP585_2080s_CAN_BC_VANCOUVER-INTL-A_CWEC2020.epw"}
+PERIOD = {"summer": (6, 8), "winter": (12, 2), "annual": (1, 12)}
 
 
 def now():
@@ -126,7 +131,7 @@ def build(d):
     segs = segments(pts, names, float(b["az0"]))
     winH = float(w["wwr"]) * (H - slab)
     sill = float(w["sill"])
-    floors, wins = [], []
+    floors, wins, meshes, faces = [], [], [], []
     poly = rg.Polyline([rg.Point3d(p[0], p[1], 0.0) for p in pts] + [rg.Point3d(pts[0][0], pts[0][1], 0.0)])
     for i in range(N):
         crv = poly.ToNurbsCurve(); crv.Translate(rg.Vector3d(0, 0, i * H))
@@ -140,15 +145,25 @@ def build(d):
                 srf = rg.NurbsSurface.CreateFromCorners(rg.Point3d(p[0] + nx, p[1] + ny, z0), rg.Point3d(q[0] + nx, q[1] + ny, z0),
                                                         rg.Point3d(q[0] + nx, q[1] + ny, z1), rg.Point3d(p[0] + nx, p[1] + ny, z1))
                 if srf: wins.append(srf)
+                # Ladybug 分析网格：沿长度每 ~1 m 一格，一行；顶点顺序与窗面相同，法线朝外
+                nc = max(1, int(round(ln)))
+                m = rg.Mesh()
+                for k in range(nc + 1):
+                    t = k / float(nc)
+                    m.Vertices.Add(p[0] + dx * t + nx, p[1] + dy * t + ny, z0); m.Vertices.Add(p[0] + dx * t + nx, p[1] + dy * t + ny, z1)
+                for k in range(nc):
+                    m.Faces.AddFace(2 * k, 2 * k + 2, 2 * k + 3, 2 * k + 1)
+                m.Normals.ComputeNormals(); m.Compact()
+                meshes.append(m); faces.append(nc)
     for s in segs:
         s["winArea"] = round(s["len"] * winH, 3)
-    res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": True,
+    res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": True, "nSeg": len(segs),
            "floors": [{"i": i + 1, "area": round(area(pts), 2)} for i in range(N)],
            "perimeter": [[round(p[0], 3), round(p[1], 3)] for p in pts],
            "segments": segs, "winH": round(winH, 3), "warnings": []}
     if op and op["width"] > min(L, W):
         res["warnings"].append("notch width clipped to the edge length")
-    return floors, wins, res
+    return floors, wins, res, meshes, faces
 
 
 def run(path):
@@ -189,16 +204,24 @@ def run(path):
                 if hv:
                     op = dict(op, pos=float(hv["pos"]), depth=float(hv["depth"]))
                     d["ops"][0] = dict(d["ops"][0], pos=float(hv["pos"]), depth=float(hv["depth"]))   # 只在内存里用，不写回 ops
-    if not changed_file and not handle_moved and "massing_out" in st:
-        f, w_, status = st["massing_out"]
-        return f, w_, status
-    floors, wins, res = build(d)
+    run = d.get("run", {}) if isinstance(d.get("run"), dict) else {}
+    epw = os.path.join(EPW_DIR, EPW.get(run.get("clim", "apNow"), EPW["apNow"]))
+    m0, m1 = PERIOD.get(run.get("period", "summer"), PERIOD["summer"])
+    north = (float(b["az0"]) - 180.0) % 360.0
+    cached = st.get("massing_out")
+    if not changed_file and not handle_moved and cached and len(cached) == 6:
+        f, w_, status, meshes, faces, nseg = cached
+        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg
+    floors, wins, res, meshes, faces = build(d)
     prev = st.get("massing_res")
     if handle_written or changed_file or prev != res:
         res["at"] = now()
         fresh = read(path)                       # 重新读一次，只覆盖 GH 自己的字段
         if handle_written:
             fresh["handle"] = d["handle"]
+        old = fresh.get("results") or {}
+        if old.get("sun") and old.get("segments") == res["segments"] and old.get("winH") == res["winH"] and (fresh.get("run") or {}).get("period") == old["sun"].get("period"):
+            res["sun"] = old["sun"]              # 几何和分析期没变：保留上次的日照结果，不让页面空等
         fresh["results"] = res
         fresh["updated_by"] = "gh"
         fresh["updated_at"] = now()
@@ -209,8 +232,8 @@ def run(path):
         st["massing_stamp"] = d.get("updated_at")
     status = "seq %d | %d floors | %d segments | notch %s pos %.2f w %.1f d %.1f | %s" % (
         res["seq"], len(res["floors"]), len(res["segments"]), op["edge"] if op else "-", op["pos"] if op else 0, op["width"] if op else 0, op["depth"] if op else 0, note or "ok")
-    st["massing_out"] = (floors, wins, status)
-    return floors, wins, status
+    st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"])
+    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"]
 
 
-floors, windows, status = run(path)
+floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg = run(path)

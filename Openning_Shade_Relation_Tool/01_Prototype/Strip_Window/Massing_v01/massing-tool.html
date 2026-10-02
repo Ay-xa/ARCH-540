@@ -95,8 +95,12 @@
         <div class="ctl"><div class="row"><label for="mass">热质量</label></div>
           <select id="mass"><option value="light">轻</option><option value="mid" selected>中</option><option value="heavy">重</option></select></div>
       </div>
-      <div class="ctl"><div class="row"><label for="vent">开窗通风</label></div>
-        <select id="vent"><option value="none">不开窗</option><option value="win" selected>开窗（约 2 次/h）</option><option value="cross">穿堂风（约 4 次/h）</option></select></div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="vent">开窗通风</label></div>
+          <select id="vent"><option value="none">不开窗</option><option value="win" selected>开窗（约 2 次/h）</option><option value="cross">穿堂风（约 4 次/h）</option></select></div>
+        <div class="ctl"><div class="row"><label for="period">日照分析期</label></div>
+          <select id="period"><option value="summer" selected>夏季 6–8 月</option><option value="winter">冬季 12–2 月</option><option value="annual">全年</option></select></div>
+      </div>
     </div>
   </details>
 
@@ -134,15 +138,15 @@
   <div class="card" id="dataCard">
     <div class="bar"><label>立面段 · 过热与采光</label><b id="dataSum"></b></div>
     <table class="heat">
-      <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>窗面积</th><th>过热</th><th>采光</th></tr></thead>
-      <tbody id="segBody"><tr><td colspan="6" class="cap">等待 Rhino 写回立面段…</td></tr></tbody>
+      <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>窗面积</th><th>过热</th><th>采光</th><th id="sunHead">直射日照</th></tr></thead>
+      <tbody id="segBody"><tr><td colspan="7" class="cap">等待 Rhino 写回立面段…</td></tr></tbody>
     </table>
     <div class="readout" style="margin-top:6px">
       <span>整栋过热（无凹口 → 有凹口）</span><span id="rOvh">—</span>
       <span>整栋采光（无凹口 → 有凹口）</span><span id="rDF">—</span>
       <span>冬季净得热（无凹口 → 有凹口）</span><span id="rNet">—</span>
     </div>
-    <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。引擎估算，不是 Ladybug。</div>
+    <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。这两列是引擎估算。<br>直射日照 = Ladybug「Direct Sun Hours」：分析期内窗条每点被太阳直射的小时数，三层平均，楼板（含凹口两侧）作遮挡，不含周边建筑，也不含云（几何日照，不是辐射量）；入射辐射要装 Radiance 以后才能接。</div>
   </div>
 
   <div class="card plan" id="planCard">
@@ -164,12 +168,12 @@
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
   const ids = ['L','W','floors','H','slab','az0','wwr','sill','depth','pos','nw','nd'];
-  const sels = ['clim','mass','vent','edge'];
+  const sels = ['clim','mass','vent','edge','period'];
   const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m'};
   const dec = {L:0, W:0, floors:0, az0:0, wwr:0, pos:2, nw:1, nd:1, H:2, slab:2, sill:2, depth:1};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const P = {};
-  let STATE = null, lastResultsAt = '', lastHandleAt = '', suppressPost = false, postTimer = null;
+  let STATE = null, lastResultsAt = '', lastSunAt = '', lastHandleAt = '', suppressPost = false, postTimer = null;
 
   // ---------- read sliders ----------
   function read(){
@@ -185,7 +189,7 @@
       building:{floors:P.floors, H:P.H, slab:P.slab, L:P.L, W:P.W, az0:P.az0},
       ops:[{id:'notch01', type:'notch', floor:1, propagate:'up', edge:P.edge, pos:P.pos, width:P.nw, depth:P.nd}],
       windows:{wwr:P.wwr/100, sill:P.sill},
-      run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1}
+      run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim}
     };
   }
   async function post(){
@@ -210,7 +214,8 @@
         $('pos').value = h.pos; $('nd').value = h.depth; read(); $('fromRhino').hidden = false;
         suppressPost = false;
       }
-      if(d.results && d.results.at && d.results.at !== lastResultsAt){ lastResultsAt = d.results.at; render(d); setConn(true, 'Rhino 已写回 '+d.results.at.slice(11,19)); }
+      const sunAt = d.results && d.results.sun ? d.results.sun.at : '';
+      if(d.results && d.results.at && (d.results.at !== lastResultsAt || sunAt !== lastSunAt)){ lastResultsAt = d.results.at; lastSunAt = sunAt; render(d); setConn(true, 'Rhino 已写回 '+(sunAt && sunAt > d.results.at ? sunAt : d.results.at).slice(11,19)); }
     }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
   }
 
@@ -235,9 +240,16 @@
     $('rAt').textContent = res.at.slice(11,19); $('rSegs').textContent = res.segments.length+' 段'; $('rArea').textContent = (res.floors[0]?fmt(res.floors[0].area,1):'—')+' m²'; $('rWinH').textContent = fmt(winH,2)+' m';
     if(!ENGINE){ $('segBody').innerHTML = '<tr><td colspan="6" class="bad">引擎未加载</td></tr>'; return; }
     const rows = calcSegs(res.segments, winH), base = calcSegs(baseSegs(), winH);
+    const sun = res.sun && res.sun.perSegment && res.sun.perSegment.length === rows.length ? res.sun : null;
+    const PER = {summer:'夏季', winter:'冬季', annual:'全年'};
+    $('sunHead').textContent = sun ? `直射日照 h（${PER[sun.period]||sun.period}）` : '直射日照';
+    const sunMax = sun ? Math.max(1, ...sun.perSegment.filter(v=>v!=null)) : 1;
     const agg = aggregate(rows), agg0 = aggregate(base);
-    $('segBody').innerHTML = rows.map(x=>`<tr><td>${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${fmt(x.winArea,1)} m²</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td></tr>`).join('')
-      + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(rows.reduce((a,x)=>a+x.winArea,0),1)} m²</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td></tr>`;
+    const sunCell = i => sun ? (sun.perSegment[i]==null ? '<td>—</td>' : `<td style="color:color-mix(in srgb,var(--heat) ${Math.round(30+70*sun.perSegment[i]/sunMax)}%,var(--ink-2))">${fmt(sun.perSegment[i],0)}</td>`) : '<td class="cap">计算中</td>';
+    const sunAvg = sun ? rows.reduce((a,x,i)=>a+(sun.perSegment[i]||0)*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
+    $('segBody').innerHTML = rows.map((x,i)=>`<tr><td>${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${fmt(x.winArea,1)} m²</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${sunCell(i)}</tr>`).join('')
+      + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(rows.reduce((a,x)=>a+x.winArea,0),1)} m²</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
+    window.__sun = sun;
     $('rOvh').innerHTML = `<span class="${cls(agg0.ovh)}">${fmt(agg0.ovh,1)} %</span> → <span class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</span>`;
     $('rDF').innerHTML = `<span class="${dcls(agg0.DF)}">${fmt(agg0.DF,1)} %</span> → <span class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</span>`;
     $('rNet').textContent = `${fmt(agg0.net,0)} → ${fmt(agg.net,0)} kWh/a`;
@@ -289,13 +301,18 @@
     ps.push(`过热最高的是 ${worst.edge}（${ENGINE.dirName(worst.az)}，${fmt(worst.len,1)} m）：${fmt(worst.r.ovh,1)} %；采光最好的是 ${best.edge}：${fmt(best.r.DF,1)} %。`);
     const dov = agg.ovh - agg0.ovh, ddf = agg.DF - agg0.DF;
     ps.push(`和不开凹口的矩形相比，整栋过热 ${dov>=0?'上升':'下降'} ${fmt(Math.abs(dov),1)} 个百分点，采光 ${ddf>=0?'上升':'下降'} ${fmt(Math.abs(ddf),2)} 个百分点；立面总长从 ${fmt(2*(P.L+P.W),1)} m 变为 ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m。`);
-    ps.push(`<span class="cap">模板句，数字全部来自引擎；以后由模型改写成设计语言。</span>`);
+    const sun = window.__sun;
+    if(sun){ const order = rows.map((x,i)=>[x.edge, sun.perSegment[i]]).filter(a=>a[1]!=null).sort((a,b)=>b[1]-a[1]); const lo = order[order.length-1], hi = order[0];
+      const onBase = pt => ({A:Math.abs(pt[1])<1e-6, B:Math.abs(pt[0]-P.L)<1e-6, C:Math.abs(pt[1]-P.W)<1e-6, D:Math.abs(pt[0])<1e-6})[op.edge];
+      const inner = pieces.filter(x=>x.p && x.q && !(onBase(x.p) && onBase(x.q))).map(x=>[x.edge, sun.perSegment[rows.indexOf(x)]]).filter(a=>a[1]!=null);
+      ps.push(`Ladybug 直射日照（${{summer:'夏季',winter:'冬季',annual:'全年'}[sun.period]||sun.period}）：最多的是 ${hi[0]}（${fmt(hi[1],0)} h），最少的是 ${lo[0]}（${fmt(lo[1],0)} h）${inner.length?`；凹口内的 ${inner.map(a=>a[0]+' '+fmt(a[1],0)+' h').join('、')} 被凹口两侧的楼板遮住了一部分`:''}。`); }
+    ps.push(`<span class="cap">模板句，数字全部来自引擎与 Ladybug；以后由模型改写成设计语言。</span>`);
     $('interp').innerHTML = ps.map(p=>`<p>${p}</p>`).join('');
   }
 
   // ---------- wiring ----------
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
-  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(id==='edge') schedulePost(); else if(STATE && STATE.results && STATE.results.at) render(STATE); }));
+  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(id==='edge'||id==='period'||id==='clim') schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
@@ -309,8 +326,9 @@
       const b = d.building, w = d.windows, op = (d.ops||[])[0], h = (d.handle||{}).notch01;
       $('L').value=b.L; $('W').value=b.W; $('floors').value=b.floors; $('H').value=b.H; $('slab').value=b.slab||0.35; $('az0').value=b.az0; $('wwr').value=Math.round(w.wwr*100); $('sill').value=w.sill;
       if(op){ $('edge').value=op.edge; $('nw').value=op.width; const useH = h && h.at > (op.at||''); $('pos').value = useH?h.pos:op.pos; $('nd').value = useH?h.depth:op.depth; if(h) lastHandleAt = h.at; }
+      if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; }
       read(); suppressPost = false;
-      if(d.results && d.results.at){ lastResultsAt = d.results.at; render(d); }
+      if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }
       setConn(true, '已连接本地服务');
     }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
     setInterval(poll, 1000);
