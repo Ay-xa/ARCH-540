@@ -450,6 +450,11 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 坑：收件夹 id 用了中文 → URL 百分号编码后 `safe_rid` 对不上，图 404、保存失败；改成 id 只用 ASCII + 路由 `urllib.parse.unquote`。写补丁时字符串里的 `一` 匹配不上文件里的 `一`（转义层数），改按行号替换。
 - 验证（claude 模式）：上传 → 等读 → 手写 card.json → 页面显示卡 → 改折角 35 → 应用：state.shading 变 bifoldV/35、各立面折角 35、Rhino 重算；保存 / 存入机构库 的状态都写回。
 
+**第四刀步 4：错位 + 分裂（同日续）**
+- 见 PLAN_massing_v03_cut4.md §8。要点：`clip_loop` 半平面裁剪带边名；`floor_outline` 返回 plates；`build` 按块出段、楼板、面积；`HANDLE_KEYS["split"]=("pos",)`，`differs()` 的 pos 比例按 axis；server `check_ops` 按类型分别校验（split 没有 width/depth）。
+- 页面：`LIST.splits` + `splitTabs`；`planGrid / drawPlan` 用 `F.plates`；指南针半径按所有层所有块的最远点算（错位后不出圈）。
+- 验证时注意：分裂的缝带（±gap/2，外扩 1 m）不能碰庭院或凹口，否则被忽略——测试前先删了第二个凹口和庭院。
+
 **Next session: suggested starting point**
-- 第四刀步 4：错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。读图在用户要 Claude 读时：按 inbox/README.md 的做法写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
+- 第四刀步 5：折角扫描曲线 / 月×钟点热图 / 目标达标 → 步 6 文档收尾。读图在用户要 Claude 读时：按 inbox/README.md 的做法写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
 - 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。

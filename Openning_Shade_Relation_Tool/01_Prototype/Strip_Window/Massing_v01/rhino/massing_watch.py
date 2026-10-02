@@ -17,7 +17,7 @@ def key(path):
     pts = []
     for o in rdoc.Objects:
         nm = o.Name or ""
-        if isinstance(o.Geometry, rg.Point) and (nm.startswith("notch") or nm.startswith("court")):
+        if isinstance(o.Geometry, rg.Point) and nm.startswith(("notch", "court", "split")):
             p = o.Geometry.Location
             pts.append((nm, round(p.X, 3), round(p.Y, 3)))
     return tuple(k) + tuple(sorted(pts))

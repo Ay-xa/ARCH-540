@@ -55,7 +55,9 @@ def group_list(b):
     out, used = [], 0
     for k, gr in enumerate(lst):
         n = max(0, N - used) if k == len(lst) - 1 else max(0, min(int((gr or {}).get("n", 0)), N - used))
-        out.append({"n": n, "setback": dict((gr or {}).get("setback") or {}), "floors": list(range(used + 1, used + n + 1))})
+        shf = (gr or {}).get("shift") or {}
+        out.append({"n": n, "setback": dict((gr or {}).get("setback") or {}), "shift": {"x": float(shf.get("x", 0) or 0), "y": float(shf.get("y", 0) or 0)},
+                    "floors": list(range(used + 1, used + n + 1))})
         used += n
     return out
 
@@ -63,16 +65,17 @@ def group_list(b):
 def floor_rect(b, i):
     """第 i 层（0 起）的外矩形 (x0, y0, x1, y1) 和组号（1 起）：每组四边各自从基底向内退 setback"""
     L, W = float(b["L"]), float(b["W"])
-    k, sb = 1, {}
+    k, sb, shf = 1, {}, {"x": 0.0, "y": 0.0}
     for gi, gr in enumerate(group_list(b)):
         if (i + 1) in gr["floors"]:
-            k, sb = gi + 1, gr["setback"]; break
+            k, sb, shf = gi + 1, gr["setback"], gr.get("shift") or shf; break
     x0, y0 = float(sb.get("D", 0) or 0), float(sb.get("A", 0) or 0)
     x1, y1 = L - float(sb.get("B", 0) or 0), W - float(sb.get("C", 0) or 0)
     if x1 - x0 < 2 * WALL or y1 - y0 < 2 * WALL:               # 退过头：留一个最小矩形
         cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
         x0, x1 = min(x0, cx - WALL), max(x1, cx + WALL); y0, y1 = min(y0, cy - WALL), max(y1, cy + WALL)
-    return (x0, y0, x1, y1), k
+    sx, sy = float(shf.get("x", 0) or 0), float(shf.get("y", 0) or 0)      # 错位（2026-10-03）：整组在平面上平移
+    return (x0 + sx, y0 + sy, x1 + sx, y1 + sy), k
 
 
 def applies(op, group):
@@ -166,6 +169,33 @@ def notch_rect(rect, notch):
     return (x0, max(y0, y1 - pos * E - w / 2), x0 + d, min(y1, y1 - pos * E + w / 2))
 
 
+def clip_loop(pts, names, axis, c, keep_hi, cut_name):
+    """分裂（2026-10-03）：用半平面裁闭合多边形（Sutherland–Hodgman）。axis 'x'|'y'，c = 切线坐标，keep_hi 保留 ≥ c 的一侧。
+    顶点名 = 从该点出发的边名；切线上新生成的边叫 cut_name。只在切线不穿过凹口 / 庭院时调用，所以只会生成一条缝边。"""
+    k = 0 if axis == "x" else 1
+    inside = (lambda q: q[k] >= c - 1e-9) if keep_hi else (lambda q: q[k] <= c + 1e-9)
+    def inter(a, b_):
+        t = (c - a[k]) / (b_[k] - a[k])
+        return (a[0] + (b_[0] - a[0]) * t, a[1] + (b_[1] - a[1]) * t)
+    out_p, out_n = [], []
+    m = len(pts)
+    for i in range(m):
+        S, E, nm = pts[i], pts[(i + 1) % m], names[i]
+        si, ei = inside(S), inside(E)
+        if si and ei:
+            out_p.append(S); out_n.append(nm)
+        elif si and not ei:
+            out_p.append(S); out_n.append(nm); out_p.append(inter(S, E)); out_n.append(cut_name)
+        elif (not si) and ei:
+            out_p.append(inter(S, E)); out_n.append(nm)
+    pp, nn = [], []
+    for i in range(len(out_p)):
+        a, b_ = out_p[i], out_p[(i + 1) % len(out_p)]
+        if math.hypot(b_[0] - a[0], b_[1] - a[1]) > 1e-6:
+            pp.append(a); nn.append(out_n[i])
+    return pp, nn
+
+
 def court_loop(rect, tag):
     """内圈：顺时针（这样 (dy, −dx) 指向天井）。边名 1 底、2 左、3 顶、4 右"""
     x0, y0, x1, y1 = rect
@@ -216,13 +246,13 @@ def ensure_handles(rdoc, ops, rect, notes):
             li = rdoc.Layers.FindName("Handles")
             if li is not None:
                 attr.LayerIndex = li.Index
-            attr.ObjectColor = System.Drawing.Color.FromArgb(200, 40, 40) if op["type"] == "notch" else System.Drawing.Color.FromArgb(40, 90, 200)
+            attr.ObjectColor = {"notch": System.Drawing.Color.FromArgb(200, 40, 40), "court": System.Drawing.Color.FromArgb(40, 90, 200)}.get(op["type"], System.Drawing.Color.FromArgb(40, 160, 80))
             attr.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject
             rdoc.Objects.AddPoint(params_to_point(rect, op), attr)
             notes.append("%s handle created" % op["id"])
     for o in list(rdoc.Objects):
         nm = o.Name or ""
-        if isinstance(o.Geometry, rg.Point) and (nm.startswith("notch") or nm.startswith("court")) and nm not in ids:
+        if isinstance(o.Geometry, rg.Point) and nm.startswith(HANDLE_PREFIX) and nm not in ids:
             rdoc.Objects.Delete(o.Id, True); notes.append("%s handle removed" % nm)
 
 
@@ -239,6 +269,10 @@ def handle_to_params(pt, rect, op):
     if op["type"] == "court":
         x0, y0, x1, y1 = rect
         return {"pos_u": round(min(max((pt.X - x0) / (x1 - x0), 0.0), 1.0), 4), "pos_v": round(min(max((pt.Y - y0) / (y1 - y0), 0.0), 1.0), 4)}
+    if op["type"] == "split":
+        x0, y0, x1, y1 = rect
+        v = (pt.X - x0) / (x1 - x0) if op.get("axis", "x") == "x" else (pt.Y - y0) / (y1 - y0)
+        return {"pos": round(min(max(v, 0.0), 1.0), 4)}
     return {}
 
 
@@ -253,17 +287,24 @@ def params_to_point(rect, op):
             return rg.Point3d((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0, 0.0)
         x0, y0, x1, y1 = rect
         return rg.Point3d(x0 + op["pos_u"] * (x1 - x0), y0 + op["pos_v"] * (y1 - y0), 0.0)
+    if op["type"] == "split":
+        x0, y0, x1, y1 = rect
+        if op.get("axis", "x") == "x":
+            return rg.Point3d(x0 + float(op["pos"]) * (x1 - x0), (y0 + y1) / 2.0, 0.0)
+        return rg.Point3d((x0 + x1) / 2.0, y0 + float(op["pos"]) * (y1 - y0), 0.0)
     return rg.Point3d(0, 0, 0)
 
 
-HANDLE_KEYS = {"notch": ("pos", "depth"), "court": ("pos_u", "pos_v")}
+HANDLE_KEYS = {"notch": ("pos", "depth"), "court": ("pos_u", "pos_v"), "split": ("pos",)}
+HANDLE_PREFIX = ("notch", "court", "split")
 
 
 def differs(a, b, keys, rect, op):
     x0, y0, x1, y1 = rect
     for k in keys:
         if k == "pos":
-            scale = (x1 - x0) if op.get("edge") in "AC" else (y1 - y0)
+            along_x = (op.get("edge") in ("A", "C")) or (op.get("type") == "split" and op.get("axis", "x") == "x")
+            scale = (x1 - x0) if along_x else (y1 - y0)
         elif k == "pos_u":
             scale = x1 - x0
         elif k == "pos_v":
@@ -467,10 +508,11 @@ def slab_brep(pts, holes, H):
 
 
 def floor_outline(b, i, ops, warnings):
-    """第 i 层：返回 (外圈顶点, 边名, 洞列表, 组号, 矩形)"""
+    """第 i 层：返回 (板块列表 [(外圈顶点, 边名, 洞列表, 洞名列表)], 组号, 矩形)。分裂时两个板块，否则一个。"""
     rect, group = floor_rect(b, i)
     notches = [o for o in ops if o.get("type") == "notch" and applies(o, group)]
     courts = [o for o in ops if o.get("type") == "court" and applies(o, group)]
+    splits = [o for o in ops if o.get("type") == "split" and applies(o, group)]
     pts, names, nrects = outer_loop(rect, notches, warnings, i + 1)
     holes, hole_names, crects = [], [], []
     for ci, co in enumerate(courts):
@@ -484,7 +526,30 @@ def floor_outline(b, i, ops, warnings):
         crects.append(r)
         hp, hn = court_loop(r, "Y" if ci == 0 else "Y%d_" % (ci + 1))
         holes.append(hp); hole_names.append(hn)
-    return pts, names, holes, hole_names, group, rect
+    plates = [(pts, names, holes, hole_names)]
+    if splits:
+        sp = splits[0]
+        if len(splits) > 1:
+            warnings.append("F%d: only the first split is used" % (i + 1))
+        x0, y0, x1, y1 = rect
+        axis = sp.get("axis", "x"); gap = float(sp.get("gap", 4.0)); pos = float(sp.get("pos", 0.5))
+        k = 0 if axis == "x" else 1
+        lo_end, hi_end = (x0, x1) if axis == "x" else (y0, y1)
+        c = lo_end + pos * (hi_end - lo_end)
+        lo, hi = c - gap / 2.0, c + gap / 2.0
+        band = (lo, y0 - 1.0, hi, y1 + 1.0) if axis == "x" else (x0 - 1.0, lo, x1 + 1.0, hi)
+        if lo - lo_end < 2 * WALL or hi_end - hi < 2 * WALL:
+            warnings.append("F%d: split %s leaves a side too thin, ignored" % (i + 1, sp.get("id")))
+        elif rects_clash(band, nrects) or rects_clash(band, crects):
+            warnings.append("F%d: split %s crosses a notch or courtyard, ignored" % (i + 1, sp.get("id")))
+        else:
+            p1, n1 = clip_loop(pts, names, axis, lo, False, "S1")
+            p2, n2 = clip_loop(pts, names, axis, hi, True, "S2")
+            side = lambda hp: (sum(q[k] for q in hp) / len(hp)) < c
+            h1 = [(hp, hn) for hp, hn in zip(holes, hole_names) if side(hp)]
+            h2 = [(hp, hn) for hp, hn in zip(holes, hole_names) if not side(hp)]
+            plates = [(p1, n1, [h for h, _ in h1], [n for _, n in h1]), (p2, n2, [h for h, _ in h2], [n for _, n in h2])]
+    return plates, group, rect
 
 
 def build(d):
@@ -498,15 +563,22 @@ def build(d):
     band = {"sill": sill, "winH": winH}
     floors, wins, meshes, faces, dev, segs_all, floor_info = [], [], [], [], [], [], []
     for i in range(N):
-        pts, names, holes, hole_names, group, rect = floor_outline(b, i, ops, warnings)
-        segs = segments_of(pts, names, float(b["az0"]), "outer", i + 1)
-        for ci, (hp, hn) in enumerate(zip(holes, hole_names)):
-            segs += segments_of(hp, hn, float(b["az0"]), "court%d" % (ci + 1), i + 1)
-        fb = slab_brep(pts, holes, H)
-        if fb:
-            fb.Translate(rg.Vector3d(0, 0, i * H)); floors.append(fb)
-        else:
-            warnings.append("F%d: slab solid failed" % (i + 1))
+        plates, group, rect = floor_outline(b, i, ops, warnings)
+        segs, cidx, plate_info, f_area = [], 0, [], 0.0
+        for pi, (pts, names, holes, hole_names) in enumerate(plates):
+            segs += segments_of(pts, names, float(b["az0"]), "outer" if pi == 0 else "outer%d" % (pi + 1), i + 1)
+            for hp, hn in zip(holes, hole_names):
+                cidx += 1
+                segs += segments_of(hp, hn, float(b["az0"]), "court%d" % cidx, i + 1)
+            fb = slab_brep(pts, holes, H)
+            if fb:
+                fb.Translate(rg.Vector3d(0, 0, i * H)); floors.append(fb)
+            else:
+                warnings.append("F%d: slab solid failed (plate %d)" % (i + 1, pi + 1))
+            f_area += area(pts) - sum(area(hp) for hp in holes)
+            plate_info.append({"perimeter": [[round(q[0], 3), round(q[1], 3)] for q in pts],
+                               "holes": [[[round(q[0], 3), round(q[1], 3)] for q in hp] for hp in holes]})
+        pts, holes = plates[0][0], plates[0][2]
         use_dev = sh.get("type") in ("bifoldV", "pivot", "bifoldH", "umbrella") and (sh.get("floors", "all") == "all" or i >= 1)
         for si, s in enumerate(segs):
             p, q = s["p"], s["q"]
@@ -535,9 +607,8 @@ def build(d):
                 s["dev"] = dict(NONE)
             s["winArea"] = round(ln * winH, 3)
         segs_all += segs
-        floor_info.append({"i": i + 1, "group": group, "rect": [round(v, 3) for v in rect], "area": round(area(pts) - sum(area(hp) for hp in holes), 2),
-                           "perimeter": [[round(p[0], 3), round(p[1], 3)] for p in pts],
-                           "holes": [[[round(p[0], 3), round(p[1], 3)] for p in hp] for hp in holes]})
+        floor_info.append({"i": i + 1, "group": group, "rect": [round(v, 3) for v in rect], "area": round(f_area, 2),
+                           "perimeter": plate_info[0]["perimeter"], "holes": plate_info[0]["holes"], "plates": plate_info})
     res = {"seq": int(d.get("run", {}).get("seq", 0)), "at": "", "floorsSame": False, "nSeg": len(segs_all),
            "floors": floor_info, "segments": segs_all, "winH": round(winH, 3), "warnings": warnings,
            "shading": {"type": sh.get("type", "none"), "units": sum(s["dev"]["units"] for s in segs_all),

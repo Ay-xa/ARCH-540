@@ -148,6 +148,8 @@
 - 用户 2026-10-03：方案列表搬进对比页；装置扫描先隐藏（代码保留）；设计页平面图放大放前面；删除改成点两次确认（应用内浏览器不弹 confirm）。
 - **步 3 读图 tab：已做（两种模式）。** 用户在团队账号里没有生成 key 的权限，先走「交给 Claude」模式：页面上传图 + 描述 → `POST /inbox` 存到 `02_Rules/inbox/<id>/`（图 + request.json）→ Claude Code 在聊天里按 `inbox/README.md` 的格式写 `card.json` → 页面 3 s 内显示参数卡（八个问题、最接近条目、不同之处、依据、进工具的参数）→ 每格可改 → 保存 / 应用到设计（换装置并写 json）/ 存入机构库 / 交给 Claude 加条目。有 `rhino/api_key.txt` 时自动切到 api 模式：`server.py` 的 `vision_call` 把图 + SHADING_RULES.md + MECHANISMS.md 发给模型（`VISION_MODEL`），上传即出卡，卡格式相同。key 文件已在 .gitignore。
 
+- **步 4 错位、分裂：已做（2026-10-03）。** 错位：`groups.list[].shift {x, y}`，`floor_rect` 在退台后整组平移；楼层组 tab 加两个滑块；手柄仍按第 1 层矩形解释。分裂：`ops` 新类型 `{type:'split', apply, axis:'x'|'y', pos, gap}`；`floor_outline` 先算带凹口的外圈和庭院，再用半平面裁两次（`clip_loop`，Sutherland–Hodgman，顶点名 = 从该点出发的边名，缝边叫 S1 / S2），庭院按中心归到一块；每层只用第一条分裂；切线穿过凹口 / 庭院（矩形外扩 1 m）或一边不足 2 m 就忽略并写警告。`results.floors[].plates[]`（perimeter + holes），`perimeter / holes` 仍是第一块（兼容）；段的 `loop` 第二块叫 `outer2`；楼板实体每块一个；缝边照常开窗装装置（facade 归属按首字母 S，不在 A–D / 庭院表里 → 装、用默认折角）。页面：分裂 tab（方向 / 作用在 / 位置 / 缝宽）、绿点手柄、平面按块画、热力图按块铺格、解读句。验证：5 层 3 组，第 2 组错位 x 2 m；横切 55 % 缝 4 m：各层两块，F1 段 A S1 C D + 庭院 + A B1–B5 C S2，面积 356，Rhino 四个手柄点。
+
 ## 7. 要你定的
 
 1. 对比 tab 的快照存浏览器本地够不够，还是也要自动存成仓库里的文件（便于 git 记录）。建议：本地 + 手动导出。

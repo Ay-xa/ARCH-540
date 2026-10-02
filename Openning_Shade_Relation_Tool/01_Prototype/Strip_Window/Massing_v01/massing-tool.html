@@ -131,7 +131,11 @@
         <div class="ctl"><div class="row"><label for="sbC">C 边退</label><output id="sbCOut"></output></div><input id="sbC" type="range" min="0" max="15" step="0.5" value="0"></div>
         <div class="ctl"><div class="row"><label for="sbD">D 边退</label><output id="sbDOut"></output></div><input id="sbD" type="range" min="0" max="15" step="0.5" value="0"></div>
       </div>
-      <div class="cap">从 F1 起按每组的层数依次分配，最后一组拿剩下的楼层。每组四条边各自从基底向内退（退台 / 移边），退 0 = 不退。点 + 加一组，删 删掉当前组。</div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="gsx">错位 沿 L</label><output id="gsxOut"></output></div><input id="gsx" type="range" min="-15" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gsy">错位 沿 W</label><output id="gsyOut"></output></div><input id="gsy" type="range" min="-15" max="15" step="0.5" value="0"></div>
+      </div>
+      <div class="cap">从 F1 起按每组的层数依次分配，最后一组拿剩下的楼层。每组四条边各自从基底向内退（退台 / 移边），退 0 = 不退；错位 = 整组在平面上平移，悬挑和被盖住的部分 Ladybug 会算到。点 + 加一组，删 删掉当前组。</div>
       <hr style="border:0;border-top:1px solid var(--line);margin:0">
       <div class="ctl"><div class="row"><label for="wwr">窗墙比（带窗）</label><output id="wwrOut"></output></div><input id="wwr" type="range" min="0" max="100" step="1" value="45"></div>
       <div class="ctl"><div class="row"><label for="sill">窗台高</label><output id="sillOut"></output></div><input id="sill" type="range" min="0" max="2" step="0.05" value="0.73"></div>
@@ -180,6 +184,19 @@
         <div class="ctl"><div class="row"><label for="cd">深（沿 W）</label><output id="cdOut"></output></div><input id="cd" type="range" min="1" max="30" step="0.5" value="6"></div>
       </div>
       <div class="cap">可以有多个庭院。天井四面墙朝内开窗，第一个段名 Y1–Y4，第二个 Y2_1–Y2_4。Rhino 里的蓝点是每个庭院的中心。庭院离外墙至少 1 m，和凹口、其他庭院不能挨在 1 m 以内（挨着时 Grasshopper 忽略它并写警告）。</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:0">
+      <div class="cap" style="font-weight:600;color:var(--ink)">分裂 <span class="badge" id="fromRhinoS" hidden>来自 Rhino</span></div>
+      <div class="tabs" id="splitTabs"></div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="axis">切的方向</label></div>
+          <select id="axis"><option value="x" selected>横着切（缝沿 W，分成左右两块）</option><option value="y">竖着切（缝沿 L，分成前后两块）</option></select></div>
+        <div class="ctl"><div class="row"><label for="applyS">作用在</label></div><select id="applyS"><option value="all" selected>全部楼层</option></select></div>
+      </div>
+      <div class="two">
+        <div class="ctl"><div class="row"><label for="spos">切线位置</label><output id="sposOut"></output></div><input id="spos" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="ctl"><div class="row"><label for="sgap">缝宽</label><output id="sgapOut"></output></div><input id="sgap" type="range" min="0.5" max="20" step="0.5" value="4"></div>
+      </div>
+      <div class="cap">把楼板切成两块、中间留一道缝；缝两侧的墙是新立面（段名 S1 / S2），照样开窗装装置。每层只用第一条分裂；切线穿过凹口或庭院、或把一边切得不到 2 m 时忽略并写警告。Rhino 里的绿点是缝的中心，拖它改位置。</div>
     </div>
   </details>
 
@@ -288,11 +305,11 @@
 (function(){
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
-  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
-  const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC'];
+  const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','thick','skin','holeD','perfMin','perfMax'];
+  const sels = ['clim','mass','vent','edge','period','devType','devFloors','applyN','applyC','axis','applyS'];
   const FAC = ['A','B','C','D','court'];
-  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
-  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
+  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
+  const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const MECH = {
     none:    {tilt:'—', unitW:'—', cap:'不装遮阳装置。'},
@@ -304,25 +321,28 @@
   const P = {};
   let STATE = null, lastResultsAt = '', lastSunAt = '', suppressPost = false, postTimer = null;
   // ---------- lists (2026-10-03): floor groups, notches, courtyards — the sliders edit the selected entry ----------
-  const LIST = { groups:[{n:3, setback:{A:0,B:0,C:0,D:0}}], notches:[], courts:[] }; let gSel = 0, nSel = 0, cSel = 0; const lastHandle = {};
+  const LIST = { groups:[{n:3, setback:{A:0,B:0,C:0,D:0}, shift:{x:0,y:0}}], notches:[], courts:[], splits:[] }; let gSel = 0, nSel = 0, cSel = 0, sSel = 0; const lastHandle = {};
   const pad2 = i => 'notch'.length && String(i+1).padStart(2,'0');
   function tabs(el, items, sel, label, onPick, onAdd, onDel){ el.innerHTML = ''; items.forEach((it,i)=>{ const b = document.createElement('button'); b.type='button'; b.textContent = label(it,i); b.className = i===sel ? 'on' : ''; b.onclick = ()=>onPick(i); el.appendChild(b); });
     const a = document.createElement('button'); a.type='button'; a.textContent = '+'; a.className = 'add'; a.title = '新增'; a.onclick = onAdd; el.appendChild(a);
     if(items.length && onDel){ const d = document.createElement('button'); d.type='button'; d.textContent = '删'; d.className = 'del'; d.title = '删掉当前这条'; d.onclick = ()=>onDel(sel); el.appendChild(d); } }
   function groupRanges(){ const N = P.floors; let used = 0; return LIST.groups.map((g,i)=>{ const n = i===LIST.groups.length-1 ? Math.max(0, N-used) : Math.max(0, Math.min(g.n, N-used)); const r = {from:used+1, to:used+n, n}; used += n; return r; }); }
   function applyOptions(sel){ const keep = sel.value; const rs = groupRanges(); sel.innerHTML = '<option value="all">全部楼层</option>' + rs.map((r,i)=>`<option value="g${i+1}">第 ${i+1} 组（${r.n ? `F${r.from}–F${r.to}` : '空'}）</option>`).join(''); sel.value = [...sel.options].some(o=>o.value===keep) ? keep : 'all'; }
-  function loadGroup(i){ const g = LIST.groups[i]; if(!g) return; $('gn').value = g.n; ['A','B','C','D'].forEach(k=> $('sb'+k).value = g.setback[k]||0); }
+  function loadGroup(i){ const g = LIST.groups[i]; if(!g) return; $('gn').value = g.n; ['A','B','C','D'].forEach(k=> $('sb'+k).value = g.setback[k]||0); $('gsx').value = (g.shift||{}).x||0; $('gsy').value = (g.shift||{}).y||0; }
+  function loadSplit(i){ const sp = LIST.splits[i]; if(!sp) return; $('axis').value = sp.axis; applyOptions($('applyS')); $('applyS').value = sp.apply; $('spos').value = sp.pos; $('sgap').value = sp.gap; }
   function loadNotch(i){ const n = LIST.notches[i]; if(!n) return; $('edge').value = n.edge; applyOptions($('applyN')); $('applyN').value = n.apply; $('pos').value = n.pos; $('nw').value = n.width; $('nd').value = n.depth; }
   function loadCourt(i){ const c = LIST.courts[i]; if(!c) return; applyOptions($('applyC')); $('applyC').value = c.apply; $('cu').value = c.pos_u; $('cv').value = c.pos_v; $('cw').value = c.width; $('cd').value = c.depth; }
-  function pick(kind, i){ read(); if(kind==='g'){ gSel = i; loadGroup(i); } else if(kind==='n'){ nSel = i; loadNotch(i); } else { cSel = i; loadCourt(i); } read(); }
+  function pick(kind, i){ read(); if(kind==='g'){ gSel = i; loadGroup(i); } else if(kind==='n'){ nSel = i; loadNotch(i); } else if(kind==='s'){ sSel = i; loadSplit(i); } else { cSel = i; loadCourt(i); } read(); }
   function addItem(kind){ read();
-    if(kind==='g'){ LIST.groups.push({n:1, setback:{A:0,B:0,C:0,D:0}}); gSel = LIST.groups.length-1; loadGroup(gSel); }
+    if(kind==='g'){ LIST.groups.push({n:1, setback:{A:0,B:0,C:0,D:0}, shift:{x:0,y:0}}); gSel = LIST.groups.length-1; loadGroup(gSel); }
+    else if(kind==='s'){ const src = LIST.splits[sSel]; LIST.splits.push(src ? Object.assign({}, src, {pos:Math.min(0.9, src.pos+0.3)}) : {axis:'x', apply:'all', pos:0.5, gap:4}); sSel = LIST.splits.length-1; loadSplit(sSel); }
     else if(kind==='n'){ const src = LIST.notches[nSel]; LIST.notches.push(src ? Object.assign({}, src, {pos:Math.min(0.95, src.pos+0.35)}) : {edge:'A', apply:'all', pos:0.4, width:6, depth:4}); nSel = LIST.notches.length-1; loadNotch(nSel); }
     else { const src = LIST.courts[cSel]; LIST.courts.push(src ? Object.assign({}, src, {pos_u:Math.min(0.95, src.pos_u+0.35)}) : {apply:'all', pos_u:0.5, pos_v:0.5, width:6, depth:6}); cSel = LIST.courts.length-1; loadCourt(cSel); }
     read(); schedulePost(); }
   function delItem(kind, i){
     if(kind==='g'){ if(LIST.groups.length<=1) return; LIST.groups.splice(i,1); gSel = Math.min(gSel, LIST.groups.length-1); loadGroup(gSel); }
     else if(kind==='n'){ LIST.notches.splice(i,1); nSel = Math.max(0, Math.min(nSel, LIST.notches.length-1)); loadNotch(nSel); }
+    else if(kind==='s'){ LIST.splits.splice(i,1); sSel = Math.max(0, Math.min(sSel, LIST.splits.length-1)); loadSplit(sSel); }
     else { LIST.courts.splice(i,1); cSel = Math.max(0, Math.min(cSel, LIST.courts.length-1)); loadCourt(cSel); }
     read(); schedulePost(); }
 
@@ -331,7 +351,8 @@
     ids.forEach(id=>{ const v = parseFloat($(id).value); P[id]=v; $(id+'Out').innerHTML = `<b>${v.toFixed(dec[id])}</b>${units[id]}` + (id==='az0'&&ENGINE ? ' '+ENGINE.dirName(v) : ''); });
     sels.forEach(id=> P[id]=$(id).value);
     // sliders → selected list entries
-    if(LIST.groups[gSel]){ LIST.groups[gSel].n = P.gn; LIST.groups[gSel].setback = {A:P.sbA, B:P.sbB, C:P.sbC, D:P.sbD}; }
+    if(LIST.groups[gSel]){ LIST.groups[gSel].n = P.gn; LIST.groups[gSel].setback = {A:P.sbA, B:P.sbB, C:P.sbC, D:P.sbD}; LIST.groups[gSel].shift = {x:P.gsx, y:P.gsy}; }
+    if(LIST.splits[sSel]) LIST.splits[sSel] = {axis:P.axis, apply:P.applyS, pos:P.spos, gap:P.sgap};
     if(LIST.notches[nSel]) LIST.notches[nSel] = {edge:P.edge, apply:P.applyN, pos:P.pos, width:P.nw, depth:P.nd};
     if(LIST.courts[cSel]) LIST.courts[cSel] = {apply:P.applyC, pos_u:P.cu, pos_v:P.cv, width:P.cw, depth:P.cd};
     const rs = groupRanges(), lastG = gSel===LIST.groups.length-1;
@@ -339,12 +360,13 @@
     tabs($('grpTabs'), LIST.groups, gSel, (g,i)=>`组 ${i+1}${rs[i].n ? ` F${rs[i].from}–F${rs[i].to}` : '（空）'}`, i=>pick('g',i), ()=>addItem('g'), LIST.groups.length>1 ? i=>delItem('g',i) : null);
     tabs($('notchTabs'), LIST.notches, nSel, (n,i)=>`#${i+1} ${n.edge} 深 ${fmt(n.depth,1)}`, i=>pick('n',i), ()=>addItem('n'), i=>delItem('n',i));
     tabs($('courtTabs'), LIST.courts, cSel, (c,i)=>`#${i+1} ${fmt(c.width,1)}×${fmt(c.depth,1)}`, i=>pick('c',i), ()=>addItem('c'), i=>delItem('c',i));
-    applyOptions($('applyN')); applyOptions($('applyC'));
-    const hasN = LIST.notches.length>0, hasC = LIST.courts.length>0;
-    ['edge','applyN','pos','nw','nd'].forEach(id=> $(id).disabled = !hasN); ['applyC','cu','cv','cw','cd'].forEach(id=> $(id).disabled = !hasC);
-    const nSb = LIST.groups.filter(g=>['A','B','C','D'].some(k=>(g.setback[k]||0)>0)).length;
-    $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} 层 · ${LIST.groups.length} 组${nSb?`（${nSb} 组退台）`:''} · 窗墙比 ${P.wwr}%`;
-    $('g2Sum').textContent = [hasN ? `凹口 ×${LIST.notches.length}` : '', hasC ? `庭院 ×${LIST.courts.length}` : ''].filter(Boolean).join(' · ') || '无操作';
+    tabs($('splitTabs'), LIST.splits, sSel, (sp,i)=>`#${i+1} ${sp.axis==='x'?'横切':'竖切'} 缝 ${fmt(sp.gap,1)}`, i=>pick('s',i), ()=>addItem('s'), i=>delItem('s',i));
+    applyOptions($('applyN')); applyOptions($('applyC')); applyOptions($('applyS'));
+    const hasN = LIST.notches.length>0, hasC = LIST.courts.length>0, hasS = LIST.splits.length>0;
+    ['edge','applyN','pos','nw','nd'].forEach(id=> $(id).disabled = !hasN); ['applyC','cu','cv','cw','cd'].forEach(id=> $(id).disabled = !hasC); ['axis','applyS','spos','sgap'].forEach(id=> $(id).disabled = !hasS);
+    const nSb = LIST.groups.filter(g=>['A','B','C','D'].some(k=>(g.setback[k]||0)>0)).length, nSh = LIST.groups.filter(g=>g.shift && (g.shift.x||g.shift.y)).length;
+    $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} 层 · ${LIST.groups.length} 组${nSb?`（${nSb} 组退台）`:''}${nSh?`（${nSh} 组错位）`:''} · 窗墙比 ${P.wwr}%`;
+    $('g2Sum').textContent = [hasN ? `凹口 ×${LIST.notches.length}` : '', hasC ? `庭院 ×${LIST.courts.length}` : '', hasS ? `分裂 ×${LIST.splits.length}` : ''].filter(Boolean).join(' · ') || '无操作';
     P.fac = {}; FAC.forEach(k=>{ const on = $('fOn'+k).checked, t = parseFloat($('fTilt'+k).value); P.fac[k] = {on, tilt:t}; $('fTilt'+k+'Out').textContent = on ? t+'°' : '不装'; $('fTilt'+k).disabled = !on; document.querySelector('#facTable tr[data-k="'+k+'"]').classList.toggle('off', !on); });
     const facAz = {A:P.az0, B:P.az0-90, C:P.az0+180, D:P.az0+90}; ['A','B','C','D'].forEach(k=> $('facLab'+k).textContent = k + (ENGINE ? '（'+ENGINE.dirName(facAz[k])+'）' : ''));
     const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
@@ -356,9 +378,10 @@
   // ---------- state.json ----------
   function payload(){
     return {
-      building:{floors:P.floors, H:P.H, slab:P.slab, L:P.L, W:P.W, az0:P.az0, groups:{list:LIST.groups.map(g=>({n:g.n, setback:g.setback}))}},
+      building:{floors:P.floors, H:P.H, slab:P.slab, L:P.L, W:P.W, az0:P.az0, groups:{list:LIST.groups.map(g=>({n:g.n, setback:g.setback, shift:g.shift||{x:0,y:0}}))}},
       ops: LIST.notches.map((n,i)=>Object.assign({id:'notch'+String(i+1).padStart(2,'0'), type:'notch', floor:1, propagate:'up'}, n))
-           .concat(LIST.courts.map((c,i)=>Object.assign({id:'court'+String(i+1).padStart(2,'0'), type:'court', floor:1, propagate:'up'}, c))),
+           .concat(LIST.courts.map((c,i)=>Object.assign({id:'court'+String(i+1).padStart(2,'0'), type:'court', floor:1, propagate:'up'}, c)))
+           .concat(LIST.splits.map((sp,i)=>Object.assign({id:'split'+String(i+1).padStart(2,'0'), type:'split', floor:1, propagate:'up'}, sp))),
       windows:{wwr:P.wwr/100, sill:P.sill},
       run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim, sun:$('runSun').checked},
       shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt', facades:P.fac}
@@ -368,7 +391,7 @@
     try{
       const r = await fetch('/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
       const d = await r.json(); if(!r.ok) throw new Error(d.error||r.status);
-      STATE = d; setConn(true, '已写入 state.json，等待 Rhino…'); $('fromRhino').hidden = true; $('fromRhinoC').hidden = true;
+      STATE = d; setConn(true, '已写入 state.json，等待 Rhino…'); $('fromRhino').hidden = true; $('fromRhinoC').hidden = true; $('fromRhinoS').hidden = true;
     }catch(e){ setConn(false, '写入失败：'+e.message); }
   }
   function schedulePost(){ if(suppressPost) return; clearTimeout(postTimer); postTimer = setTimeout(post, 250); }
@@ -382,7 +405,8 @@
       // handle dragged in Rhino → sliders follow (no POST back)
       let touched = false;
       (d.ops||[]).forEach(op=>{ const h = (d.handle||{})[op.id]; if(!(h && h.at > (op.at||'') && h.at !== lastHandle[op.id])) return; lastHandle[op.id] = h.at;
-        const m = /^(notch|court)(\d+)$/.exec(op.id); if(!m) return; const i = parseInt(m[2],10)-1;
+        const m = /^(notch|court|split)(\d+)$/.exec(op.id); if(!m) return; const i = parseInt(m[2],10)-1;
+        if(m[1]==='split' && LIST.splits[i]){ LIST.splits[i].pos = h.pos; if(i===sSel) loadSplit(i); $('fromRhinoS').hidden = false; touched = true; }
         if(m[1]==='notch' && LIST.notches[i]){ LIST.notches[i].pos = h.pos; LIST.notches[i].depth = h.depth; if(i===nSel) loadNotch(i); $('fromRhino').hidden = false; touched = true; }
         if(m[1]==='court' && LIST.courts[i]){ LIST.courts[i].pos_u = h.pos_u; LIST.courts[i].pos_v = h.pos_v; if(i===cSel) loadCourt(i); $('fromRhinoC').hidden = false; touched = true; } });
       if(touched){ suppressPost = true; read(); suppressPost = false; }
@@ -463,7 +487,8 @@
   const pip = (pt, poly) => { let c = false; for(let i=0, j=poly.length-1; i<poly.length; j=i++){ const a=poly[i], b=poly[j]; if(((a[1]>pt[1])!==(b[1]>pt[1])) && (pt[0] < (b[0]-a[0])*(pt[1]-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; };
   const segX = (a,b,c,d) => { const r=[b[0]-a[0],b[1]-a[1]], s_=[d[0]-c[0],d[1]-c[1]], den=r[0]*s_[1]-r[1]*s_[0]; if(Math.abs(den)<1e-12) return false; const q=[c[0]-a[0],c[1]-a[1]]; const t=(q[0]*s_[1]-q[1]*s_[0])/den, u=(q[0]*r[1]-q[1]*r[0])/den; return t>1e-6&&t<1-1e-6&&u>1e-6&&u<1-1e-6; };
   function planGrid(F, rows, grid, depth){
-    const per = F.perimeter, holes = F.holes||[]; const xs = per.map(p=>p[0]), ys = per.map(p=>p[1]);
+    const plates = F.plates && F.plates.length ? F.plates : [{perimeter:F.perimeter, holes:F.holes||[]}];
+    const holes = plates.flatMap(pl=>pl.holes||[]); const allP = plates.flatMap(pl=>pl.perimeter); const xs = allP.map(p=>p[0]), ys = allP.map(p=>p[1]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const nx = Math.max(1, Math.round((x1-x0)/grid)), ny = Math.max(1, Math.round((y1-y0)/grid)), gx = (x1-x0)/nx, gy = (y1-y0)/ny, half = Math.min(gx,gy)/2;
     const S = rows.map(x=>{ const r = x.r, dx = x.q[0]-x.p[0], dy = x.q[1]-x.p[1], ln = Math.hypot(dx,dy);
@@ -473,7 +498,7 @@
     const hedges = []; holes.forEach(hp=> hp.forEach((a,i)=> hedges.push([a, hp[(i+1)%hp.length]])));
     const cells = [];
     for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const x = x0+(i+.5)*gx, y = y0+(j+.5)*gy;
-      if(!pip([x,y], per) || holes.some(hp=>pip([x,y], hp))) continue;
+      if(!plates.some(pl=>pip([x,y], pl.perimeter)) || holes.some(hp=>pip([x,y], hp))) continue;
       const c = {x, y, gx, gy, DF:0, Hx:0, Wx:0, inStrip:false, top:null, topV:0, topD:0};
       S.forEach(sg=>{ const rx = x-sg.p[0], ry = y-sg.p[1], d = rx*sg.inx+ry*sg.iny, t = rx*sg.ux+ry*sg.uy;
         if(d<=0 || d>depth+half || t<-half || t>sg.ln+half) return;
@@ -493,7 +518,7 @@
     rows = rows.filter(x=>x.floor===F.i);   // colour the selected floor's own segments
     const mode = $('planMode').value, grid = parseFloat($('planGrid').value), depth = ctx(1).depth;
     const G = planGrid(F, rows, grid, depth); window.__grid = G; window.__gridFloor = F.i;
-    const R0 = Math.hypot(b.L, b.W)/2, pad = 2.5, V = 2*(R0+pad);
+    const cx0 = b.L/2, cy0 = b.W/2; const R0 = Math.max(Math.hypot(b.L, b.W)/2, ...fl.flatMap(g=>(g.plates&&g.plates.length?g.plates:[{perimeter:g.perimeter}]).flatMap(pl=>pl.perimeter.map(p=>Math.hypot(p[0]-cx0, p[1]-cy0))))), pad = 2.5, V = 2*(R0+pad);
     svg.setAttribute('viewBox', `${(-V/2).toFixed(2)} ${(-V/2).toFixed(2)} ${V.toFixed(2)} ${V.toFixed(2)}`);
     const fs = Math.max(0.5, 12/((svg.clientWidth||330)/V)), n2 = x=>(+x).toFixed(2);
     const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -504,11 +529,12 @@
     for(let a=0;a<360;a+=45){ const t=a*Math.PI/180, r1=R0+1.6, r2=r1-0.35*fs; o+=`<line x1="${n2(r1*Math.sin(t))}" y1="${n2(-r1*Math.cos(t))}" x2="${n2(r2*Math.sin(t))}" y2="${n2(-r2*Math.cos(t))}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
     o += `<text x="0" y="${n2(-(R0+1.6)-fs*0.3)}" text-anchor="middle" font-size="${n2(fs)}" font-weight="600" fill="${ink}">北</text>`;
     o += `<g transform="rotate(${rot})">`;
+    const platesOf = g => (g.plates && g.plates.length ? g.plates : [{perimeter:g.perimeter, holes:g.holes||[]}]);
     const pts = per.map(p=>[p[0]-cx, -(p[1]-cy)]);
-    o += `<polygon points="${pts.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`;
-    const holes = (F.holes||[]).map(hp=>hp.map(p=>[p[0]-cx, -(p[1]-cy)]));
-    // other floors' outlines, dashed, for setbacks
-    fl.forEach(g=>{ if(g.i===F.i) return; const gp = g.perimeter.map(p=>[p[0]-cx, -(p[1]-cy)]); o += `<polygon points="${gp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="none" stroke="${ink2}" stroke-width="${n2(fs*0.06)}" stroke-dasharray="${n2(fs*0.3)} ${n2(fs*0.25)}"/>`; });
+    platesOf(F).forEach(pl=>{ const pp = pl.perimeter.map(p=>[p[0]-cx, -(p[1]-cy)]); o += `<polygon points="${pp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${panel}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`; });
+    const holes = platesOf(F).flatMap(pl=>pl.holes||[]).map(hp=>hp.map(p=>[p[0]-cx, -(p[1]-cy)]));
+    // other floors' outlines, dashed, for setbacks / shifts
+    fl.forEach(g=>{ if(g.i===F.i) return; platesOf(g).forEach(pl=>{ const gp = pl.perimeter.map(p=>[p[0]-cx, -(p[1]-cy)]); o += `<polygon points="${gp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="none" stroke="${ink2}" stroke-width="${n2(fs*0.06)}" stroke-dasharray="${n2(fs*0.3)} ${n2(fs*0.25)}"/>`; }); });
     holes.forEach(hp=>{ o += `<polygon points="${hp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${css('--bg')}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`; });
     if(mode!=='none'){ const key = mode==='hot' ? 'Hx' : 'DF', mx = Math.max(1e-9, G.max[key]), col = mode==='hot' ? heat : css('--ok'), unit = mode==='hot' ? ' kWh/m²' : ' %';
       G.cells.forEach(c=>{ const v = c[key], a = c.inStrip ? 0.08+0.82*v/mx : 0; const fill = c.inStrip ? col : ink2;
@@ -520,6 +546,7 @@
       o += `<line x1="${n2(p[0])}" y1="${n2(p[1])}" x2="${n2(q[0])}" y2="${n2(q[1])}" stroke="${heat}" stroke-opacity="${a.toFixed(2)}" stroke-width="${n2(fs*(mode==='none'?0.35:0.18))}"><title>${x.edge} ${fmt(x.r.ovh,1)} %</title></line>`; });
     (d.ops||[]).forEach(op=>{ const h = (d.handle||{})[op.id] || {}; const useH = h.at && h.at > (op.at||'');
       if(op.type==='court'){ const u = useH ? h.pos_u : op.pos_u, v = useH ? h.pos_v : op.pos_v; o += `<circle cx="${n2(u*b.L-cx)}" cy="${n2(-(v*b.W-cy))}" r="${n2(fs*0.35)}" fill="#285ac8" stroke="${panel}" stroke-width="${n2(fs*0.08)}"><title>${op.id}</title></circle>`; }
+      else if(op.type==='split'){ const pos = useH ? h.pos : op.pos; const hx = op.axis==='x' ? pos*b.L : b.L/2, hy = op.axis==='x' ? b.W/2 : pos*b.W; o += `<circle cx="${n2(hx-cx)}" cy="${n2(-(hy-cy))}" r="${n2(fs*0.35)}" fill="#28a050" stroke="${panel}" stroke-width="${n2(fs*0.08)}"><title>${op.id}</title></circle>`; }
       else if(op.type==='notch'){ const E = {A:[[0,0],[1,0],[0,1],b.L],B:[[b.L,0],[0,1],[-1,0],b.W],C:[[b.L,b.W],[-1,0],[0,-1],b.L],D:[[0,b.W],[0,-1],[1,0],b.W]}[op.edge]; const pos = useH ? h.pos : op.pos, dep = useH ? h.depth : op.depth;
         const hx = E[0][0]+E[1][0]*pos*E[3]+E[2][0]*dep, hy = E[0][1]+E[1][1]*pos*E[3]+E[2][1]*dep;
         o += `<circle cx="${n2(hx-cx)}" cy="${n2(-(hy-cy))}" r="${n2(fs*0.35)}" fill="#c82828" stroke="${panel}" stroke-width="${n2(fs*0.08)}"><title>${op.id}</title></circle>`; } });
@@ -537,13 +564,14 @@
     const rows0 = window.__rows0, agg0dev = window.__agg0dev, totalView = window.__view;
     const f1 = rows.filter(x=>x.floor===rows[0].floor);
     const notchOps = (d.ops||[]).filter(o=>o.type==='notch'), courtOps = (d.ops||[]).filter(o=>o.type==='court');
-    const pieces = f1.filter(x=>x.loop==='outer' && x.edge.length>1);
+    const pieces = f1.filter(x=>/^outer/.test(x.loop||'') && x.edge.length>1 && !/^S/.test(x.edge));
+    const splitOps = (d.ops||[]).filter(o=>o.type==='split');
     const worst = rows0.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
     const best = rows0.slice().sort((a,b)=>b.r.DF-a.r.DF)[0];
     const lab = x => (d.results.floors.length>1?'F'+x.floor+' ':'')+x.edge;
     const ps = [];
     const GL = (d.results.groups||{}).list || [];
-    if(GL.length>1){ ps.push(`楼层分 ${GL.length} 组：` + GL.map((g,i)=>{ const sb = g.setback||{}; const any = ['A','B','C','D'].filter(k=>(sb[k]||0)>0).map(k=>`${k} 退 ${fmt(sb[k],1)} m`).join('、'); return `第 ${i+1} 组 ${g.floors&&g.floors.length ? `F${g.floors[0]}–F${g.floors[g.floors.length-1]}` : '空'}${any?`（${any}）`:''}`; }).join('；') + `；各层面积 ${d.results.floors.map(f=>fmt(f.area,0)).join(' / ')} m²。`); }
+    if(GL.length>1){ ps.push(`楼层分 ${GL.length} 组：` + GL.map((g,i)=>{ const sb = g.setback||{}; const any = ['A','B','C','D'].filter(k=>(sb[k]||0)>0).map(k=>`${k} 退 ${fmt(sb[k],1)} m`).concat(g.shift && (g.shift.x||g.shift.y) ? [`错位 ${fmt(g.shift.x,1)} / ${fmt(g.shift.y,1)} m`] : []).join('、'); return `第 ${i+1} 组 ${g.floors&&g.floors.length ? `F${g.floors[0]}–F${g.floors[g.floors.length-1]}` : '空'}${any?`（${any}）`:''}`; }).join('；') + `；各层面积 ${d.results.floors.map(f=>fmt(f.area,0)).join(' / ')} m²。`); }
     const dirOf = e => ENGINE.dirName(ENGINE.norm(P.az0 + {A:0,B:-90,C:180,D:90}[e]));
     const grpSay = a => a && a!=='all' ? `，只作用于第 ${a.slice(1)} 组` : '';
     if(notchOps.length){ const parts = notchOps.map((op,i)=>{ const h = (d.handle||{})[op.id]; const dep = h && h.at > (op.at||'') ? h.depth : op.depth; return `#${i+1} 在 ${op.edge} 边（${dirOf(op.edge)}）深 ${fmt(dep,1)} m、宽 ${fmt(op.width,1)} m${dep > Math.min(P.L,P.W)/2 ? '（深过一半，已是 U 形）' : ''}${grpSay(op.apply)}`; });
@@ -551,6 +579,9 @@
       const warn = (d.results.warnings||[]).filter(w=>/^F\d+: notch/.test(w)).length;
       ps.push(`凹口 ${notchOps.length} 个：${parts.join('；')}。${cut ? cut + '。' : ''}${warn ? '有凹口因为挨得太近被忽略（见 Grasshopper 警告）。' : ''}`); }
     else ps.push('当前没有凹口。');
+    if(splitOps.length){ const sp = splitOps[0]; const h = (d.handle||{})[sp.id]; const pos = h && h.at > (sp.at||'') ? h.pos : sp.pos; const F1 = d.results.floors[0]; const nPl = F1 && F1.plates ? F1.plates.length : 1;
+      const sw = (d.results.warnings||[]).filter(w=>/split/.test(w)).length;
+      ps.push(`分裂：${sp.axis==='x' ? '横着' : '竖着'}在 ${fmt(pos*100,0)} % 处切开，缝 ${fmt(sp.gap,1)} m${grpSay(sp.apply)}；${nPl>1 ? `第 1 层分成两块（${F1.plates.map(pl=>{ const A = poly=>Math.abs(poly.reduce((a,p,i,arr)=>{ const q = arr[(i+1)%arr.length]; return a + p[0]*q[1] - q[0]*p[1]; },0))/2; return fmt(A(pl.perimeter) - (pl.holes||[]).reduce((a,h)=>a+A(h),0),0); }).join(' / ')} m²），缝两侧的新立面是 S1 / S2` : '本层没有生效'}${sw ? '；有楼层的分裂被忽略（切线穿过凹口 / 庭院，或一边太窄，见警告）' : ''}。`); }
     const courtSegs = f1.filter(x=>x.loop && x.loop.startsWith('court'));
     if(courtOps.length){ const loops = [...new Set(courtSegs.map(x=>x.loop))]; const cw = courtSegs.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
       ps.push(`庭院 ${courtOps.length} 个：` + courtOps.map((op,i)=>`#${i+1} ${fmt(op.width,1)} × ${fmt(op.depth,1)} m${grpSay(op.apply)}`).join('；') + `；本层生效 ${loops.length} 个` + (loops.length < courtOps.length ? '（其余太小、太靠外墙，或与凹口 / 其他庭院挨着，被忽略，见警告）' : '') + (cw ? `；内墙里过热最高的是 ${cw.edge}：${fmt(cw.r.ovh,1)} %` : '') + '。'); }
@@ -592,7 +623,7 @@
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
   FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
   $('runSun').addEventListener('change', ()=>{ read(); schedulePost(); });
-  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
+  sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC','axis','applyS'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
   ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
@@ -748,13 +779,14 @@
       const b = d.building, w = d.windows;
       $('L').value=b.L; $('W').value=b.W; $('floors').value=b.floors; $('H').value=b.H; $('slab').value=b.slab||0.35; $('az0').value=b.az0; $('wwr').value=Math.round(w.wwr*100); $('sill').value=w.sill;
       const gr = b.groups||{}, z4 = {A:0,B:0,C:0,D:0};
-      LIST.groups = Array.isArray(gr.list) && gr.list.length ? gr.list.map(g=>({n:g.n||0, setback:Object.assign({}, z4, g.setback||{})}))
-        : (gr.podium!=null && gr.podium < b.floors ? [{n:gr.podium, setback:Object.assign({}, z4)}, {n:b.floors-gr.podium, setback:Object.assign({}, z4, gr.setback||{})}] : [{n:b.floors, setback:Object.assign({}, z4)}]);
+      LIST.groups = Array.isArray(gr.list) && gr.list.length ? gr.list.map(g=>({n:g.n||0, setback:Object.assign({}, z4, g.setback||{}), shift:Object.assign({x:0,y:0}, g.shift||{})}))
+        : (gr.podium!=null && gr.podium < b.floors ? [{n:gr.podium, setback:Object.assign({}, z4), shift:{x:0,y:0}}, {n:b.floors-gr.podium, setback:Object.assign({}, z4, gr.setback||{}), shift:{x:0,y:0}}] : [{n:b.floors, setback:Object.assign({}, z4), shift:{x:0,y:0}}]);
       gSel = 0; loadGroup(0);
       const HH = d.handle||{}; const useH = op => { const h = HH[op.id]; return h && h.at > (op.at||'') ? h : null; };
       LIST.notches = (d.ops||[]).filter(o=>o.type==='notch').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {edge:op.edge, apply:op.apply||'all', pos:h?h.pos:op.pos, width:op.width, depth:h?h.depth:op.depth}; });
       LIST.courts = (d.ops||[]).filter(o=>o.type==='court').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {apply:op.apply||'all', pos_u:h?h.pos_u:op.pos_u, pos_v:h?h.pos_v:op.pos_v, width:op.width, depth:op.depth}; });
-      nSel = 0; cSel = 0; loadNotch(0); loadCourt(0);
+      LIST.splits = (d.ops||[]).filter(o=>o.type==='split').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {axis:op.axis||'x', apply:op.apply||'all', pos:h?h.pos:op.pos, gap:op.gap}; });
+      nSel = 0; cSel = 0; sSel = 0; loadNotch(0); loadCourt(0); loadSplit(0);
       if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; $('runSun').checked = d.run.sun !== false; }
       const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }

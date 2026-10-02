@@ -211,6 +211,9 @@ def check_building(b):
                         "setback": dict((k, num(sb.get(k, 0), 0, 30, "groups.list.setback." + k)) for k in EDGES)})
         if not lst:
             raise ValueError("groups.list must have at least one group")
+        for gr0, gr in zip(g["list"][:8], lst):
+            shf = (gr0 or {}).get("shift") or {}
+            gr["shift"] = {"x": num(shf.get("x", 0), -30, 30, "groups.list.shift.x"), "y": num(shf.get("y", 0), -30, 30, "groups.list.shift.y")}
         out["groups"] = {"list": lst}
     elif isinstance(g, dict):
         sb = g.get("setback") or {}
@@ -226,22 +229,27 @@ def check_ops(ops):
     for i, o in enumerate(ops[:20]):
         if not isinstance(o, dict):
             raise ValueError("ops items must be objects")
-        if o.get("type") not in ("notch", "court"):
-            raise ValueError("ops[%d].type: notch / court in Massing_v01" % i)
+        if o.get("type") not in ("notch", "court", "split"):
+            raise ValueError("ops[%d].type: notch / court / split" % i)
         if o.get("propagate", "up") != "up":
             raise ValueError("ops[%d].propagate: only 'up' in Massing_v01" % i)
         if not re.match(r"^(all|g[1-8])$", str(o.get("apply", "all"))):
             raise ValueError("ops[%d].apply must be all or g1…g8" % i)
         common = {"id": str(o.get("id") or "%s%02d" % (o["type"], i + 1))[:16], "type": o["type"], "apply": o.get("apply", "all"),
                   "floor": int(num(o.get("floor", 1), 1, 30, "ops.floor")), "propagate": "up",
-                  "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth"),
                   "at": now()}                              # 页面改了就盖新时间戳；GH 用它和 handle.at 比谁后动
         if o["type"] == "notch":
             if o.get("edge") not in EDGES:
                 raise ValueError("ops[%d].edge must be A/B/C/D" % i)
-            common.update({"edge": o["edge"], "pos": num(o.get("pos"), 0, 1, "ops.pos")})
-        else:
-            common.update({"pos_u": num(o.get("pos_u"), 0, 1, "ops.pos_u"), "pos_v": num(o.get("pos_v"), 0, 1, "ops.pos_v")})
+            common.update({"edge": o["edge"], "pos": num(o.get("pos"), 0, 1, "ops.pos"),
+                           "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth")})
+        elif o["type"] == "court":
+            common.update({"pos_u": num(o.get("pos_u"), 0, 1, "ops.pos_u"), "pos_v": num(o.get("pos_v"), 0, 1, "ops.pos_v"),
+                           "width": num(o.get("width"), 0, 80, "ops.width"), "depth": num(o.get("depth"), 0, 60, "ops.depth")})
+        else:                                               # split（2026-10-03）：沿一条线切成两块，中间留 gap 的缝
+            if o.get("axis", "x") not in ("x", "y"):
+                raise ValueError("ops[%d].axis must be x/y" % i)
+            common.update({"axis": o.get("axis", "x"), "pos": num(o.get("pos", 0.5), 0, 1, "ops.pos"), "gap": num(o.get("gap", 4), 0.5, 20, "ops.gap")})
         out.append(common)
     ids = [o["id"] for o in out]
     if len(set(ids)) != len(ids):
