@@ -50,6 +50,12 @@
   .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px} .snap button.arm{background:var(--bad);color:#fff;border-color:var(--bad)} .snap input.rename{font:inherit;font-size:13px;flex:1;min-width:0;padding:1px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--panel);color:var(--ink)}
   table.cmp{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums} table.cmp th,table.cmp td{text-align:right;padding:3px 6px;white-space:nowrap;vertical-align:top} table.cmp th:first-child,table.cmp td:first-child{text-align:left} table.cmp th{color:var(--ink-2);font-weight:500;border-bottom:1px solid var(--line)} table.cmp th.nm{color:var(--ink);font-weight:600} table.cmp td small{display:block;font-size:11px} .d-good{color:var(--ok)} .d-bad{color:var(--bad)} .d-0{color:var(--ink-2)}
   .cmpPlans{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0} .cmpPlans figure{margin:0;width:210px} .cmpPlans svg{width:100%;height:auto;display:block} .cmpPlans figcaption{font-size:12px;color:var(--ink-2);text-align:center}
+  .thumbs{display:flex;flex-wrap:wrap;gap:4px} .thumbs img{height:72px;border:1px solid var(--line);border-radius:4px;background:#fff}
+  textarea.note{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:100%;resize:vertical}
+  .inboxItem{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:10px;display:flex;flex-direction:column;gap:8px} .inboxItem .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap} .inboxItem .head .st{font-size:11px;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--ink) 10%,transparent)} .inboxItem .head .st.read{background:color-mix(in srgb,var(--ok) 20%,transparent)} .inboxItem .head .st.pending{background:color-mix(in srgb,var(--warn) 25%,transparent)}
+  .cardForm{display:grid;grid-template-columns:150px 1fr;gap:5px 10px;font-size:13px;align-items:center} .cardForm .lab{color:var(--ink-2)} .cardForm input,.cardForm textarea,.cardForm select{font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink);width:100%} .cardForm textarea{resize:vertical} .cardForm .sub{grid-column:1/-1;font-weight:600;font-size:12px;color:var(--ink);margin-top:6px}
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;grid-column:1/-1} .nums label{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--ink-2)}
+  .acts{display:flex;gap:8px;flex-wrap:wrap} .acts button{width:auto;padding:5px 10px;font-size:13px}
   .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);margin-left:6px}
   details.grp summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:13px;gap:10px;background:color-mix(in srgb,var(--ink) 7%,transparent);padding:8px 10px;border-radius:6px;margin:0 -6px}
   details.grp summary::-webkit-details-marker{display:none}
@@ -97,7 +103,12 @@
       <div class="cap" id="sweepStatus"></div>
     </div>
   </div>
-  <div class="only-read" id="readAside"><div class="cap">读图接入：第四刀第 3 步，待做。</div></div>
+  <div class="only-read" id="readAside" style="display:flex;flex-direction:column;gap:10px">
+    <div class="cap" style="font-weight:600;color:var(--ink)">读图：从一张装置的图到参数卡</div>
+    <div class="cap">1. 右边上传运动分析图或照片，写一句描述，发送。<br>2. 有 api_key.txt 时模型直接读；没有时它进收件夹，<b>在聊天里对 Claude 说「读图」</b>，卡会出现在右边。<br>3. 卡上的每个字段都能改。确认后「应用到设计」直接换装置，或「存入机构库」交给 Claude 整理成条目。</div>
+    <div class="cap">模式：<span id="readModeAside">—</span></div>
+    <div class="cap">库里没有的运动方式，卡会说"最接近哪个条目、差在哪"；要生成三维仍要 Claude 加新条目（按钮「交给 Claude 加条目」）。</div>
+  </div>
 
   <details class="grp" id="g1">
     <summary><span>建筑与环境</span><b id="g1Sum"></b></summary>
@@ -260,7 +271,15 @@
     <div class="bar"><label>方案对比</label><b id="cmpSum"></b></div>
     <div id="cmpBody"><p class="cap">在左边勾选方案。</p></div>
   </div>
-  <div class="card only-read" id="readCard"><div class="bar"><label>读图</label></div><p class="cap">第四刀第 3 步，待做。</p></div>
+  <div class="card only-read" id="readCard" style="flex-basis:100%;max-width:none">
+    <div class="bar"><label>读图 · 新装置</label><b id="readMode"></b></div>
+    <div class="two" style="align-items:start">
+      <div class="ctl"><label>图（可多张，最多 6）</label><input type="file" id="readFiles" accept="image/*" multiple><div class="thumbs" id="readPreview"></div></div>
+      <div class="ctl"><label for="readNote">一句描述（可空，比如"两片板，底边固定，膝盖向外"）</label><textarea id="readNote" class="note" rows="4"></textarea>
+        <button type="button" id="readSend" class="primary">发送</button><div class="cap" id="readStatus"></div></div>
+    </div>
+    <div id="inboxList"></div>
+  </div>
 </main>
 
 <script src="/shared/wwr-climate.js"></script>
@@ -581,7 +600,7 @@
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
 
   // ---------- views (2026-10-03 第四刀): 设计 / 对比 / 读图 ----------
-  function setView(v){ document.body.dataset.view = v; document.querySelectorAll('.viewtabs button').forEach(b=> b.classList.toggle('on', b.dataset.view===v)); store.set('mv.ui.view', v); if(v==='compare'){ renderSnapList(); renderCompare(); } }
+  function setView(v){ document.body.dataset.view = v; document.querySelectorAll('.viewtabs button').forEach(b=> b.classList.toggle('on', b.dataset.view===v)); store.set('mv.ui.view', v); if(v==='compare'){ renderSnapList(); renderCompare(); } if(v==='read' && typeof loadInbox==='function') loadInbox(true); }
   document.querySelectorAll('.viewtabs button').forEach(b=> b.addEventListener('click', ()=>setView(b.dataset.view)));
 
   // ---------- snapshots ----------
@@ -661,6 +680,64 @@
       if(!ok){ $('sweepStatus').textContent = `${devName(t)} 等 Rhino 超时，跳过`; continue; }
       await new Promise(r=>setTimeout(r, 400)); render(STATE); if(snapshot('装置 · ' + devName(t))) n++; renderSnapList(); renderCompare(); }
     $('devType').value = orig; $('runSun').checked = origSun; read(); await post(); btn.disabled = false; $('sweepStatus').textContent = `跑完，存了 ${n} 个方案；装置已恢复为 ${devName(orig)}。`; });
+
+  // ---------- read tab (第四刀步 3)：收件夹 + 参数卡 ----------
+  let INBOX = [], READMODE = 'claude', inboxSig = '';
+  const readFiles = [];
+  const TYPES4 = ['pivot','bifoldV','bifoldH','umbrella'];
+  const Q8 = ['1 挡哪个方向的太阳','2 元素的方向','3 单元尺寸（宽 / 深 / 厚）','4 单元密度与排布','5 透不透（穿孔率）','6 动不动（怎么动）','7 在玻璃哪一侧','8 盖住窗的哪部分'];
+  const esc = t => String(t==null?'':t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('readFiles').addEventListener('change', async e=>{ readFiles.length = 0; $('readPreview').innerHTML = '';
+    for(const f of [...e.target.files].slice(0,6)){ const dataUrl = await new Promise(res=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.readAsDataURL(f); }); readFiles.push({name:f.name, dataUrl}); const img = document.createElement('img'); img.src = dataUrl; $('readPreview').appendChild(img); } });
+  $('readSend').addEventListener('click', async ()=>{ if(!readFiles.length){ $('readStatus').textContent = '先选图。'; return; } const btn = $('readSend'); btn.disabled = true;
+    $('readStatus').textContent = READMODE==='api' ? '已发送，模型在读（10–40 s）…' : '正在存入收件夹…';
+    try{ const r = await fetch('/inbox', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:$('readNote').value, images:readFiles})}); const j = await r.json(); if(!r.ok) throw new Error(j.error||r.status);
+      $('readStatus').textContent = j.error ? j.error : (j.card ? '读好了，看下面的卡。' : '已存入收件夹。现在在聊天里对 Claude 说「读图」，卡出来会自动显示在下面。');
+      readFiles.length = 0; $('readPreview').innerHTML = ''; $('readFiles').value = ''; $('readNote').value = ''; await loadInbox(true);
+    }catch(err){ $('readStatus').textContent = '发送失败：' + err.message; } btn.disabled = false; });
+  async function loadInbox(force){ try{ const r = await fetch('/inbox', {cache:'reload'}); const j = await r.json(); READMODE = j.mode || 'claude'; INBOX = j.items || [];
+      const mt = READMODE==='api' ? '直接调模型' : '交给 Claude（没有 api_key.txt）'; $('readMode').textContent = mt; $('readModeAside').textContent = mt;
+      const sig = INBOX.map(x=> x.id + ':' + x.status + ':' + (x.card ? x.card.at : '')).join('|'); if(force || sig !== inboxSig){ inboxSig = sig; renderInbox(); } }catch(e){} }
+  function renderInbox(){ const el = $('inboxList'); if(!INBOX.length){ el.innerHTML = '<p class="cap" style="margin-top:10px">收件夹是空的。</p>'; return; }
+    el.innerHTML = INBOX.slice().reverse().map(it=>{ const c = it.card, sh = (c && c.shading) || {}; const stName = {pending:'等读', read:'已有卡', applied:'已应用', library:'已标记入库', claude:'待 Claude 加条目'}[it.status] || it.status;
+      let h = `<div class="inboxItem" data-id="${esc(it.id)}"><div class="head"><span class="st ${esc(it.status)}">${stName}</span><b>${esc(it.note || '（无描述）')}</b><small class="cap">${esc(it.at.slice(0,16).replace('T',' '))} · ${esc(it.id)}</small></div>`;
+      h += `<div class="thumbs">${it.images.map(u=>`<a href="${u}" target="_blank"><img src="${u}"></a>`).join('')}</div>`;
+      if(!c){ h += READMODE==='api' ? `<div class="cap">${it.error ? esc(it.error) : '还没有卡。'} <button type="button" class="act" data-act="reread" style="width:auto;padding:2px 8px;font-size:12px">调模型读</button></div>`
+                                 : `<div class="cap">等 Claude 读：在聊天里说「读图」。卡写进收件夹后这里会自动显示。</div>`; }
+      else if(c.error){ h += `<div class="bad">${esc(c.error)}</div>`; }
+      else { const ans = c.answers || {}; const keys = Q8.filter(k=>k in ans).length ? Q8 : Object.keys(ans);
+        h += `<div class="cardForm"><span class="sub">参数卡（每格都能改）· 来源 ${esc(c.by||'')}${c.confidence!=null?` · 把握 ${Math.round(c.confidence*100)} %`:''}</span>
+          <span class="lab">怎么动</span><textarea rows="2" data-k="summary">${esc(c.summary)}</textarea>`;
+        keys.forEach(k=>{ h += `<span class="lab">${esc(k)}</span><input data-q="${esc(k)}" value="${esc(ans[k])}">`; });
+        h += `<span class="lab">最接近的条目</span><select data-k="closest">${['pivot','bifoldV','bifoldH','umbrella','none'].map(t=>`<option value="${t}" ${c.closest===t?'selected':''}>${t==='none'?'都不像（要加新条目）':devName(t)}</option>`).join('')}</select>
+          <span class="lab">不同之处</span><textarea rows="2" data-k="differences">${esc((c.differences||[]).join('\n'))}</textarea>
+          <span class="lab">依据</span><textarea rows="2" data-k="evidence">${esc((c.evidence||[]).join('\n'))}</textarea>
+          <span class="lab">提醒</span><input data-k="notes" value="${esc(c.notes)}">
+          <span class="sub">进工具的参数（和装置卡同名）</span>
+          <div class="nums">${[['unitW','单元宽 m'],['tilt','代表折角 °'],['standoff','离墙 m'],['thick','板厚 m'],['skin','表皮厚 mm'],['holeD','孔径 mm'],['perfMin','穿孔率下限 0–0.9'],['perfMax','穿孔率上限 0–0.9']].map(([k,l])=>`<label>${l}<input type="number" step="any" data-s="${k}" value="${sh[k]!=null?sh[k]:''}"></label>`).join('')}
+            <label>折角范围<input data-s="tiltRange" value="${esc((sh.tiltRange||[]).join('–'))}"></label></div></div>`;
+        h += `<div class="acts"><button type="button" class="act" data-act="save">保存修改</button><button type="button" class="act primary" data-act="apply">应用到设计</button><button type="button" class="act" data-act="library">存入机构库</button><button type="button" class="act" data-act="claude">交给 Claude 加条目</button>${READMODE==='api'?'<button type="button" class="act" data-act="reread">重新读</button>':''}</div>`; }
+      return h + '</div>'; }).join('');
+    el.querySelectorAll('button.act').forEach(b=> b.addEventListener('click', ()=> inboxAct(b.closest('.inboxItem').dataset.id, b.dataset.act, b.closest('.inboxItem')))); }
+  function collectCard(it, box){ const c = Object.assign({}, it.card||{}); const g = sel => box.querySelector(sel);
+    c.summary = g('[data-k=summary]').value; c.closest = g('[data-k=closest]').value; c.notes = g('[data-k=notes]').value;
+    c.differences = g('[data-k=differences]').value.split('\n').map(x=>x.trim()).filter(Boolean); c.evidence = g('[data-k=evidence]').value.split('\n').map(x=>x.trim()).filter(Boolean);
+    c.answers = {}; box.querySelectorAll('input[data-q]').forEach(i=> c.answers[i.dataset.q] = i.value);
+    c.shading = Object.assign({}, c.shading||{}); box.querySelectorAll('[data-s]').forEach(i=>{ const k = i.dataset.s; if(k==='tiltRange'){ const m = i.value.split(/[–\-~,]/).map(x=>parseFloat(x)).filter(x=>!isNaN(x)); c.shading.tiltRange = m.length===2 ? m : c.shading.tiltRange; } else { const v = parseFloat(i.value); c.shading[k] = isNaN(v) ? null : v; } });
+    c.shading.type = TYPES4.includes(c.closest) ? c.closest : (c.shading.type||'bifoldV'); c.newEntryNeeded = c.closest==='none'; c.editedAt = new Date().toISOString(); return c; }
+  async function inboxAct(id, act, box){ const it = INBOX.find(x=>x.id===id); if(!it) return;
+    try{
+      if(act==='reread'){ box.querySelector('.cap').textContent = '模型在读…'; const r = await fetch(`/inbox/${id}/read`, {method:'POST'}); const j = await r.json(); if(!r.ok) throw new Error(j.error||r.status); await loadInbox(true); return; }
+      const card = collectCard(it, box);
+      await fetch(`/inbox/${id}/card`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(card)});
+      if(act==='apply'){ const sh = card.shading||{}; const t = TYPES4.includes(card.closest) ? card.closest : null; if(!t){ setConn(true, '这张卡没有对应的条目，先在「最接近的条目」里选一个。'); return; }
+        $('devType').value = t; const setv = (id2, v)=>{ if(v!=null && !isNaN(v)) $(id2).value = v; }; setv('unitW', sh.unitW); setv('tilt', sh.tilt); setv('standoff', sh.standoff); setv('thick', sh.thick); setv('skin', sh.skin); setv('holeD', sh.holeD); setv('perfMin', sh.perfMin!=null ? Math.round(sh.perfMin*100) : null); setv('perfMax', sh.perfMax!=null ? Math.round(sh.perfMax*100) : null);
+        if(sh.tilt!=null) FAC.forEach(k=> $('fTilt'+k).value = sh.tilt); read(); await post();
+        await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'applied'})}); await loadInbox(true); setView('design'); setConn(true, `已按「${devName(t)}」应用，等 Rhino 重算`); return; }
+      if(act==='library' || act==='claude'){ await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: act})}); await loadInbox(true); setConn(true, act==='library' ? '已标记入库：在聊天里让 Claude 整理进 MECHANISMS.md' : '已标记：在聊天里让 Claude 加新条目'); return; }
+      setConn(true, '卡已保存'); await loadInbox(true);
+    }catch(err){ setConn(false, '读图操作失败：' + err.message); } }
+  setInterval(()=>{ if(document.body.dataset.view==='read') loadInbox(false); }, 3000);
 
   // first load: take sliders from the file (state is the single source of truth), then start polling
   async function init(){

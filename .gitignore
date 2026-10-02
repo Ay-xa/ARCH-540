@@ -5,3 +5,6 @@ Passivehouse_Tool/02_Data/BC_Housing/
 # Rhino 自动备份
 *.3dmbak
 *.rhl
+
+# 读图用的 API key，不进仓库
+Openning_Shade_Relation_Tool/01_Prototype/Strip_Window/Massing_v01/rhino/api_key.txt

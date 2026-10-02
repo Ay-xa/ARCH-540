@@ -145,6 +145,8 @@
 - **步 2 方案对比：已做。** 快照 = 设定 + 结果 + 整栋数字 + 每段数字 + 平面 SVG，存 `localStorage['mv.snaps']`；对比卡：总表（差值相对第一个，按指标好坏着色）、平面小图一排、立面段差异表（只列过热差 ≥ 0.5 或采光差 ≥ 0.2）、一句话差异；导出 / 导入 json；点名改名、删。「四种装置各跑一遍」：依次换装置、等 Rhino 写回、存快照、恢复原装置；不勾日照时自动暂停 Ladybug（新加的 `run.sun` 标志接到两个 Direct Sun Hours 的 `_run`），五个方案约 25 s；勾日照每种约 30 s。
 - 顺带：换装置时墙段几何没变，`massing_sync` 保留上一次日照里的受晒（massOnly / free / expo，只和楼板有关）并标 `stale`，含装置的日照小时等 Ladybug 重算；页面的受晒列不再等日照。页面「跑 Ladybug 日照」勾可以手动暂停。
 - 验证：基准（竖轴折板 60°）0.7 %；扫描：无装置 3.0、#0 0.8、#1 0.7、#2 0.4、#3 0.5，受晒都是 63 %。
+- 用户 2026-10-03：方案列表搬进对比页；装置扫描先隐藏（代码保留）；设计页平面图放大放前面；删除改成点两次确认（应用内浏览器不弹 confirm）。
+- **步 3 读图 tab：已做（两种模式）。** 用户在团队账号里没有生成 key 的权限，先走「交给 Claude」模式：页面上传图 + 描述 → `POST /inbox` 存到 `02_Rules/inbox/<id>/`（图 + request.json）→ Claude Code 在聊天里按 `inbox/README.md` 的格式写 `card.json` → 页面 3 s 内显示参数卡（八个问题、最接近条目、不同之处、依据、进工具的参数）→ 每格可改 → 保存 / 应用到设计（换装置并写 json）/ 存入机构库 / 交给 Claude 加条目。有 `rhino/api_key.txt` 时自动切到 api 模式：`server.py` 的 `vision_call` 把图 + SHADING_RULES.md + MECHANISMS.md 发给模型（`VISION_MODEL`），上传即出卡，卡格式相同。key 文件已在 .gitignore。
 
 ## 7. 要你定的
 

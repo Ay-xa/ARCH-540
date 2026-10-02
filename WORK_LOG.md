@@ -444,6 +444,12 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 用户：方案列表放进对比页；装置扫描先藏起来（`#sweepWrap hidden`，代码保留）；设计页平面图放大并放到段表前面（`.plan{flex:1 1 640px;max-width:900px}`，`#dataCard` 占整行）；方案列表删不掉——`confirm()/prompt()` 在应用内浏览器里不弹，改成点两次「删」确认、点名字就地改名。
 - 用户不知道 API key 在哪里拿：告诉了 console.anthropic.com → API Keys。
 
+**第四刀步 3：读图 tab（同日续）**
+- 用户团队账号没权限生成 key → 两种模式：api（api_key.txt 存在，server `vision_call` 用 urllib 直调 messages API，模型 `VISION_MODEL`）/ claude（收件夹 `02_Rules/inbox/<id>/`，Claude Code 写 card.json，格式见 inbox/README.md）。
+- server 新路由：GET /vision、GET /inbox、GET /inbox/<id>/<img>、POST /inbox、POST /inbox/<id>/read|card|status。页面：`loadInbox / renderInbox / collectCard / inboxAct`，读图 tab 打开时每 3 s 轮询。
+- 坑：收件夹 id 用了中文 → URL 百分号编码后 `safe_rid` 对不上，图 404、保存失败；改成 id 只用 ASCII + 路由 `urllib.parse.unquote`。写补丁时字符串里的 `一` 匹配不上文件里的 `一`（转义层数），改按行号替换。
+- 验证（claude 模式）：上传 → 等读 → 手写 card.json → 页面显示卡 → 改折角 35 → 应用：state.shading 变 bifoldV/35、各立面折角 35、Rhino 重算；保存 / 存入机构库 的状态都写回。
+
 **Next session: suggested starting point**
-- 第四刀步 3：读图 tab（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
+- 第四刀步 4：错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。读图在用户要 Claude 读时：按 inbox/README.md 的做法写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
 - 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
