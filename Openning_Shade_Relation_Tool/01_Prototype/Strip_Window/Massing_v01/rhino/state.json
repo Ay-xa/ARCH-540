@@ -58,7 +58,7 @@
       "apply": "all",
       "floor": 1,
       "propagate": "up",
-      "at": "2026-10-01T22:34:49.065",
+      "at": "2026-10-01T22:45:05.631",
       "edge": "B",
       "pos": 0.48,
       "width": 6.0,
@@ -70,7 +70,7 @@
       "apply": "all",
       "floor": 1,
       "propagate": "up",
-      "at": "2026-10-01T22:34:49.065",
+      "at": "2026-10-01T22:45:05.631",
       "pos_u": 0.33,
       "pos_v": 0.5,
       "width": 6.0,
@@ -82,7 +82,7 @@
       "apply": "g2",
       "floor": 1,
       "propagate": "up",
-      "at": "2026-10-01T22:34:49.065",
+      "at": "2026-10-01T22:45:05.631",
       "axis": "x",
       "pos": 0.62,
       "gap": 4.0
@@ -93,7 +93,7 @@
     "sill": 0.75
   },
   "run": {
-    "seq": 118,
+    "seq": 128,
     "period": "summer",
     "clim": "apNow",
     "sun": true
@@ -102,21 +102,21 @@
     "notch01": {
       "pos": 0.48,
       "depth": 4.0,
-      "at": "2026-10-01T22:34:49.065"
+      "at": "2026-10-01T22:45:05.631"
     },
     "court01": {
       "pos_u": 0.33,
       "pos_v": 0.5,
-      "at": "2026-10-01T22:34:49.065"
+      "at": "2026-10-01T22:45:05.631"
     },
     "split01": {
       "pos": 0.62,
-      "at": "2026-10-01T22:34:49.065"
+      "at": "2026-10-01T22:45:05.631"
     }
   },
   "results": {
-    "seq": 118,
-    "at": "2026-10-01T22:34:49.523",
+    "seq": 128,
+    "at": "2026-10-01T22:45:06.222",
     "floorsSame": false,
     "nSeg": 64,
     "floors": [
@@ -1034,10 +1034,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4307,
-          "screenDay": 0.4307,
-          "view": 0.4307,
-          "units": 12,
+          "screen": 0.4444,
+          "screenDay": 0.4444,
+          "view": 0.4444,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 48.972
@@ -1058,10 +1058,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.2858,
-          "screenDay": 0.2858,
-          "view": 0.2858,
-          "units": 2,
+          "screen": 1.0,
+          "screenDay": 1.0,
+          "view": 1.0,
+          "units": 0,
           "tilt": 34.0
         },
         "winArea": 6.506
@@ -1082,9 +1082,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1106,9 +1106,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5572,
-          "screenDay": 0.5572,
-          "view": 0.5572,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
           "units": 2,
           "tilt": 34.0
         },
@@ -1130,9 +1130,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1154,9 +1154,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3792,
-          "screenDay": 0.3792,
-          "view": 0.3792,
+          "screen": 0.2731,
+          "screenDay": 0.2731,
+          "view": 0.2731,
           "units": 2,
           "tilt": 34.0
         },
@@ -1178,10 +1178,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4307,
-          "screenDay": 0.4307,
-          "view": 0.4307,
-          "units": 12,
+          "screen": 0.4444,
+          "screenDay": 0.4444,
+          "view": 0.4444,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 48.972
@@ -1202,10 +1202,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4307,
-          "screenDay": 0.4307,
-          "view": 0.4307,
-          "units": 6,
+          "screen": 0.5556,
+          "screenDay": 0.5556,
+          "view": 0.5556,
+          "units": 4,
           "tilt": 34.0
         },
         "winArea": 24.486
@@ -1229,7 +1229,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1252,7 +1253,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1275,7 +1277,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1298,7 +1301,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1318,10 +1322,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3598,
-          "screenDay": 0.3598,
-          "view": 0.3598,
-          "units": 8,
+          "screen": 0.4378,
+          "screenDay": 0.4378,
+          "view": 0.4378,
+          "units": 6,
           "tilt": 34.0
         },
         "winArea": 29.033
@@ -1342,9 +1346,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5169,
-          "screenDay": 0.5169,
-          "view": 0.5169,
+          "screen": 0.4343,
+          "screenDay": 0.4343,
+          "view": 0.4343,
           "units": 4,
           "tilt": 34.0
         },
@@ -1366,10 +1370,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3598,
-          "screenDay": 0.3598,
-          "view": 0.3598,
-          "units": 8,
+          "screen": 0.4378,
+          "screenDay": 0.4378,
+          "view": 0.4378,
+          "units": 6,
           "tilt": 34.0
         },
         "winArea": 29.033
@@ -1390,9 +1394,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5169,
-          "screenDay": 0.5169,
-          "view": 0.5169,
+          "screen": 0.4343,
+          "screenDay": 0.4343,
+          "view": 0.4343,
           "units": 4,
           "tilt": 34.0
         },
@@ -1417,7 +1421,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1440,7 +1445,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1463,7 +1469,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1486,7 +1493,8 @@
           "screen": 1.0,
           "screenDay": 1.0,
           "view": 1.0,
-          "units": 0
+          "units": 0,
+          "tilt": 34.0
         },
         "winArea": 10.494
       },
@@ -1506,10 +1514,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4347,
-          "screenDay": 0.4347,
-          "view": 0.4347,
-          "units": 4,
+          "screen": 0.669,
+          "screenDay": 0.669,
+          "view": 0.669,
+          "units": 2,
           "tilt": 34.0
         },
         "winArea": 16.441
@@ -1554,9 +1562,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1578,9 +1586,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5572,
-          "screenDay": 0.5572,
-          "view": 0.5572,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
           "units": 2,
           "tilt": 34.0
         },
@@ -1602,9 +1610,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1650,10 +1658,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4347,
-          "screenDay": 0.4347,
-          "view": 0.4347,
-          "units": 4,
+          "screen": 0.669,
+          "screenDay": 0.669,
+          "view": 0.669,
+          "units": 2,
           "tilt": 34.0
         },
         "winArea": 16.441
@@ -1674,9 +1682,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5169,
-          "screenDay": 0.5169,
-          "view": 0.5169,
+          "screen": 0.4343,
+          "screenDay": 0.4343,
+          "view": 0.4343,
           "units": 4,
           "tilt": 34.0
         },
@@ -1698,10 +1706,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3801,
-          "screenDay": 0.3801,
-          "view": 0.3801,
-          "units": 14,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 52.47
@@ -1722,9 +1730,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4323,
-          "screenDay": 0.4323,
-          "view": 0.4323,
+          "screen": 0.3352,
+          "screenDay": 0.3352,
+          "view": 0.3352,
           "units": 2,
           "tilt": 34.0
         },
@@ -1746,9 +1754,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1770,9 +1778,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5572,
-          "screenDay": 0.5572,
-          "view": 0.5572,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
           "units": 2,
           "tilt": 34.0
         },
@@ -1794,9 +1802,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -1818,9 +1826,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5006,
-          "screenDay": 0.5006,
-          "view": 0.5006,
+          "screen": 0.4152,
+          "screenDay": 0.4152,
+          "view": 0.4152,
           "units": 2,
           "tilt": 34.0
         },
@@ -1842,10 +1850,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3801,
-          "screenDay": 0.3801,
-          "view": 0.3801,
-          "units": 14,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 52.47
@@ -1866,10 +1874,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
-          "units": 8,
+          "screen": 0.4167,
+          "screenDay": 0.4167,
+          "view": 0.4167,
+          "units": 6,
           "tilt": 34.0
         },
         "winArea": 27.984
@@ -1986,10 +1994,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3801,
-          "screenDay": 0.3801,
-          "view": 0.3801,
-          "units": 14,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 52.47
@@ -2010,9 +2018,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.4323,
-          "screenDay": 0.4323,
-          "view": 0.4323,
+          "screen": 0.3352,
+          "screenDay": 0.3352,
+          "view": 0.3352,
           "units": 2,
           "tilt": 34.0
         },
@@ -2034,9 +2042,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -2058,9 +2066,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5572,
-          "screenDay": 0.5572,
-          "view": 0.5572,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
           "units": 2,
           "tilt": 34.0
         },
@@ -2082,9 +2090,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
+          "screen": 0.2222,
+          "screenDay": 0.2222,
+          "view": 0.2222,
           "units": 2,
           "tilt": 34.0
         },
@@ -2106,9 +2114,9 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.5006,
-          "screenDay": 0.5006,
-          "view": 0.5006,
+          "screen": 0.4152,
+          "screenDay": 0.4152,
+          "view": 0.4152,
           "units": 2,
           "tilt": 34.0
         },
@@ -2130,10 +2138,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3801,
-          "screenDay": 0.3801,
-          "view": 0.3801,
-          "units": 14,
+          "screen": 0.4815,
+          "screenDay": 0.4815,
+          "view": 0.4815,
+          "units": 10,
           "tilt": 34.0
         },
         "winArea": 52.47
@@ -2154,10 +2162,10 @@
         ],
         "dev": {
           "kind": "areal",
-          "screen": 0.3358,
-          "screenDay": 0.3358,
-          "view": 0.3358,
-          "units": 8,
+          "screen": 0.4167,
+          "screenDay": 0.4167,
+          "view": 0.4167,
+          "units": 6,
           "tilt": 34.0
         },
         "winArea": 27.984
@@ -2262,8 +2270,8 @@
     "winH": 1.749,
     "warnings": [],
     "shading": {
-      "type": "bifoldV",
-      "units": 174,
+      "type": "umbrella",
+      "units": 138,
       "facades": {
         "A": {
           "on": true,
@@ -2346,138 +2354,138 @@
       "period": "summer",
       "unit": "h",
       "perSegment": [
-        682.3,
-        654.5,
+        753.6,
+        680.5,
         243.0,
-        350.5,
-        307.5,
-        555.2,
-        424.5,
-        626.4,
+        358.2,
+        319.8,
+        563.8,
+        456.8,
+        642.6,
         0.0,
         0.0,
         0.0,
         0.0,
-        370.7,
-        190.5,
-        128.5,
-        51.3,
-        33.8,
-        177.5,
-        151.5,
-        320.2,
+        593.8,
+        455.2,
+        136.2,
+        11.8,
+        69.0,
+        39.5,
+        199.4,
+        344.4,
         0.0,
         0.0,
         76.8,
         18.7,
-        2.8,
-        12.9,
-        78.9,
-        193.5,
+        3.4,
+        6.7,
+        91.4,
+        131.1,
         0.0,
         41.5,
         163.5,
         0.0,
-        104.3,
+        153.6,
         715.0,
-        134.0,
-        208.2,
-        298.8,
+        136.2,
+        27.7,
+        461.2,
         715.0,
-        134.4,
-        11.8,
-        316.9,
-        426.4,
-        134.0,
-        206.0,
-        236.2,
-        443.8,
-        147.1,
-        280.9,
+        216.9,
+        6.9,
+        629.6,
+        333.0,
+        136.2,
+        48.3,
+        404.5,
+        409.8,
+        230.0,
+        262.3,
         0.0,
         231.7,
         393.8,
         219.7,
-        484.8,
-        462.4,
-        154.2,
-        313.0,
-        359.5,
-        478.6,
-        191.8,
-        344.5,
+        738.1,
+        357.4,
+        156.5,
+        127.7,
+        572.8,
+        430.0,
+        272.0,
+        321.2,
         93.0,
         530.3,
         709.3,
         476.2
       ],
       "perWindow": [
-        682.3,
-        654.5,
+        753.6,
+        680.5,
         243.0,
-        350.5,
-        307.5,
-        555.2,
-        424.5,
-        626.4,
+        358.2,
+        319.8,
+        563.8,
+        456.8,
+        642.6,
         0.0,
         0.0,
         0.0,
         0.0,
-        370.7,
-        190.5,
-        128.5,
-        51.3,
-        33.8,
-        177.5,
-        151.5,
-        320.2,
+        593.8,
+        455.2,
+        136.2,
+        11.8,
+        69.0,
+        39.5,
+        199.4,
+        344.4,
         0.0,
         0.0,
         76.8,
         18.7,
-        2.8,
-        12.9,
-        78.9,
-        193.5,
+        3.4,
+        6.7,
+        91.4,
+        131.1,
         0.0,
         41.5,
         163.5,
         0.0,
-        104.3,
+        153.6,
         715.0,
-        134.0,
-        208.2,
-        298.8,
+        136.2,
+        27.7,
+        461.2,
         715.0,
-        134.4,
-        11.8,
-        316.9,
-        426.4,
-        134.0,
-        206.0,
-        236.2,
-        443.8,
-        147.1,
-        280.9,
+        216.9,
+        6.9,
+        629.6,
+        333.0,
+        136.2,
+        48.3,
+        404.5,
+        409.8,
+        230.0,
+        262.3,
         0.0,
         231.7,
         393.8,
         219.7,
-        484.8,
-        462.4,
-        154.2,
-        313.0,
-        359.5,
-        478.6,
-        191.8,
-        344.5,
+        738.1,
+        357.4,
+        156.5,
+        127.7,
+        572.8,
+        430.0,
+        272.0,
+        321.2,
         93.0,
         530.3,
         709.3,
         476.2
       ],
-      "at": "2026-10-01T22:34:51.612",
+      "at": "2026-10-01T22:45:08.071",
       "massOnly": [
         850.7,
         680.5,
@@ -2679,10 +2687,10 @@
     }
   },
   "updated_by": "gh",
-  "updated_at": "2026-10-01T22:34:51.612",
+  "updated_at": "2026-10-01T22:45:08.071",
   "shading": {
-    "type": "bifoldV",
-    "unitW": 1.4,
+    "type": "umbrella",
+    "unitW": 2.0,
     "tilt": 34.0,
     "standoff": 0.4,
     "thick": 0.15,
@@ -2694,7 +2702,7 @@
     "fixed": "alt",
     "groupMode": "2",
     "gapPanel": 0.0,
-    "gapGroup": 1.5,
+    "gapGroup": 1.8,
     "perf": false,
     "facades": {
       "A": {
