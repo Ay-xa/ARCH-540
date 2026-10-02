@@ -1,4 +1,4 @@
-# i18n_en.py — build the English-interface copy of the MassShade page (2026-10-02)
+# i18n_en.py — build the English-interface copy of the MassShadeLight page (2026-10-02)
 # Source of truth is massing-tool.html (Chinese). Run this after editing it:
 #     python i18n_en.py
 # It writes massing-tool-en.html next to it. Chinese-only code comments are dropped; every other
@@ -12,7 +12,7 @@ OUT = os.path.join(HERE, "massing-tool-en.html")
 
 MAP = {
 # ---- header / tabs
-"MassShade · 体量与立面": "MassShade · massing & facade",
+"MassShadeLight · 体量与立面": "MassShadeLight · massing & facade",
 "体量 × 立面遮阳 × 室内过热与采光": "massing × facade shading × overheating & daylight",
 "设计": "Design", "对比": "Compare", "读图": "Read image",
 "方案名（可空）": "scheme name (optional)", "存为方案": "Save scheme",

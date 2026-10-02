@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MassShade · massing & facade</title>
+<title>MassShadeLight · massing & facade</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -48,7 +48,7 @@
   .note{color:var(--ink-2);font-size:12px;line-height:1.45}
   #cmpAside,#readAside{display:flex;flex-direction:column;gap:12px}
   .viewtabs{display:flex;gap:6px} .viewtabs button{padding:5px 8px;font-size:13px} .viewtabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
-  body:not([data-view="design"]) details.grp, body:not([data-view="design"]) #dataCard, body:not([data-view="design"]) #planCard, body:not([data-view="design"]) #interpCard{display:none}
+  body:not([data-view="design"]) details.grp, body:not([data-view="design"]) #dataCard, body:not([data-view="design"]) #planCard, body:not([data-view="design"]) #secCard, body:not([data-view="design"]) #interpCard{display:none}
   body:not([data-view="compare"]) .only-compare{display:none !important} body:not([data-view="read"]) .only-read{display:none !important} body[data-view="read"] .save-row{display:none}
   .save-row input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
   .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px} .snap button.arm{background:var(--bad);color:#fff;border-color:var(--bad)} .snap input.rename{font:inherit;font-size:13px;flex:1;min-width:0;padding:1px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--panel);color:var(--ink)}
@@ -95,7 +95,7 @@
 </head>
 <body>
 <aside>
-  <h1>MassShade<small>massing × facade shading × overheating & daylight</small><a class="lang" href="massing-tool.html">&#20013;&#25991;</a></h1>
+  <h1>MassShadeLight<small>massing × facade shading × overheating & daylight</small><a class="lang" href="massing-tool.html">&#20013;&#25991;</a></h1>
   <div class="conn" id="conn"><i></i><span id="connText">no local service</span></div>
   <div class="viewtabs"><button type="button" data-view="design" class="on">Design</button><button type="button" data-view="compare">Compare</button><button type="button" data-view="read">Read image</button></div>
   <div class="save-row two"><input id="snapName" placeholder="scheme name (optional)"><button type="button" id="snapSave">Save scheme</button></div>
