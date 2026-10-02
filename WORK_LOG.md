@@ -487,6 +487,14 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 从 Version_06 的 renderPlan 搬来：外环 15° 刻度 + 北东南西；夏至（红）/ 冬至（橙）太阳方位弧，端点 = 日出日落方位，按所选气候站纬度算（`acos(sin23.44°/cos lat)`），title 提示角度。viewBox 留白 2.5 → 4.6 m。加 `--sun` 颜色变量。
 - 「同步到 Rhino」按钮删了（滑块本来就自动写入），组改名「Rhino 状态」只留读数。
 
+**首层大小不一样 → 日照写回吞掉页面修改（同日续）**
+- 现象：页面上三组退台全是 0，Rhino / 平面里首层却仍是 B、C、D 各退 2 m（面积 271 vs 387）。
+- 原因：时序竞争。massing sync 算完一版 → Ladybug 跑几秒到几十秒 → 「massing sun」把日照写回时顺手把 `massing_stamp` 设成自己这次写入，sync 就把文件当「自己人写的」不再重算。页面正好在这中间把退台改回 0，那次修改被吞掉。
+- 修：`massing_rad.py` 只在读到的文件还是 sync 自己最后写的那版时才接管时间戳（`own`）；`massing_sync.py` 在 build 期间若页面又写了（`moved_under`）就留旧戳，下一轮重算。两个 GH 组件已重载源码，massing.gh 已保存。
+- 验证：页面连发「退 2 → 退 0」，F1 矩形先 2,0,28,14 再回到 0,0,30,16，日照随后写回，不再卡住。
+- 教训：凡是改 `massing_stamp` 的写入，都要先确认文件没被别人改过。
+- Rhino MCP 的 run_python 参数名是 `script`（不是 `code`），传错会报一个没有内容的错误。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
