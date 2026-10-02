@@ -47,7 +47,7 @@
   body:not([data-view="design"]) details.grp, body:not([data-view="design"]) #dataCard, body:not([data-view="design"]) #planCard, body:not([data-view="design"]) #interpCard{display:none}
   body:not([data-view="compare"]) .only-compare{display:none} body:not([data-view="read"]) .only-read{display:none} body[data-view="read"] .save-row{display:none}
   .save-row input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
-  .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px}
+  .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px} .snap button.arm{background:var(--bad);color:#fff;border-color:var(--bad)} .snap input.rename{font:inherit;font-size:13px;flex:1;min-width:0;padding:1px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--panel);color:var(--ink)}
   table.cmp{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums} table.cmp th,table.cmp td{text-align:right;padding:3px 6px;white-space:nowrap;vertical-align:top} table.cmp th:first-child,table.cmp td:first-child{text-align:left} table.cmp th{color:var(--ink-2);font-weight:500;border-bottom:1px solid var(--line)} table.cmp th.nm{color:var(--ink);font-weight:600} table.cmp td small{display:block;font-size:11px} .d-good{color:var(--ok)} .d-bad{color:var(--bad)} .d-0{color:var(--ink-2)}
   .cmpPlans{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0} .cmpPlans figure{margin:0;width:210px} .cmpPlans svg{width:100%;height:auto;display:block} .cmpPlans figcaption{font-size:12px;color:var(--ink-2);text-align:center}
   .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);margin-left:6px}
@@ -61,6 +61,7 @@
   .readout span:nth-child(even){color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
   main{flex:1;position:relative;min-width:0;padding:14px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;overflow:auto}
   .card{display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--line);border-radius:8px;padding:0 14px 10px;flex:1 1 420px;max-width:960px}
+  #dataCard{flex-basis:100%;max-width:none}
   table.heat td,table.heat th{white-space:nowrap;padding-left:4px}
   .card .bar{display:flex;align-items:center;gap:8px;margin:0 -14px 4px;padding:8px 14px;background:color-mix(in srgb,var(--ink) 7%,transparent);border-radius:8px 8px 0 0;border-bottom:1px solid var(--line)}
   .card .bar label{font-weight:600;font-size:13px;flex:1}
@@ -71,7 +72,7 @@
   table.heat td{text-align:right;padding:3px 0}
   table.heat tr.sum td{border-top:1px solid var(--line);font-weight:500}
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
-  .plan{width:100%;max-width:360px}
+  .plan{flex:1 1 640px;max-width:900px}
   .plan svg{width:100%;height:auto;display:block}
   .interp p{margin:6px 0;font-size:13px}
   @media (max-width:760px){
@@ -88,15 +89,13 @@
   <div class="viewtabs"><button type="button" data-view="design" class="on">设计</button><button type="button" data-view="compare">对比</button><button type="button" data-view="read">读图</button></div>
   <div class="save-row two"><input id="snapName" placeholder="方案名（可空）"><button type="button" id="snapSave">存为方案</button></div>
   <div class="only-compare" id="cmpAside" style="display:flex;flex-direction:column;gap:12px">
-    <div class="cap" style="font-weight:600;color:var(--ink)">方案列表（勾选 2–4 个并排看）</div>
-    <div class="snaps" id="snapList"><span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span></div>
-    <div class="two"><button type="button" id="snapExport">导出全部</button><button type="button" id="snapImportBtn">导入</button></div><input type="file" id="snapImport" accept=".json" hidden>
-    <hr style="border:0;border-top:1px solid var(--line);margin:0">
-    <div class="cap" style="font-weight:600;color:var(--ink)">四种装置各跑一遍</div>
-    <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 10 s）</label>
-    <button type="button" id="sweepBtn" class="primary">以当前设计为底，跑五个方案</button>
-    <div class="cap" id="sweepStatus"></div>
-    <div class="cap">方案存在这台电脑的浏览器里；换电脑用导出 / 导入。点方案名可以改名。</div>
+    <div class="cap">在「设计」里调好，点上面的「存为方案」；右边勾选方案并排看。方案存在这台电脑的浏览器里，换电脑用导出 / 导入。</div>
+    <div id="sweepWrap" hidden>
+      <div class="cap" style="font-weight:600;color:var(--ink)">四种装置各跑一遍</div>
+      <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 30 s）</label>
+      <button type="button" id="sweepBtn" class="primary">以当前设计为底，跑五个方案</button>
+      <div class="cap" id="sweepStatus"></div>
+    </div>
   </div>
   <div class="only-read" id="readAside"><div class="cap">读图接入：第四刀第 3 步，待做。</div></div>
 
@@ -223,6 +222,14 @@
 </aside>
 
 <main>
+  <div class="card plan" id="planCard">
+    <div class="bar"><label>平面</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select>
+      <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
+      <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
+    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
+    <div class="cap">北朝上。底色 = 每一格的过热暴露（或采光）：每格从面向它的墙段取值，按离墙距离衰减，直射条带按太阳角度落在离墙一段距离上（Version_06 的网格规则，墙段代替四面整墙）；庭院挡在中间时不算。灰格 = 离所有外墙都超过房间带进深，立面管不到。鼠标停在格上看数值。段按过热着色；红点凹口手柄、蓝点庭院手柄。</div>
+  </div>
+
   <div class="card" id="dataCard">
     <div class="bar"><label>立面段 · 过热与采光</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">全部楼层</option></select><b id="dataSum"></b></div>
     <table class="heat">
@@ -239,19 +246,17 @@
     <div class="cap">过热 = 全年室内高于 25 °C 的小时占比，被动房判据 ≤ 10%，建议 ≤ 5%；采光 = 房间带平均采光系数，3% 记为充足（Version_06 口径）。每段按「段长 × 进深 × 层数」的房间带独立算，整栋按房间面积加权。无凹口 = 同一矩形不开凹口，由页面直接算。这两列是引擎估算，已含「受晒」折减。<br>受晒 = 体量自遮挡后这段墙还能晒到的直射小时占同朝向自由墙面的比例（Ladybug：只有楼板遮挡 ÷ 没有遮挡），引擎用它折减直射得热，散射和采光不折；按分析期平均，套到全年。100 % = 没被自己的体量挡。<br>日照 = Ladybug「Direct Sun Hours」：分析期内窗条每点被太阳直射的小时数，三层平均，楼板（含凹口两侧）和遮阳装置作遮挡，不含周边建筑，也不含云（几何日照，不是辐射量）；入射辐射要装 Radiance 以后才能接。</div>
   </div>
 
-  <div class="card plan" id="planCard">
-    <div class="bar"><label>平面</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select>
-      <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
-      <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
-    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
-    <div class="cap">北朝上。底色 = 每一格的过热暴露（或采光）：每格从面向它的墙段取值，按离墙距离衰减，直射条带按太阳角度落在离墙一段距离上（Version_06 的网格规则，墙段代替四面整墙）；庭院挡在中间时不算。灰格 = 离所有外墙都超过房间带进深，立面管不到。鼠标停在格上看数值。段按过热着色；红点凹口手柄、蓝点庭院手柄。</div>
-  </div>
-
   <div class="card interp" id="interpCard">
     <div class="bar"><label>解读（模板）</label></div>
     <div id="interp"><p class="cap">等待数据。</p></div>
   </div>
-  <div class="card only-compare" id="cmpCard" style="flex-basis:100%;max-width:none">
+  <div class="card only-compare" id="snapCard" style="flex:1 1 300px;max-width:380px">
+    <div class="bar"><label>方案列表</label><b id="snapSum"></b></div>
+    <div class="cap">勾 2–4 个并排看。点名字改名，点「删」两次删掉。</div>
+    <div class="snaps" id="snapList"></div>
+    <div class="two" style="margin-top:6px"><button type="button" id="snapExport">导出全部</button><button type="button" id="snapImportBtn">导入</button></div><input type="file" id="snapImport" accept=".json" hidden>
+  </div>
+  <div class="card only-compare" id="cmpCard" style="flex:1 1 560px;max-width:none">
     <div class="bar"><label>方案对比</label><b id="cmpSum"></b></div>
     <div id="cmpBody"><p class="cap">在左边勾选方案。</p></div>
   </div>
@@ -599,12 +604,16 @@
       plan: { viewBox: $('plan').getAttribute('viewBox'), html: $('plan').innerHTML, floor: $('planFloor').value, mode: $('planMode').value } };
     SNAPS.push(s); if(SNAPSEL.length<4) SNAPSEL.push(s.id); saveSnaps(); return s; }
   $('snapSave').addEventListener('click', ()=>{ const s = snapshot($('snapName').value); if(s){ $('snapName').value=''; setConn(true, `已存「${s.name}」（共 ${SNAPS.length} 个方案）`); renderSnapList(); if(document.body.dataset.view==='compare') renderCompare(); } });
-  function renderSnapList(){ const el = $('snapList'); if(!SNAPS.length){ el.innerHTML = '<span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span>'; return; }
+  function renderSnapList(){ const el = $('snapList'); $('snapSum').textContent = SNAPS.length ? `${SNAPS.length} 个 · 选了 ${SNAPSEL.length}` : '';
+    if(!SNAPS.length){ el.innerHTML = '<span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span>'; return; }
     el.innerHTML = ''; SNAPS.forEach(s=>{ const row = document.createElement('div'); row.className = 'snap';
-      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = SNAPSEL.includes(s.id); cb.title = '并排看'; cb.onchange = ()=>{ if(cb.checked){ if(SNAPSEL.length>=4){ cb.checked=false; return; } SNAPSEL.push(s.id); } else SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderCompare(); };
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; nm.title = `${s.summary.dev}｜${s.summary.ops}｜${s.at}`; nm.onclick = ()=>{ const v = prompt('改名', s.name); if(v!=null && v.trim()){ s.name = v.trim(); saveSnaps(); renderSnapList(); renderCompare(); } };
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = SNAPSEL.includes(s.id); cb.title = '并排看'; cb.onchange = ()=>{ if(cb.checked){ if(SNAPSEL.length>=4){ cb.checked=false; return; } SNAPSEL.push(s.id); } else SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; nm.title = `${s.summary.dev}｜${s.summary.ops}｜${s.at}（点击改名）`;
+      nm.onclick = ()=>{ const inp = document.createElement('input'); inp.className = 'rename'; inp.value = s.name; const done = ()=>{ const v = inp.value.trim(); if(v) s.name = v; saveSnaps(); renderSnapList(); renderCompare(); }; inp.onblur = done; inp.onkeydown = e=>{ if(e.key==='Enter') inp.blur(); if(e.key==='Escape'){ inp.onblur=null; renderSnapList(); } }; row.replaceChild(inp, nm); inp.focus(); inp.select(); };
       const tm = document.createElement('small'); tm.textContent = s.at.slice(5);
-      const del = document.createElement('button'); del.type='button'; del.textContent = '删'; del.onclick = ()=>{ if(!confirm(`删掉「${s.name}」？`)) return; SNAPS = SNAPS.filter(x=>x.id!==s.id); SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
+      const del = document.createElement('button'); del.type='button'; del.textContent = '删'; del.title = '再点一次确认';
+      del.onclick = ()=>{ if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent = '确认删'; setTimeout(()=>{ del.classList.remove('arm'); del.textContent = '删'; }, 3000); return; }
+        SNAPS = SNAPS.filter(x=>x.id!==s.id); SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
       row.append(cb, nm, tm, del); el.appendChild(row); }); }
   $('snapExport').addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify({kind:'massing_snapshots', version:1, snaps:SNAPS}, null, 1)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'massing_snapshots.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); });
   $('snapImportBtn').addEventListener('click', ()=> $('snapImport').click());
@@ -618,7 +627,7 @@
   const dcell = (v, ref, m) => { if(v==null || ref==null) return ''; const dv = v-ref; if(Math.abs(dv) < Math.pow(10,-m.dec)/2) return `<small class="d-0">±0</small>`; const cls = m.good ? ((m.good==='down') === (dv<0) ? 'd-good' : 'd-bad') : 'd-0'; return `<small class="${cls}">${dv>0?'+':'−'}${fmt(Math.abs(dv), m.dec)}</small>`; };
   function renderCompare(){ const body = $('cmpBody'), sel = SNAPSEL.map(id=>SNAPS.find(s=>s.id===id)).filter(Boolean);
     $('cmpSum').textContent = sel.length ? `${sel.length} 个方案，差值相对第一个（${sel[0].name}）` : '';
-    if(!sel.length){ body.innerHTML = '<p class="cap">在左边勾选方案（2–4 个）。</p>'; return; }
+    if(!sel.length){ body.innerHTML = '<p class="cap">在左边的方案列表里勾选 2–4 个。</p>'; return; }
     const ref = sel[0];
     let h = '<table class="cmp"><thead><tr><th></th>' + sel.map(s=>`<th class="nm">${s.name}</th>`).join('') + '</tr>'
       + '<tr><th>装置 · 折角</th>' + sel.map(s=>`<th>${s.summary.dev}${s.summary.tilts?'<br><span style="font-weight:400">'+s.summary.tilts+'</span>':''}</th>`).join('') + '</tr>'

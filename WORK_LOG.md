@@ -440,6 +440,10 @@ Records are appended after each session. Most recent entry is at the bottom.
   - 快照时间用了 `toISOString`（UTC），改成本地时间。
   - 停服务按完整路径匹配，没再误杀 Rhino 的语言服务。
 
+**布局调整（同日续）**
+- 用户：方案列表放进对比页；装置扫描先藏起来（`#sweepWrap hidden`，代码保留）；设计页平面图放大并放到段表前面（`.plan{flex:1 1 640px;max-width:900px}`，`#dataCard` 占整行）；方案列表删不掉——`confirm()/prompt()` 在应用内浏览器里不弹，改成点两次「删」确认、点名字就地改名。
+- 用户不知道 API key 在哪里拿：告诉了 console.anthropic.com → API Keys。
+
 **Next session: suggested starting point**
 - 第四刀步 3：读图 tab（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
 - 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。
