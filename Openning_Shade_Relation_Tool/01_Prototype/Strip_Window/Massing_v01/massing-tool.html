@@ -43,6 +43,13 @@
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .cap{color:var(--ink-2);font-size:12px}
   .tabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center} .tabs button{font:inherit;font-size:12px;line-height:1.3;padding:2px 8px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--ink-2);cursor:pointer} .tabs button.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);border-color:transparent} .tabs button.add{font-weight:700} .tabs button.del{margin-left:auto;color:var(--bad,#c33)}
+  .viewtabs{display:flex;gap:6px} .viewtabs button{padding:5px 8px;font-size:13px} .viewtabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+  body:not([data-view="design"]) details.grp, body:not([data-view="design"]) #dataCard, body:not([data-view="design"]) #planCard, body:not([data-view="design"]) #interpCard{display:none}
+  body:not([data-view="compare"]) .only-compare{display:none} body:not([data-view="read"]) .only-read{display:none} body[data-view="read"] .save-row{display:none}
+  .save-row input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
+  .snaps{display:flex;flex-direction:column;gap:6px} .snap{display:flex;align-items:center;gap:6px;font-size:13px} .snap input[type=checkbox]{margin:0;accent-color:var(--accent)} .snap .nm{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .snap small{color:var(--ink-2);white-space:nowrap} .snap button{width:auto;padding:1px 6px;font-size:11px}
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums} table.cmp th,table.cmp td{text-align:right;padding:3px 6px;white-space:nowrap;vertical-align:top} table.cmp th:first-child,table.cmp td:first-child{text-align:left} table.cmp th{color:var(--ink-2);font-weight:500;border-bottom:1px solid var(--line)} table.cmp th.nm{color:var(--ink);font-weight:600} table.cmp td small{display:block;font-size:11px} .d-good{color:var(--ok)} .d-bad{color:var(--bad)} .d-0{color:var(--ink-2)}
+  .cmpPlans{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0} .cmpPlans figure{margin:0;width:210px} .cmpPlans svg{width:100%;height:auto;display:block} .cmpPlans figcaption{font-size:12px;color:var(--ink-2);text-align:center}
   .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);margin-left:6px}
   details.grp summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:13px;gap:10px;background:color-mix(in srgb,var(--ink) 7%,transparent);padding:8px 10px;border-radius:6px;margin:0 -6px}
   details.grp summary::-webkit-details-marker{display:none}
@@ -78,6 +85,20 @@
 <aside>
   <h1>Massing v01<small>体量拓扑 × 立面分段 × 过热与采光 · 第一刀</small></h1>
   <div class="conn" id="conn"><i></i><span id="connText">未连接本地服务</span></div>
+  <div class="viewtabs"><button type="button" data-view="design" class="on">设计</button><button type="button" data-view="compare">对比</button><button type="button" data-view="read">读图</button></div>
+  <div class="save-row two"><input id="snapName" placeholder="方案名（可空）"><button type="button" id="snapSave">存为方案</button></div>
+  <div class="only-compare" id="cmpAside" style="display:flex;flex-direction:column;gap:12px">
+    <div class="cap" style="font-weight:600;color:var(--ink)">方案列表（勾选 2–4 个并排看）</div>
+    <div class="snaps" id="snapList"><span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span></div>
+    <div class="two"><button type="button" id="snapExport">导出全部</button><button type="button" id="snapImportBtn">导入</button></div><input type="file" id="snapImport" accept=".json" hidden>
+    <hr style="border:0;border-top:1px solid var(--line);margin:0">
+    <div class="cap" style="font-weight:600;color:var(--ink)">四种装置各跑一遍</div>
+    <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 10 s）</label>
+    <button type="button" id="sweepBtn" class="primary">以当前设计为底，跑五个方案</button>
+    <div class="cap" id="sweepStatus"></div>
+    <div class="cap">方案存在这台电脑的浏览器里；换电脑用导出 / 导入。点方案名可以改名。</div>
+  </div>
+  <div class="only-read" id="readAside"><div class="cap">读图接入：第四刀第 3 步，待做。</div></div>
 
   <details class="grp" id="g1">
     <summary><span>建筑与环境</span><b id="g1Sum"></b></summary>
@@ -118,6 +139,7 @@
         <div class="ctl"><div class="row"><label for="period">日照分析期</label></div>
           <select id="period"><option value="summer" selected>夏季 6–8 月</option><option value="winter">冬季 12–2 月</option><option value="annual">全年</option></select></div>
       </div>
+      <label class="cap" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="runSun" checked style="accent-color:var(--accent);margin:0">跑 Ladybug 日照（关掉后拖滑块更快，日照和受晒列停在上一次的值）</label>
     </div>
   </details>
 
@@ -229,6 +251,11 @@
     <div class="bar"><label>解读（模板）</label></div>
     <div id="interp"><p class="cap">等待数据。</p></div>
   </div>
+  <div class="card only-compare" id="cmpCard" style="flex-basis:100%;max-width:none">
+    <div class="bar"><label>方案对比</label><b id="cmpSum"></b></div>
+    <div id="cmpBody"><p class="cap">在左边勾选方案。</p></div>
+  </div>
+  <div class="card only-read" id="readCard"><div class="bar"><label>读图</label></div><p class="cap">第四刀第 3 步，待做。</p></div>
 </main>
 
 <script src="/shared/wwr-climate.js"></script>
@@ -309,7 +336,7 @@
       ops: LIST.notches.map((n,i)=>Object.assign({id:'notch'+String(i+1).padStart(2,'0'), type:'notch', floor:1, propagate:'up'}, n))
            .concat(LIST.courts.map((c,i)=>Object.assign({id:'court'+String(i+1).padStart(2,'0'), type:'court', floor:1, propagate:'up'}, c))),
       windows:{wwr:P.wwr/100, sill:P.sill},
-      run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim},
+      run:{seq:(STATE&&STATE.run?STATE.run.seq:0)+1, period:P.period, clim:P.clim, sun:$('runSun').checked},
       shading:{type:P.devType, unitW:P.unitW, tilt:P.tilt, standoff:P.standoff, thick:P.thick, skin:P.skin, holeD:P.holeD, perfMin:P.perfMin/100, perfMax:P.perfMax/100, floors:P.devFloors, fixed:'alt', facades:P.fac}
     };
   }
@@ -373,7 +400,7 @@
     $('rAt').textContent = res.at.slice(11,19); $('rSegs').textContent = res.segments.length+' 段（'+res.floors.length+' 层）'; $('rArea').textContent = res.floors.map(f=>fmt(f.area,0)).join(' / ')+' m²'; $('rWinH').textContent = fmt(winH,2)+' m';
     if(!ENGINE){ $('segBody').innerHTML = '<tr><td colspan="6" class="bad">引擎未加载</td></tr>'; return; }
     const sunOk = res.sun && res.sun.perSegment && res.sun.perSegment.length === res.segments.length ? res.sun : null;
-    const expo = sunOk && sunOk.expo && sunOk.expo.length === res.segments.length ? sunOk.expo : null;
+    const expo = res.sun && res.sun.expo && res.sun.expo.length === res.segments.length ? res.sun.expo : null;   // 受晒只和楼板有关：换装置时照用，不等 Ladybug
     const rows0 = calcSegs(res.segments, winH, false, expo), rows = calcSegs(res.segments, winH, true, expo), base = calcSegs(baseSegs(res), winH, false);
     // floor selectors
     const nF = res.floors.length, fsel = $('floorSel'), psel = $('planFloor');
@@ -398,7 +425,7 @@
       + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${expoAvg==null?'':fmt(expoAvg*100,0)+' %'}</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
     $('rOvhDev').innerHTML = `<span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span> → <span class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</span>`;
     $('rDFDev').innerHTML = `<span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span> → <span class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</span>`;
-    window.__sun = sun; window.__expo = expo;
+    window.__sun = sun; window.__expo = expo; window.__expoAvg = expoAvg; window.__sunAvg = sunAvg;
     $('rOvh').innerHTML = `<span class="${cls(agg0.ovh)}">${fmt(agg0.ovh,1)} %</span> → <span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span>`;
     $('rDF').innerHTML = `<span class="${dcls(agg0.DF)}">${fmt(agg0.DF,1)} %</span> → <span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span>`;
     $('rNet').textContent = `${fmt(agg0dev.net,0)} → ${fmt(agg.net,0)} kWh/a`;
@@ -540,12 +567,91 @@
   $('tilt').addEventListener('input', ()=>{ FAC.forEach(k=> $('fTilt'+k).value = $('tilt').value); });   // 默认折角 = 总闸，各面跟随（在下面的通用监听之前跑）
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
   FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
+  $('runSun').addEventListener('change', ()=>{ read(); schedulePost(); });
   sels.forEach(id=> $(id).addEventListener('change', ()=>{ read(); if(['edge','period','clim','devType','devFloors','applyN','applyC'].includes(id)) schedulePost(); if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('floorSel').addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); });
   ['planFloor','planMode','planGrid'].forEach(id=> $(id).addEventListener('change', ()=>{ if(STATE && STATE.results && STATE.results.at) render(STATE); }));
   $('sync').addEventListener('click', post);
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
+
+  // ---------- views (2026-10-03 第四刀): 设计 / 对比 / 读图 ----------
+  function setView(v){ document.body.dataset.view = v; document.querySelectorAll('.viewtabs button').forEach(b=> b.classList.toggle('on', b.dataset.view===v)); store.set('mv.ui.view', v); if(v==='compare'){ renderSnapList(); renderCompare(); } }
+  document.querySelectorAll('.viewtabs button').forEach(b=> b.addEventListener('click', ()=>setView(b.dataset.view)));
+
+  // ---------- snapshots ----------
+  let SNAPS = store.get('mv.snaps') || []; let SNAPSEL = store.get('mv.snapSel') || [];
+  const saveSnaps = ()=>{ store.set('mv.snaps', SNAPS); store.set('mv.snapSel', SNAPSEL); };
+  const devName = t => ({none:'无装置', pivot:'#0 中轴转动板', bifoldV:'#1 竖轴折板', bifoldH:'#2 横轴折板', umbrella:'#3 伞式六角'})[t] || t;
+  function snapshot(name){
+    if(!(STATE && STATE.results && STATE.results.at && window.__rows)){ alert('还没有结果，等 Rhino 写回后再存。'); return null; }
+    const d = STATE, rows = window.__rows, rows0 = window.__rows0, agg = window.__agg, agg0dev = window.__agg0dev, agg0 = window.__agg0, sun = window.__sun, expo = window.__expo;
+    const sh = d.shading || {}, fac = sh.facades || {};
+    const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), name: (name||'').trim() || ('方案 ' + (SNAPS.length+1)), at: (dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)(new Date()),
+      state: {building:d.building, ops:d.ops, windows:d.windows, run:d.run, shading:d.shading},
+      summary: { dev: devName(sh.type), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
+        floors: d.results.floors.length, groups: ((d.results.groups||{}).list||[]).length || 1,
+        ops: (d.ops||[]).map(o=> o.type==='notch' ? `凹口 ${o.edge} 深 ${fmt(o.depth,1)}` : `庭院 ${fmt(o.width,1)}×${fmt(o.depth,1)}`).join('、') || '无操作',
+        period: (d.run||{}).period, clim: (d.run||{}).clim, size: `${d.building.L}×${d.building.W} m` },
+      metrics: { ovh0: agg0dev.ovh, ovh: agg.ovh, df0: agg0dev.DF, df: agg.DF, view: window.__view*100, expo: window.__expoAvg!=null ? window.__expoAvg*100 : null, sun: window.__sunAvg,
+        area: d.results.floors.reduce((a,f)=>a+f.area,0), len: rows.reduce((a,x)=>a+x.len,0), units: rows.reduce((a,x)=>a+(x.dev?x.dev.units:0),0), net: agg.net, ovhBase: agg0.ovh },
+      segs: rows.map((x,i)=>({key:'F'+x.floor+' '+x.edge, az:x.az, len:x.len, ovh0:rows0[i].r.ovh, ovh:x.r.ovh, df0:rows0[i].r.DF, df:x.r.DF, view:x.dev?x.dev.view*100:100, expo: expo&&expo[i]!=null?expo[i]*100:null, sun: sun?sun.perSegment[i]:null})),
+      plan: { viewBox: $('plan').getAttribute('viewBox'), html: $('plan').innerHTML, floor: $('planFloor').value, mode: $('planMode').value } };
+    SNAPS.push(s); if(SNAPSEL.length<4) SNAPSEL.push(s.id); saveSnaps(); return s; }
+  $('snapSave').addEventListener('click', ()=>{ const s = snapshot($('snapName').value); if(s){ $('snapName').value=''; setConn(true, `已存「${s.name}」（共 ${SNAPS.length} 个方案）`); renderSnapList(); if(document.body.dataset.view==='compare') renderCompare(); } });
+  function renderSnapList(){ const el = $('snapList'); if(!SNAPS.length){ el.innerHTML = '<span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span>'; return; }
+    el.innerHTML = ''; SNAPS.forEach(s=>{ const row = document.createElement('div'); row.className = 'snap';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = SNAPSEL.includes(s.id); cb.title = '并排看'; cb.onchange = ()=>{ if(cb.checked){ if(SNAPSEL.length>=4){ cb.checked=false; return; } SNAPSEL.push(s.id); } else SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderCompare(); };
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; nm.title = `${s.summary.dev}｜${s.summary.ops}｜${s.at}`; nm.onclick = ()=>{ const v = prompt('改名', s.name); if(v!=null && v.trim()){ s.name = v.trim(); saveSnaps(); renderSnapList(); renderCompare(); } };
+      const tm = document.createElement('small'); tm.textContent = s.at.slice(5);
+      const del = document.createElement('button'); del.type='button'; del.textContent = '删'; del.onclick = ()=>{ if(!confirm(`删掉「${s.name}」？`)) return; SNAPS = SNAPS.filter(x=>x.id!==s.id); SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
+      row.append(cb, nm, tm, del); el.appendChild(row); }); }
+  $('snapExport').addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify({kind:'massing_snapshots', version:1, snaps:SNAPS}, null, 1)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'massing_snapshots.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); });
+  $('snapImportBtn').addEventListener('click', ()=> $('snapImport').click());
+  $('snapImport').addEventListener('change', async e=>{ const f = e.target.files[0]; if(!f) return; try{ const j = JSON.parse(await f.text()); const arr = Array.isArray(j) ? j : (j.snaps||[]); let n = 0; arr.forEach(s=>{ if(s && s.metrics && s.segs){ if(SNAPS.some(x=>x.id===s.id)) s.id = s.id + '_' + Date.now().toString(36); SNAPS.push(s); n++; } }); saveSnaps(); renderSnapList(); renderCompare(); setConn(true, `导入了 ${n} 个方案`); }catch(err){ alert('导入失败：'+err.message); } e.target.value = ''; });
+
+  // ---------- compare view ----------
+  const MET = [ {k:'ovh0', label:'整栋过热 · 无板', unit:' %', dec:1, good:'down'}, {k:'ovh', label:'整栋过热 · 有板', unit:' %', dec:1, good:'down'},
+    {k:'df0', label:'整栋采光 · 无板', unit:' %', dec:2, good:'up'}, {k:'df', label:'整栋采光 · 有板', unit:' %', dec:2, good:'up'},
+    {k:'view', label:'视野通透', unit:' %', dec:0, good:'up'}, {k:'expo', label:'受晒（自遮挡后）', unit:' %', dec:0, good:null}, {k:'sun', label:'日照 h（分析期）', unit:' h', dec:0, good:null},
+    {k:'area', label:'楼板总面积', unit:' m²', dec:0, good:null}, {k:'len', label:'立面总长（各层合计）', unit:' m', dec:1, good:null}, {k:'units', label:'装置单元数', unit:'', dec:0, good:null}, {k:'net', label:'冬季净得热', unit:' kWh/a', dec:0, good:'up'} ];
+  const dcell = (v, ref, m) => { if(v==null || ref==null) return ''; const dv = v-ref; if(Math.abs(dv) < Math.pow(10,-m.dec)/2) return `<small class="d-0">±0</small>`; const cls = m.good ? ((m.good==='down') === (dv<0) ? 'd-good' : 'd-bad') : 'd-0'; return `<small class="${cls}">${dv>0?'+':'−'}${fmt(Math.abs(dv), m.dec)}</small>`; };
+  function renderCompare(){ const body = $('cmpBody'), sel = SNAPSEL.map(id=>SNAPS.find(s=>s.id===id)).filter(Boolean);
+    $('cmpSum').textContent = sel.length ? `${sel.length} 个方案，差值相对第一个（${sel[0].name}）` : '';
+    if(!sel.length){ body.innerHTML = '<p class="cap">在左边勾选方案（2–4 个）。</p>'; return; }
+    const ref = sel[0];
+    let h = '<table class="cmp"><thead><tr><th></th>' + sel.map(s=>`<th class="nm">${s.name}</th>`).join('') + '</tr>'
+      + '<tr><th>装置 · 折角</th>' + sel.map(s=>`<th>${s.summary.dev}${s.summary.tilts?'<br><span style="font-weight:400">'+s.summary.tilts+'</span>':''}</th>`).join('') + '</tr>'
+      + '<tr><th>体量 · 操作</th>' + sel.map(s=>`<th style="font-weight:400;white-space:normal;max-width:220px">${s.summary.size} · ${s.summary.floors} 层 · ${s.summary.groups} 组<br>${s.summary.ops}</th>`).join('') + '</tr></thead><tbody>';
+    MET.forEach(m=>{ h += `<tr><td>${m.label}</td>` + sel.map((s,i)=>{ const v = s.metrics[m.k]; return `<td>${v==null?'—':fmt(v,m.dec)+m.unit}${i?dcell(v, ref.metrics[m.k], m):''}</td>`; }).join('') + '</tr>'; });
+    h += '</tbody></table>';
+    // plans
+    h += '<div class="cmpPlans">' + sel.map(s=>`<figure><svg viewBox="${s.plan.viewBox}">${s.plan.html}</svg><figcaption>${s.name} · F${s.plan.floor} ${({hot:'过热暴露',df:'采光',none:'立面段'})[s.plan.mode]||''}</figcaption></figure>`).join('') + '</div>';
+    // segment differences vs first
+    const keys = [...new Set(sel.flatMap(s=>s.segs.map(x=>x.key)))];
+    const rowsD = keys.map(k=>{ const vals = sel.map(s=>s.segs.find(x=>x.key===k)||null); const r0 = vals[0]; const dmax = Math.max(0, ...vals.slice(1).map(v=> v&&r0 ? Math.abs(v.ovh-r0.ovh) : 99)); const ddf = Math.max(0, ...vals.slice(1).map(v=> v&&r0 ? Math.abs(v.df-r0.df) : 99)); return {k, vals, dmax, ddf}; })
+      .filter(r=> sel.length>1 && (r.dmax>=0.5 || r.ddf>=0.2)).sort((a,b)=>b.dmax-a.dmax).slice(0,30);
+    if(sel.length>1){ h += `<div class="cap" style="margin-top:8px;font-weight:600;color:var(--ink)">立面段差异（有板；只列过热差 ≥ 0.5 或采光差 ≥ 0.2 的段，最多 30 行）</div>`;
+      if(!rowsD.length) h += '<p class="cap">各段都没有明显差别。</p>';
+      else h += '<table class="cmp"><thead><tr><th>段</th>' + sel.map(s=>`<th>${s.name}<br><span style="font-weight:400">过热 · 采光 · 视野</span></th>`).join('') + '</tr></thead><tbody>'
+        + rowsD.map(r=> `<tr><td>${r.k}</td>` + r.vals.map((v,i)=> v ? `<td>${fmt(v.ovh,1)} % · ${fmt(v.df,1)} % · ${fmt(v.view,0)} %${i&&r.vals[0]?dcell(v.ovh, r.vals[0].ovh, MET[1]):''}</td>` : '<td class="cap">（无此段）</td>').join('') + '</tr>').join('') + '</tbody></table>'; }
+    // sentences
+    if(sel.length>1){ h += '<div style="margin-top:8px">' + sel.slice(1).map(s=>{ const a = ref.metrics, b = s.metrics; const say = (lbl, va, vb, unit, dec, good)=>{ const dv = vb-va; if(Math.abs(dv) < Math.pow(10,-dec)/2) return `${lbl}持平`; const dir = dv>0?'高':'低'; return `${lbl}${dir} ${fmt(Math.abs(dv),dec)}${unit}`; };
+        const segTop = s.segs.map(x=>{ const r0 = ref.segs.find(y=>y.key===x.key); return r0 ? {k:x.key, d:x.ovh-r0.ovh} : null; }).filter(Boolean).sort((p,q)=>Math.abs(q.d)-Math.abs(p.d))[0];
+        return `<p>「${s.name}」比「${ref.name}」：${say('过热（有板）', a.ovh, b.ovh, ' 个百分点', 1)}，${say('采光（有板）', a.df, b.df, ' 个百分点', 2)}，${say('视野', a.view, b.view, ' %', 0)}，${say('立面总长', a.len, b.len, ' m', 1)}，${say('楼板面积', a.area, b.area, ' m²', 0)}${segTop && Math.abs(segTop.d)>=0.5 ? `；段里差别最大的是 ${segTop.k}（过热 ${segTop.d>0?'+':'−'}${fmt(Math.abs(segTop.d),1)}）` : ''}。</p>`; }).join('') + '</div>'; }
+    body.innerHTML = h; }
+
+  // ---------- device sweep: five snapshots on the current design ----------
+  function waitFor(cond, ms){ return new Promise(res=>{ const t0 = Date.now(); const h = setInterval(()=>{ if(cond()){ clearInterval(h); res(true); } else if(Date.now()-t0 > ms){ clearInterval(h); res(false); } }, 500); }); }
+  $('sweepBtn').addEventListener('click', async ()=>{ if(!(STATE && STATE.results && STATE.results.at)){ alert('还没有结果。'); return; }
+    const withSun = $('sweepSun').checked, orig = $('devType').value, origSun = $('runSun').checked, types = ['none','pivot','bifoldV','bifoldH','umbrella'], btn = $('sweepBtn'); btn.disabled = true; let n = 0;
+    $('runSun').checked = withSun;   // 不要日照时暂停 Ladybug，五个方案几秒一个
+    for(const t of types){ $('sweepStatus').textContent = `正在跑：${devName(t)}（${types.indexOf(t)+1}/5）…`; $('devType').value = t; read();
+      const before = STATE.results.at, beforeSun = STATE.results.sun ? STATE.results.sun.at : ''; await post();
+      const ok = await waitFor(()=> STATE && STATE.results && STATE.results.at > before && (!withSun || (STATE.results.sun && STATE.results.sun.at > beforeSun && STATE.results.sun.at > STATE.results.at)), withSun ? 90000 : 40000);
+      if(!ok){ $('sweepStatus').textContent = `${devName(t)} 等 Rhino 超时，跳过`; continue; }
+      await new Promise(r=>setTimeout(r, 400)); render(STATE); if(snapshot('装置 · ' + devName(t))) n++; renderSnapList(); renderCompare(); }
+    $('devType').value = orig; $('runSun').checked = origSun; read(); await post(); btn.disabled = false; $('sweepStatus').textContent = `跑完，存了 ${n} 个方案；装置已恢复为 ${devName(orig)}。`; });
 
   // first load: take sliders from the file (state is the single source of truth), then start polling
   async function init(){
@@ -563,7 +669,7 @@
       LIST.notches = (d.ops||[]).filter(o=>o.type==='notch').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {edge:op.edge, apply:op.apply||'all', pos:h?h.pos:op.pos, width:op.width, depth:h?h.depth:op.depth}; });
       LIST.courts = (d.ops||[]).filter(o=>o.type==='court').map(op=>{ const h = useH(op); if(HH[op.id]) lastHandle[op.id] = HH[op.id].at; return {apply:op.apply||'all', pos_u:h?h.pos_u:op.pos_u, pos_v:h?h.pos_v:op.pos_v, width:op.width, depth:op.depth}; });
       nSel = 0; cSel = 0; loadNotch(0); loadCourt(0);
-      if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; }
+      if(d.run){ if(d.run.period) $('period').value = d.run.period; if(d.run.clim) $('clim').value = d.run.clim; $('runSun').checked = d.run.sun !== false; }
       const sh = d.shading; if(sh){ $('devType').value = sh.type; $('devFloors').value = sh.floors||'all'; $('tilt').value = sh.tilt; $('unitW').value = sh.unitW; $('standoff').value = sh.standoff; $('thick').value = sh.thick; $('skin').value = sh.skin; $('holeD').value = sh.holeD; $('perfMin').value = Math.round(sh.perfMin*100); $('perfMax').value = Math.round(sh.perfMax*100);
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
@@ -571,6 +677,7 @@
       setConn(true, '已连接本地服务');
     }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
     setInterval(poll, 1000);
+    setView(store.get('mv.ui.view') || 'design');
   }
   init();
 

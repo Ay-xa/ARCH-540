@@ -551,7 +551,7 @@ def run(path):
     st = sc.sticky
     rdoc = Rhino.RhinoDoc.ActiveDoc
     if not path or not os.path.isfile(path):
-        return [], [], "no state.json at: %s" % path, [], [], "", 0.0, 6, 8, 0, []
+        return [], [], "no state.json at: %s" % path, [], [], "", 0.0, 6, 8, 0, [], False
     d = read(path)
     b = d["building"]; L, W = float(b["L"]), float(b["W"])
     base_rect = (0.0, 0.0, L, W)
@@ -594,10 +594,11 @@ def run(path):
     epw = os.path.join(EPW_DIR, EPW.get(run_.get("clim", "apNow"), EPW["apNow"]))
     m0, m1 = PERIOD.get(run_.get("period", "summer"), PERIOD["summer"])
     north = (float(b["az0"]) - 180.0) % 360.0
+    run_sun = bool(run_.get("sun", True))          # json run.sun：False = 不跑 Ladybug（接到两个 Direct Sun Hours 的 _run）
     cached = st.get("massing_out")
     if not changed_file and not handle_moved and cached and len(cached) == 7:
         f, w_, status, meshes, faces, nseg, dev = cached
-        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg, dev
+        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg, dev, run_sun
     floors, wins, res, meshes, faces, dev = build(d)
     prev = st.get("massing_res")
     if handle_written or changed_file or prev != res:
@@ -606,8 +607,13 @@ def run(path):
         if handle_written:
             fresh["handle"] = d["handle"]
         old = fresh.get("results") or {}
+        geom = lambda segs: [dict((k, v) for k, v in s.items() if k not in ("dev",)) for s in (segs or [])]
         if old.get("sun") and old.get("segments") == res["segments"] and old.get("winH") == res["winH"] and (fresh.get("run") or {}).get("period") == old["sun"].get("period"):
             res["sun"] = old["sun"]
+        elif old.get("sun") and geom(old.get("segments")) == geom(res["segments"]) and old.get("winH") == res["winH"] and (fresh.get("run") or {}).get("period") == old["sun"].get("period"):
+            # 2026-10-03：只换了装置、墙段几何没变 → 受晒（只和楼板有关）照用，含装置的日照小时等 Ladybug 重算
+            keep = dict(old["sun"]); keep.pop("perSegment", None); keep.pop("perWindow", None); keep["stale"] = True
+            res["sun"] = keep
         fresh["results"] = res
         fresh["updated_by"] = "gh"
         fresh["updated_at"] = now()
@@ -620,7 +626,7 @@ def run(path):
     status = "seq %d | %d floors in %d groups | %d segments | %s | device %s x%d | %s" % (
         res["seq"], len(res["floors"]), len(res["groups"]["list"]), len(res["segments"]), opsum, res["shading"]["type"], res["shading"]["units"], "; ".join(notes + res["warnings"]) or "ok")
     st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"], dev)
-    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev
+    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev, run_sun
 
 
-floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg, devMesh = run(path)
+floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg, devMesh, runSun = run(path)

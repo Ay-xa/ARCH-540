@@ -432,6 +432,14 @@ Records are appended after each session. Most recent entry is at the bottom.
   - 解读里"有凹口被忽略"的判断用 `/notch/` 会把 "courtyard … overlaps a notch" 也算进去，改成 `/^F\d+: notch/`。
   - 旧 json 的 `groups.setback` 转成新格式时归到第 2 组，第 2 组的 C 退 3 m 因此保留了——这是对的，但第一次看会以为是新加的。
 
+**第四刀 1–2：页面 tab + 方案对比（同日续）**
+- 计划 `PLAN_massing_v03_cut4.md`（用户定了四个问题）。页面 `setView()`；快照 `snapshot()`、`renderSnapList()`、`renderCompare()`、装置扫描 `sweepBtn`（`waitFor` 轮询 STATE.results.at / sun.at）。
+- 新 json 字段 `run.sun`（server 校验，sync 输出 `runSun` 接两个 LB `_run`，Boolean Toggle 不再用）。
+- 坑：
+  - 装置扫描第一次只存了 3 个：Ladybug 每种 30 s 把 Rhino 堵住，40 s 超时跳过了两个；而且换装置后 sync 丢掉整个 sun，受晒变空、过热偏高。改：不要日照时暂停 Ladybug；几何不变只换装置时保留 massOnly / free / expo 并标 stale，写回器见 stale 必写。
+  - 快照时间用了 `toISOString`（UTC），改成本地时间。
+  - 停服务按完整路径匹配，没再误杀 Rhino 的语言服务。
+
 **Next session: suggested starting point**
-- 方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例 / 动态调节 / 一键启动 / 可信度说明。加体块按用户意见暂缓。
+- 第四刀步 3：读图 tab（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
 - 旧列表：方案对比（存几个状态并排看）→ 窗按立面分设 → 父子比例、动态调节规则、单文件打包、Radiance、可信度说明。

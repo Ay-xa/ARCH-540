@@ -110,6 +110,7 @@ def check_run(r):
         if r["clim"] not in ("apNow", "hbNow", "f2080"):
             raise ValueError("run.clim must be apNow/hbNow/f2080")
         out["clim"] = r["clim"]
+    out["sun"] = bool(r.get("sun", True))          # 2026-10-03：False = 暂停 Ladybug 日照（页面「跑日照」勾、装置扫描时）
     return out
 
 

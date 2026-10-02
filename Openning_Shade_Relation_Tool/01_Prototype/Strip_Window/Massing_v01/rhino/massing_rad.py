@@ -63,7 +63,8 @@ def main(path, results, resMass, vecs, faces, nSeg):
     if free is not None:
         expo = [None if (m is None or fr is None or fr <= 0) else round(min(1.0, m / fr), 3) for m, fr in zip(mass, free)]
     key = (tuple(rad), tuple(mass) if mass else None, tuple(expo) if expo else None, str(period))
-    if sc.sticky.get("massing_sun_key") == key and (d.get("results") or {}).get("sun"):
+    cur = (d.get("results") or {}).get("sun") or {}
+    if sc.sticky.get("massing_sun_key") == key and cur and not cur.get("stale") and cur.get("perSegment"):
         return "sun hours unchanged"
 
     sun = {"period": str(period), "unit": "h", "perSegment": rad, "perWindow": per_win, "at": now()}
