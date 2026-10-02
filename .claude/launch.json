@@ -3,21 +3,56 @@
   "configurations": [
     {
       "name": "v08-bridge",
-      "runtimeExecutable": "C:\\Users\\Ayden He\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-      "runtimeArgs": ["Passivehouse_Tool\\01_Prototypes\\Version_08\\rhino\\server.py", "--no-browser"],
+      "runtimeExecutable": "C:\\Users\\Harri\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "runtimeArgs": [
+        "Passivehouse_Tool\\01_Prototypes\\Version_08\\rhino\\server.py",
+        "--no-browser"
+      ],
       "port": 8765
     },
     {
       "name": "v07-bridge",
-      "runtimeExecutable": "C:\\Users\\Ayden He\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-      "runtimeArgs": ["Passivehouse_Tool\\01_Prototypes\\Version_07\\rhino\\server.py", "--no-browser"],
+      "runtimeExecutable": "C:\\Users\\Harri\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "runtimeArgs": [
+        "Passivehouse_Tool\\01_Prototypes\\Version_07\\rhino\\server.py",
+        "--no-browser"
+      ],
       "port": 8765
     },
     {
       "name": "protos-static",
-      "runtimeExecutable": "C:\\Users\\Ayden He\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-      "runtimeArgs": ["-m", "http.server", "8766", "--bind", "127.0.0.1", "--directory", "Passivehouse_Tool\\01_Prototypes"],
+      "runtimeExecutable": "C:\\Users\\Harri\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8766",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "Passivehouse_Tool\\01_Prototypes"
+      ],
       "port": 8766
+    },
+    {
+      "name": "repo-static",
+      "runtimeExecutable": "C:\\Users\\Harri\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8767",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 8767
+    },
+    {
+      "name": "massing-bridge",
+      "runtimeExecutable": "C:\\Users\\Harri\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "runtimeArgs": [
+        "Openning_Shade_Relation_Tool/01_Prototype/Strip_Window/Massing_v01/rhino/server.py",
+        "--no-browser"
+      ],
+      "port": 8768
     }
   ]
 }
