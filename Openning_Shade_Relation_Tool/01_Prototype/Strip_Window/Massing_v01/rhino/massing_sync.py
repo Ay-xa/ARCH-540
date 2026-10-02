@@ -455,6 +455,34 @@ def dev_bifoldH(seg, sh, z0, H, seed, band):
                     "screen": round(1.0 - c * fA * (1.0 - tS), 4), "screenDay": round(1.0 - c * fA * (1.0 - tD), 4), "view": round(1.0 - c * fA, 4), "units": n_units}
 
 
+def _rod(a, b, r, n=6):
+    """细圆柱网格（骨架用）：a → b，半径 r"""
+    pa, pb = rg.Point3d(a[0], a[1], a[2]), rg.Point3d(b[0], b[1], b[2])
+    v = pb - pa; L = v.Length
+    if L < 1e-6:
+        return None
+    return rg.Mesh.CreateFromCylinder(rg.Cylinder(rg.Circle(rg.Plane(pa, v), r), L), 1, n)
+
+
+def umbrella_detail(C, ux, uy, nx, ny, R, rA, cT, sT):
+    """2026-10-03 按用户给的 Al Bahar 结构分解图给 #3 加骨架（只做视觉，不进日照、不进翻译）：
+    环形毂 + 三条 Y 臂（毂到三个角点）+ 六角外框 + 中轴驱动器（毂后方推到三脚架顶点）+ 移动三脚架（顶点到三个边中点）。"""
+    P = lambda a, o, zz: (C[0] + a * ux + o * nx, C[1] + a * uy + o * ny, C[2] + zz)
+    V = [P(R * math.cos(math.pi / 2 + i * math.pi / 3), 0.0, R * math.sin(math.pi / 2 + i * math.pi / 3)) for i in range(6)]
+    M = [P(rA * cT * math.cos(math.pi / 2 + i * math.pi / 3 + math.pi / 6), rA * sT, rA * cT * math.sin(math.pi / 2 + i * math.pi / 3 + math.pi / 6)) for i in range(6)]
+    hub = P(0.0, 0.0, 0.0); apex = P(0.0, rA * sT + 0.05, 0.0); back = P(0.0, -0.25, 0.0)
+    out = []
+    for i in (0, 2, 4):
+        out.append(_rod(hub, V[i], 0.035))                       # Y 臂
+    for i in range(6):
+        out.append(_rod(V[i], V[(i + 1) % 6], 0.02))              # 六角外框
+    out.append(_rod(back, apex, 0.04, 8))                         # 驱动器 + 推杆（中轴）
+    for i in (1, 3, 5):
+        out.append(_rod(apex, M[i], 0.02))                        # 移动三脚架的三条腿
+    out.append(_rod(P(0.0, -0.08, 0.0), P(0.0, 0.08, 0.0), 0.09, 12))   # 环形毂
+    return [m for m in out if m]
+
+
 def _star_cover(R, r, w, wh):
     poly = []
     for i in range(12):
@@ -485,11 +513,12 @@ def dev_umbrella(seg, sh, z0, H, seed, band):
     K, nxt = _perf(sh, seed)
     zc = z0 + band["sill"] + band["winH"] / 2.0
     cover = _star_cover(R, rA * cT, w, band["winH"])
-    meshes, ratios = [], []
+    meshes, ratios, detail = [], [], []
     for s0, _sign in slots:
         ratios.append(nxt())
         cx = s0 + w / 2.0
         C = (p[0] + ux * cx + nx * dst, p[1] + uy * cx + ny * dst, zc)
+        detail += umbrella_detail(C, ux, uy, nx, ny, R, rA, cT, sT)
         m = rg.Mesh(); m.Vertices.Add(C[0], C[1], C[2])
         for i in range(6):
             t = math.pi / 2 + i * math.pi / 3
@@ -500,7 +529,7 @@ def dev_umbrella(seg, sh, z0, H, seed, band):
         for i in range(6):
             m.Faces.AddFace(0, 1 + i, 7 + i); m.Faces.AddFace(0, 7 + i, 1 + (i + 1) % 6)
         m.Normals.ComputeNormals(); meshes.append(m)
-    return meshes, _areal(ln, n_units, w * cover, ratios, K)
+    return meshes, _areal(ln, n_units, w * cover, ratios, K), detail
 
 
 FACADE_KEYS = ("A", "B", "C", "D", "court")
@@ -522,11 +551,11 @@ def facade_setting(sh, seg):
 def device_units(seg, sh, i_floor, z0, H, s_idx, band):
     seed = 991 + s_idx * 17 + i_floor * 101
     t = sh.get("type", "none")
-    if t == "bifoldV": return dev_bifoldV(seg, sh, z0, H, seed)
-    if t == "pivot": return dev_pivot(seg, sh, z0, H, seed)
-    if t == "bifoldH": return dev_bifoldH(seg, sh, z0, H, seed, band)
+    if t == "bifoldV": return dev_bifoldV(seg, sh, z0, H, seed) + ([],)
+    if t == "pivot": return dev_pivot(seg, sh, z0, H, seed) + ([],)
+    if t == "bifoldH": return dev_bifoldH(seg, sh, z0, H, seed, band) + ([],)
     if t == "umbrella": return dev_umbrella(seg, sh, z0, H, seed, band)
-    return [], NONE
+    return [], NONE, []
 
 
 # ---------------- 生成 ----------------
@@ -597,7 +626,7 @@ def build(d):
     winH = float(w["wwr"]) * (H - slab)
     sill = float(w["sill"])
     band = {"sill": sill, "winH": winH}
-    floors, wins, meshes, faces, dev, segs_all, floor_info = [], [], [], [], [], [], []
+    floors, wins, meshes, faces, dev, segs_all, floor_info, detail = [], [], [], [], [], [], [], []
     for i in range(N):
         plates, group, rect = floor_outline(b, i, ops, warnings)
         segs, cidx, plate_info, f_area = [], 0, [], 0.0
@@ -637,8 +666,8 @@ def build(d):
             f_on, f_tilt = facade_setting(sh, s)
             if use_dev and f_on:
                 sh_f = dict(sh); sh_f["tilt"] = f_tilt            # 这一面自己的折角
-                ms, tr = device_units(s, sh_f, i, i * H, H, si, band)
-                dev.extend(ms); s["dev"] = tr; s["dev"]["tilt"] = f_tilt
+                ms, tr, det = device_units(s, sh_f, i, i * H, H, si, band)
+                dev.extend(ms); detail.extend(det); s["dev"] = tr; s["dev"]["tilt"] = f_tilt
             else:
                 s["dev"] = dict(NONE)
             s["winArea"] = round(ln * winH, 3)
@@ -651,14 +680,14 @@ def build(d):
                        "facades": {k: {"on": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[0],
                                        "tilt": facade_setting(sh, {"edge": k, "loop": "court1" if k == "court" else "outer"})[1]} for k in FACADE_KEYS}},
            "groups": {"list": group_list(b), "podium": group_list(b)[0]["n"]}}
-    return floors, wins, res, meshes, faces, dev
+    return floors, wins, res, meshes, faces, dev, detail
 
 
 def run(path):
     st = sc.sticky
     rdoc = Rhino.RhinoDoc.ActiveDoc
     if not path or not os.path.isfile(path):
-        return [], [], "no state.json at: %s" % path, [], [], "", 0.0, 6, 8, 0, [], False
+        return [], [], "no state.json at: %s" % path, [], [], "", 0.0, 6, 8, 0, [], False, []
     d = read(path)
     b = d["building"]; L, W = float(b["L"]), float(b["W"])
     base_rect = (0.0, 0.0, L, W)
@@ -703,10 +732,10 @@ def run(path):
     north = (float(b["az0"]) - 180.0) % 360.0
     run_sun = bool(run_.get("sun", True))          # json run.sun：False = 不跑 Ladybug（接到两个 Direct Sun Hours 的 _run）
     cached = st.get("massing_out")
-    if not changed_file and not handle_moved and cached and len(cached) == 7:
-        f, w_, status, meshes, faces, nseg, dev = cached
-        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg, dev, run_sun
-    floors, wins, res, meshes, faces, dev = build(d)
+    if not changed_file and not handle_moved and cached and len(cached) == 8:
+        f, w_, status, meshes, faces, nseg, dev, detail = cached
+        return f, w_, status, meshes, faces, epw, north, m0, m1, nseg, dev, run_sun, detail
+    floors, wins, res, meshes, faces, dev, detail = build(d)
     prev = st.get("massing_res")
     if handle_written or changed_file or prev != res:
         res["at"] = now()
@@ -732,8 +761,8 @@ def run(path):
     opsum = " ".join("%s(%s→%s)" % (o.get("type"), o.get("id"), o.get("apply", "all")) for o in d.get("ops") or [])
     status = "seq %d | %d floors in %d groups | %d segments | %s | device %s x%d | %s" % (
         res["seq"], len(res["floors"]), len(res["groups"]["list"]), len(res["segments"]), opsum, res["shading"]["type"], res["shading"]["units"], "; ".join(notes + res["warnings"]) or "ok")
-    st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"], dev)
-    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev, run_sun
+    st["massing_out"] = (floors, wins, status, meshes, faces, res["nSeg"], dev, detail)
+    return floors, wins, status, meshes, faces, epw, north, m0, m1, res["nSeg"], dev, run_sun, detail
 
 
-floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg, devMesh, runSun = run(path)
+floors, windows, status, winMesh, winFaces, epw, north, m0, m1, nSeg, devMesh, runSun, devDetail = run(path)

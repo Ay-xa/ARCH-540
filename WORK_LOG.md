@@ -468,6 +468,11 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 用户：检查每种装置哪些参数真能调。在 Rhino 里 exec massing_sync（去掉最后一行）对 12 m 墙逐参数比较几何 / 翻译：板厚对横轴折板、伞式六角无效；固定边对这两个无效；groupMode 单独无效（要配合间隔）；其余都有效。表进 MECHANISMS.md「可调性审计」。
 - 页面：排布 / 间隔四个条目都启用；横轴折板、伞式六角的板厚和固定边灰掉并在标签里写原因（`uses.thick`、`thickLabel`）。
 
+**读图 + #3 加骨架（同日续）**
+- 用户在读图 tab 上传了 Al Bahar 单元的结构分解图并说「读图」：按 inbox/README.md 写了 card.json（closest umbrella 0.85，三处不同，估计值标明），status read。
+- 用户要给 #3 加细节：`umbrella_detail()` 每单元 14 根细圆柱（`_rod` = Mesh.CreateFromCylinder）；`device_units` 统一返回 (meshes, tr, detail)，`build/run` 多一个 `detail`，sync 新输出 `devDetail`（第 13 个），Custom Preview「preview detail」深灰；不接 Ladybug context。缓存元组长度改 8。
+- 截图 `screenshots/rhino_umbrella_detail.jpg`。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。
