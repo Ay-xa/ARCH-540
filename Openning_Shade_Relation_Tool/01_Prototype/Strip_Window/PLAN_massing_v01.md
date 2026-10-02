@@ -82,7 +82,45 @@ Strip_Window/
 }
 ```
 
-- 网页写 `building / ops / windows / run`；GH 写 `handle / results`。谁写谁的字段。
+**2026-10-03 的契约（第四刀收尾时的现状，以此为准；上面的是第一刀的样子）**
+
+```json
+{
+  "building": {"floors": 5, "H": 3.0, "slab": 0.35, "L": 30, "W": 16, "az0": 180,
+    "groups": {"list": [
+      {"n": 2, "setback": {"A": 0, "B": 0, "C": 0, "D": 0}, "shift": {"x": 0, "y": 0}},
+      {"n": 1, "setback": {"A": 2, "B": 0, "C": 3, "D": 0}, "shift": {"x": 2, "y": 0}},
+      {"n": 0, "setback": {"A": 0, "B": 0, "C": 0, "D": 0}, "shift": {"x": 0, "y": 0}}]}},
+  "ops": [
+    {"id": "notch01", "type": "notch", "apply": "all", "edge": "B", "pos": 0.36, "width": 6, "depth": 4, "at": "…"},
+    {"id": "court01", "type": "court", "apply": "g1",  "pos_u": 0.33, "pos_v": 0.5, "width": 6, "depth": 6, "at": "…"},
+    {"id": "split01", "type": "split", "apply": "all", "axis": "x", "pos": 0.55, "gap": 4, "at": "…"}
+  ],
+  "windows": {"wwr": 0.45, "sill": 0.73},
+  "run": {"seq": 76, "period": "summer", "clim": "apNow", "sun": true},
+  "shading": {"type": "bifoldV", "unitW": 3, "tilt": 45, "standoff": 0.4, "thick": 0.15, "skin": 3, "holeD": 5,
+    "perfMin": 0.1, "perfMax": 0.3, "floors": "all", "fixed": "alt",
+    "facades": {"A": {"on": true, "tilt": 45}, "B": {"on": true, "tilt": 45}, "C": {"on": false, "tilt": 45}, "D": {"on": true, "tilt": 70}, "court": {"on": false, "tilt": 45}}},
+  "handle": {"notch01": {"pos": 0.36, "depth": 4, "at": "…"}, "court01": {"pos_u": 0.33, "pos_v": 0.5, "at": "…"}, "split01": {"pos": 0.55, "at": "…"}},
+  "results": {"seq": 76, "at": "…", "nSeg": 80, "winH": 1.192, "warnings": [],
+    "groups": {"list": [{"n": 2, "setback": {}, "shift": {}, "floors": [1, 2]}], "podium": 2},
+    "floors": [{"i": 1, "group": 1, "rect": [0, 0, 30, 16], "area": 356, "perimeter": [[…]], "holes": [[[…]]],
+                "plates": [{"perimeter": [[…]], "holes": [[[…]]]}, {"perimeter": [[…]], "holes": []}]}],
+    "segments": [{"floor": 1, "edge": "S1", "loop": "outer", "az": 90, "len": 16, "p": [14.5, 0], "q": [14.5, 16], "winArea": 19.1,
+                  "dev": {"kind": "areal", "screen": 0.37, "screenDay": 0.33, "view": 0.22, "units": 5, "tilt": 45}}],
+    "shading": {"type": "bifoldV", "units": 157, "facades": {}},
+    "sun": {"period": "summer", "unit": "h", "perSegment": [], "perWindow": [], "massOnly": [], "free": [], "expo": [], "at": "…", "stale": false}}
+}
+```
+
+- 楼层组：从 F1 起按 `n` 依次分配，最后一组拿剩下的楼层（它的 `n` 不算数）；`setback` 从基底四边向内退，`shift` 退完再整组平移。旧写法 `{podium, setback}` 仍能读。
+- 操作：任意条；`apply = all | g1…g8`；id 由页面按顺序编（`notch01…`、`court01…`、`split01…`），Rhino 手柄点同名（红 / 蓝 / 绿）、自动增删。先加的优先，后加的和已有的挨在 1 m 内就忽略并写警告。每层只用第一条分裂。
+- 段：`loop = outer | outer2 | court1 | court2…`；凹口壁按边名编号（B1–B5，第二个凹口接着编），庭院内墙 Y1–Y4 / Y2_1–Y2_4，缝边 S1 / S2。
+- `run.sun = false` 暂停两个 Ladybug Direct Sun Hours（页面「跑 Ladybug 日照」勾、装置扫描时自动）。
+- `sun.expo` = 只有楼板遮挡 ÷ 自由墙面 的直射小时比例，引擎 `seg.expo` 只折减直射；只换装置时 `expo` 照用、`perSegment` 删掉并标 `stale`，Ladybug 算完再写满。
+- 读图不走 state.json：`02_Rules/inbox/<id>/{request.json, card.json, 图}`，见 `inbox/README.md`。
+
+- 网页写 `building / ops / windows / run / shading`；GH 写 `handle / results`。谁写谁的字段。
 - 手柄与滑块的冲突：`ops[].at` 与 `handle[].at` 比时间戳，**后动的算数**；网页收到更新的 `handle` 就把滑块同步过去并提示"来自 Rhino"；网页改滑块就写 `ops` 并更新 `at`。
 - 边名：基底四边 A/B/C/D，A 朝向 = `az0`，顺时针递增。凹口把一条边切成多段，命名 `A1, A2, A3`（沿边从左到右，从室外看）；凹口的两条侧边朝向 = 原边朝向 ± 90°，底边朝向 = 原边朝向。
 - 引擎输入由网页拼：每段 `{len, az, oh:0, windows:[{w:len, h:winH, sill}]}`，`winH = wwr × (H − 楼板厚)`；房间进深、气候、热质量、通风仍在网页上选。
