@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MassShade · 体量与立面</title>
+<title>MassShade · massing & facade</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -95,179 +95,179 @@
 </head>
 <body>
 <aside>
-  <h1>MassShade<small>体量 × 立面遮阳 × 室内过热与采光</small><a class="lang" href="massing-tool-en.html">EN</a></h1>
-  <div class="conn" id="conn"><i></i><span id="connText">未连接本地服务</span></div>
-  <div class="viewtabs"><button type="button" data-view="design" class="on">设计</button><button type="button" data-view="compare">对比</button><button type="button" data-view="read">读图</button></div>
-  <div class="save-row two"><input id="snapName" placeholder="方案名（可空）"><button type="button" id="snapSave">存为方案</button></div>
+  <h1>MassShade<small>massing × facade shading × overheating & daylight</small><a class="lang" href="massing-tool.html">&#20013;&#25991;</a></h1>
+  <div class="conn" id="conn"><i></i><span id="connText">no local service</span></div>
+  <div class="viewtabs"><button type="button" data-view="design" class="on">Design</button><button type="button" data-view="compare">Compare</button><button type="button" data-view="read">Read image</button></div>
+  <div class="save-row two"><input id="snapName" placeholder="scheme name (optional)"><button type="button" id="snapSave">Save scheme</button></div>
 
   <div class="only-compare" id="cmpAside">
-    <div class="note">在「设计」里调好后点「存为方案」。右边勾选 2–4 个方案并排看。方案保存在这台电脑的浏览器里，换电脑请用导出 / 导入。</div>
+    <div class="note">Tune a scheme in Design, then click Save scheme. Tick 2–4 schemes on the right to see them side by side. Schemes live in this browser; use export / import to move them.</div>
     <div id="sweepWrap" hidden>
-      <div class="h3">四种装置各跑一遍</div>
-      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">连日照一起跑（每种约 30 秒）</label>
-      <button type="button" id="sweepBtn" class="primary">以当前设计为底，跑五个方案</button>
+      <div class="h3">Run all four devices</div>
+      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sweepSun" style="accent-color:var(--accent);margin:0">include sun hours (about 30 s each)</label>
+      <button type="button" id="sweepBtn" class="primary">Uses the current design as the base and saves five schemes</button>
       <div class="note" id="sweepStatus"></div>
     </div>
   </div>
 
   <div class="only-read" id="readAside">
-    <div class="h3">读图：从一张装置的图到参数卡</div>
-    <div class="note">1. 右边上传装置的运动分析图或照片，写一句描述，发送。<br>2. 卡出来后每一格都能改。<br>3. 「应用到设计」直接换成这个装置；「存入机构库」交给 Claude 整理成条目。</div>
-    <div class="note">模式：<span id="readModeAside">—</span>。没有 api_key.txt 时，上传后在聊天里对 Claude 说「读图」。</div>
-    <div class="note">库里没有的运动方式，卡会说最接近哪个条目、差在哪；要做成三维需要 Claude 加新条目。</div>
+    <div class="h3">Read image: from a picture of a device to a parameter card</div>
+    <div class="note">1. Upload a motion diagram or photo of a device on the right, add one line of description, send.<br>2. Every field of the card can be edited once it appears.<br>3. Apply to design swaps the device in; Add to library hands it to Claude to write up as a library entry.</div>
+    <div class="note">mode: <span id="readModeAside">—</span>. Without an api_key.txt , upload and then tell Claude “read image” in the chat.</div>
+    <div class="note">For a motion the library lacks, the card names the closest entry and the difference; building it in 3D needs Claude to add a new entry.</div>
   </div>
 
   <details class="grp" id="g1">
-    <summary><span>建筑</span><b id="g1Sum"></b></summary>
+    <summary><span>Building</span><b id="g1Sum"></b></summary>
     <div class="body">
-      <div class="h3">基底与楼层</div>
+      <div class="h3">Footprint & floors</div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="L">长 L</label><output id="LOut"></output></div><input id="L" type="range" min="6" max="80" step="1" value="30"></div>
-        <div class="ctl"><div class="row"><label for="W">宽 W</label><output id="WOut"></output></div><input id="W" type="range" min="6" max="60" step="1" value="16"></div>
+        <div class="ctl"><div class="row"><label for="L">Length L</label><output id="LOut"></output></div><input id="L" type="range" min="6" max="80" step="1" value="30"></div>
+        <div class="ctl"><div class="row"><label for="W">width W</label><output id="WOut"></output></div><input id="W" type="range" min="6" max="60" step="1" value="16"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="floors">层数</label><output id="floorsOut"></output></div><input id="floors" type="range" min="1" max="30" step="1" value="3"></div>
-        <div class="ctl"><div class="row"><label for="H">层高</label><output id="HOut"></output></div><input id="H" type="range" min="2.6" max="6" step="0.1" value="3.0"></div>
+        <div class="ctl"><div class="row"><label for="floors">Floors</label><output id="floorsOut"></output></div><input id="floors" type="range" min="1" max="30" step="1" value="3"></div>
+        <div class="ctl"><div class="row"><label for="H">Height</label><output id="HOut"></output></div><input id="H" type="range" min="2.6" max="6" step="0.1" value="3.0"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="slab">楼板厚</label><output id="slabOut"></output></div><input id="slab" type="range" min="0.15" max="1.0" step="0.05" value="0.35"></div>
-        <div class="ctl"><div class="row"><label for="az0">A 边朝向</label><output id="az0Out"></output></div><input id="az0" type="range" min="0" max="355" step="5" value="180"></div>
+        <div class="ctl"><div class="row"><label for="slab">Slab</label><output id="slabOut"></output></div><input id="slab" type="range" min="0.15" max="1.0" step="0.05" value="0.35"></div>
+        <div class="ctl"><div class="row"><label for="az0">A faces</label><output id="az0Out"></output></div><input id="az0" type="range" min="0" max="355" step="5" value="180"></div>
       </div>
-      <div class="note">A、C 边长 L，B、D 边长 W。A 边朝向 180° = 朝南，四条边按 A、B、C、D 顺时针排。</div>
+      <div class="note">A and C are L long, B and D are W long. A facing 180° = south; the four edges run A, B, C, D clockwise.</div>
 
-      <div class="h3">楼层组</div>
+      <div class="h3">Floor groups</div>
       <div class="tabs" id="grpTabs"></div>
-      <div class="ctl"><div class="row"><label for="gn" id="gnLabel">本组层数</label><output id="gnOut"></output></div><input id="gn" type="range" min="0" max="30" step="1" value="3"></div>
+      <div class="ctl"><div class="row"><label for="gn" id="gnLabel">Floors in group</label><output id="gnOut"></output></div><input id="gn" type="range" min="0" max="30" step="1" value="3"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="sbA">A 边退台</label><output id="sbAOut"></output></div><input id="sbA" type="range" min="0" max="15" step="0.5" value="0"></div>
-        <div class="ctl"><div class="row"><label for="sbB">B 边退台</label><output id="sbBOut"></output></div><input id="sbB" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbA">A setback</label><output id="sbAOut"></output></div><input id="sbA" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbB">B setback</label><output id="sbBOut"></output></div><input id="sbB" type="range" min="0" max="15" step="0.5" value="0"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="sbC">C 边退台</label><output id="sbCOut"></output></div><input id="sbC" type="range" min="0" max="15" step="0.5" value="0"></div>
-        <div class="ctl"><div class="row"><label for="sbD">D 边退台</label><output id="sbDOut"></output></div><input id="sbD" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbC">C setback</label><output id="sbCOut"></output></div><input id="sbC" type="range" min="0" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="sbD">D setback</label><output id="sbDOut"></output></div><input id="sbD" type="range" min="0" max="15" step="0.5" value="0"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="gsx">错位 沿 L</label><output id="gsxOut"></output></div><input id="gsx" type="range" min="-15" max="15" step="0.5" value="0"></div>
-        <div class="ctl"><div class="row"><label for="gsy">错位 沿 W</label><output id="gsyOut"></output></div><input id="gsy" type="range" min="-15" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gsx">Shift along L</label><output id="gsxOut"></output></div><input id="gsx" type="range" min="-15" max="15" step="0.5" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gsy">Shift along W</label><output id="gsyOut"></output></div><input id="gsy" type="range" min="-15" max="15" step="0.5" value="0"></div>
       </div>
-      <div class="note">楼层从下往上分组，最后一组自动拿剩下的楼层。每组可以四边退台，也可以整组错位。点 + 加一组，删 删掉当前组。</div>
+      <div class="note">Floors are grouped from the bottom up; the last group takes whatever is left. Each group can set back on four sides or shift as a whole. + adds a group, Del removes the current one.</div>
 
-      <div class="h3">窗</div>
+      <div class="h3">Windows</div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="wwr">窗墙比</label><output id="wwrOut"></output></div><input id="wwr" type="range" min="0" max="100" step="1" value="45"></div>
-        <div class="ctl"><div class="row"><label for="sill">窗台高</label><output id="sillOut"></output></div><input id="sill" type="range" min="0" max="2" step="0.05" value="0.73"></div>
+        <div class="ctl"><div class="row"><label for="wwr">Window-wall ratio</label><output id="wwrOut"></output></div><input id="wwr" type="range" min="0" max="100" step="1" value="45"></div>
+        <div class="ctl"><div class="row"><label for="sill">Sill height</label><output id="sillOut"></output></div><input id="sill" type="range" min="0" max="2" step="0.05" value="0.73"></div>
       </div>
-      <div class="note">每段墙一条通长的窗带，高度由窗墙比算出。</div>
+      <div class="note">One continuous window band per wall segment; its height follows the window-wall ratio.</div>
     </div>
   </details>
 
   <details class="grp" id="g5">
-    <summary><span>环境与计算</span><b id="g5Sum"></b></summary>
+    <summary><span>Environment & calculation</span><b id="g5Sum"></b></summary>
     <div class="body">
-      <div class="ctl"><div class="row"><label for="depth">房间进深</label><output id="depthOut"></output></div><input id="depth" type="range" min="3" max="10" step="0.5" value="5"></div>
-      <div class="note">离窗多远以内算作"靠窗的房间带"。过热和采光都按这条带算，更深的地方不计。</div>
+      <div class="ctl"><div class="row"><label for="depth">Room depth</label><output id="depthOut"></output></div><input id="depth" type="range" min="3" max="10" step="0.5" value="5"></div>
+      <div class="note">How far from the window counts as the"window-side room band". Overheating and daylight are evaluated in this band; deeper floor area is not counted.</div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="clim">气候</label></div>
-          <select id="clim"><option value="apNow">当下（机场站）</option><option value="hbNow">当下（港口站）</option><option value="f2080">2080 年预测</option></select></div>
-        <div class="ctl"><div class="row"><label for="mass">热质量</label></div>
-          <select id="mass"><option value="light">轻</option><option value="mid" selected>中</option><option value="heavy">重</option></select></div>
+        <div class="ctl"><div class="row"><label for="clim">Climate</label></div>
+          <select id="clim"><option value="apNow">Today (airport)</option><option value="hbNow">Today (harbour)</option><option value="f2080">2080  projection</option></select></div>
+        <div class="ctl"><div class="row"><label for="mass">Thermal mass</label></div>
+          <select id="mass"><option value="light">light</option><option value="mid" selected>medium</option><option value="heavy">heavy</option></select></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="vent">开窗通风</label></div>
-          <select id="vent"><option value="none">不开窗</option><option value="win" selected>开窗（约 2 次/h）</option><option value="cross">穿堂风（约 4 次/h）</option></select></div>
-        <div class="ctl"><div class="row"><label for="period">日照分析期</label></div>
-          <select id="period"><option value="summer" selected>夏季 6–8 月</option><option value="winter">冬季 12–2 月</option><option value="annual">全年</option></select></div>
+        <div class="ctl"><div class="row"><label for="vent">Window ventilation</label></div>
+          <select id="vent"><option value="none">closed</option><option value="win" selected>open (≈2 ach)</option><option value="cross">cross-vent (≈4 ach)</option></select></div>
+        <div class="ctl"><div class="row"><label for="period">Sun period</label></div>
+          <select id="period"><option value="summer" selected>Summer Jun–Aug</option><option value="winter">Winter Dec–Feb</option><option value="annual">Annual</option></select></div>
       </div>
-      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="runSun" checked style="accent-color:var(--accent);margin:0">计算 Ladybug 日照</label>
-      <div class="note">关掉后拖滑块更快；日照和受晒两列停在上一次的值。</div>
+      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="runSun" checked style="accent-color:var(--accent);margin:0">Calculate Ladybug Sun</label>
+      <div class="note">Off = sliders respond faster; the sun-hours and exposure columns keep their last values.</div>
     </div>
   </details>
 
   <details class="grp" id="g2" open>
-    <summary><span>拓扑操作</span><b id="g2Sum"></b></summary>
+    <summary><span>Topology operations</span><b id="g2Sum"></b></summary>
     <div class="body">
-      <div class="note">三种操作都可以有多个：点 + 新增，点 删 删掉当前这个。Rhino 里的彩色点是手柄（红 凹口、蓝 庭院、绿 分裂），拖它和拖滑块一样，谁后动谁算数。</div>
+      <div class="note">Each operation can be repeated: + adds one, Del removes the current one. The coloured points in Rhino are handles (red notch, blue courtyard, green split); dragging one is the same as moving a slider, the later move wins.</div>
 
-      <div class="h3">凹口 <span class="badge" id="fromRhino" hidden>来自 Rhino</span></div>
+      <div class="h3">Notch <span class="badge" id="fromRhino" hidden>from Rhino</span></div>
       <div class="tabs" id="notchTabs"></div>
       <div class="cap bad" id="notchWarn" hidden></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="edge">在哪条边</label></div>
+        <div class="ctl"><div class="row"><label for="edge">Edge</label></div>
           <select id="edge"><option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-        <div class="ctl"><div class="row"><label for="applyN">作用在</label></div><select id="applyN"><option value="all" selected>全部楼层</option></select></div>
+        <div class="ctl"><div class="row"><label for="applyN">Applies to</label></div><select id="applyN"><option value="all" selected>all floors</option></select></div>
       </div>
-      <div class="ctl"><div class="row"><label for="pos">位置（沿边）</label><output id="posOut"></output></div><input id="pos" type="range" min="0" max="1" step="0.01" value="0.4"></div>
+      <div class="ctl"><div class="row"><label for="pos">Position (along edge)</label><output id="posOut"></output></div><input id="pos" type="range" min="0" max="1" step="0.01" value="0.4"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="nw">宽</label><output id="nwOut"></output></div><input id="nw" type="range" min="0" max="40" step="0.5" value="6"></div>
-        <div class="ctl"><div class="row"><label for="nd">深</label><output id="ndOut"></output></div><input id="nd" type="range" min="0" max="60" step="0.5" value="4"></div>
+        <div class="ctl"><div class="row"><label for="nw">width</label><output id="nwOut"></output></div><input id="nw" type="range" min="0" max="40" step="0.5" value="6"></div>
+        <div class="ctl"><div class="row"><label for="nd">depth</label><output id="ndOut"></output></div><input id="nd" type="range" min="0" max="60" step="0.5" value="4"></div>
       </div>
-      <div class="note">深过一半就是 U 形，最深到对面墙前 1 m。两个凹口挨得太近（1 m 以内）时后加的会被忽略。</div>
+      <div class="note">Deeper than half makes a U; the deepest stops 1 m before the far wall. Two notches closer than 1 m: the later one is ignored.</div>
 
-      <div class="h3">庭院 <span class="badge" id="fromRhinoC" hidden>来自 Rhino</span></div>
+      <div class="h3">Courtyard <span class="badge" id="fromRhinoC" hidden>from Rhino</span></div>
       <div class="tabs" id="courtTabs"></div>
       <div class="cap bad" id="courtWarn" hidden></div>
-      <div class="ctl"><div class="row"><label for="applyC">作用在</label></div><select id="applyC"><option value="all" selected>全部楼层</option></select></div>
+      <div class="ctl"><div class="row"><label for="applyC">Applies to</label></div><select id="applyC"><option value="all" selected>all floors</option></select></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="cu">中心 沿 L</label><output id="cuOut"></output></div><input id="cu" type="range" min="0" max="1" step="0.01" value="0.6"></div>
-        <div class="ctl"><div class="row"><label for="cv">中心 沿 W</label><output id="cvOut"></output></div><input id="cv" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="ctl"><div class="row"><label for="cu">Centre along L</label><output id="cuOut"></output></div><input id="cu" type="range" min="0" max="1" step="0.01" value="0.6"></div>
+        <div class="ctl"><div class="row"><label for="cv">Centre along W</label><output id="cvOut"></output></div><input id="cv" type="range" min="0" max="1" step="0.01" value="0.5"></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="cw">宽（沿 L）</label><output id="cwOut"></output></div><input id="cw" type="range" min="1" max="40" step="0.5" value="6"></div>
-        <div class="ctl"><div class="row"><label for="cd">深（沿 W）</label><output id="cdOut"></output></div><input id="cd" type="range" min="1" max="30" step="0.5" value="6"></div>
+        <div class="ctl"><div class="row"><label for="cw">Width (along L)</label><output id="cwOut"></output></div><input id="cw" type="range" min="1" max="40" step="0.5" value="6"></div>
+        <div class="ctl"><div class="row"><label for="cd">Depth (along W)</label><output id="cdOut"></output></div><input id="cd" type="range" min="1" max="30" step="0.5" value="6"></div>
       </div>
-      <div class="note">庭院四面内墙朝内开窗。庭院离外墙至少 1 m，不能和凹口或别的庭院挨着，挨着的会被忽略。只开在下面几组时，上面的楼层会把它盖住。</div>
+      <div class="note">The four inner walls of a courtyard get windows facing in. Keep it 1 m from the outer wall and clear of notches and other courtyards, or it is ignored. Opened only in lower groups, the floors above cover it.</div>
 
-      <div class="h3">分裂 <span class="badge" id="fromRhinoS" hidden>来自 Rhino</span></div>
+      <div class="h3">Split <span class="badge" id="fromRhinoS" hidden>from Rhino</span></div>
       <div class="tabs" id="splitTabs"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="axis">切的方向</label></div>
-          <select id="axis"><option value="x" selected>横着切，分成左右两块</option><option value="y">竖着切，分成前后两块</option></select></div>
-        <div class="ctl"><div class="row"><label for="applyS">作用在</label></div><select id="applyS"><option value="all" selected>全部楼层</option></select></div>
+        <div class="ctl"><div class="row"><label for="axis">Cut direction</label></div>
+          <select id="axis"><option value="x" selected>across: left / right halves</option><option value="y">along: front / back halves</option></select></div>
+        <div class="ctl"><div class="row"><label for="applyS">Applies to</label></div><select id="applyS"><option value="all" selected>all floors</option></select></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="spos">切线位置</label><output id="sposOut"></output></div><input id="spos" type="range" min="0" max="1" step="0.01" value="0.5"></div>
-        <div class="ctl"><div class="row"><label for="sgap">缝宽</label><output id="sgapOut"></output></div><input id="sgap" type="range" min="0.5" max="20" step="0.5" value="4"></div>
+        <div class="ctl"><div class="row"><label for="spos">Cut position</label><output id="sposOut"></output></div><input id="spos" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="ctl"><div class="row"><label for="sgap">Gap</label><output id="sgapOut"></output></div><input id="sgap" type="range" min="0.5" max="20" step="0.5" value="4"></div>
       </div>
-      <div class="note">把楼板切成两块、中间留缝。缝两侧的墙也是立面（S1、S2），一样开窗装装置。切线穿过凹口或庭院、或一边不到 2 m 时不切。</div>
+      <div class="note">Cuts the slab in two with a gap between. The walls along the gap are facades too (S1, S2) with windows and devices. No cut if the line crosses a notch or courtyard, or leaves a side under 2 m.</div>
     </div>
   </details>
 
   <details class="grp" id="g4" open>
-    <summary><span>遮阳装置</span><b id="g4Sum"></b></summary>
+    <summary><span>Shading device</span><b id="g4Sum"></b></summary>
     <div class="body">
       <div class="two">
-        <div class="ctl"><div class="row"><label for="devType">装置</label></div>
-          <select id="devType"><option value="none">无装置</option><option value="pivot">#0 中轴转动板</option><option value="bifoldV" selected>#1 膝盖式折板 · 竖轴</option><option value="bifoldH">#2 膝盖式折板 · 横轴</option><option value="umbrella">#3 伞式六角折板</option></select></div>
-        <div class="ctl"><div class="row"><label for="devFrom">从第几层起装</label><output id="devFromOut"></output></div><input id="devFrom" type="range" min="1" max="30" step="1" value="1"></div>
+        <div class="ctl"><div class="row"><label for="devType">Device</label></div>
+          <select id="devType"><option value="none">none</option><option value="pivot">#0 pivot panel</option><option value="bifoldV" selected>#1 knee fold · vertical axis</option><option value="bifoldH">#2 knee fold · horizontal axis</option><option value="umbrella">#3 hexagonal umbrella</option></select></div>
+        <div class="ctl"><div class="row"><label for="devFrom">Install from floor</label><output id="devFromOut"></output></div><input id="devFrom" type="range" min="1" max="30" step="1" value="1"></div>
       </div>
       <div class="note" id="devCap"></div>
 
-      <div class="h3">开合</div>
-      <div class="ctl"><div class="row"><label for="tilt" id="tiltLabel">折角（0 贴平 · 90 全折）</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
-      <div class="note">这是总闸：拖它，下面每个立面一起动；单独拖某一面只改那一面。不勾 = 这一面不装。</div>
+      <div class="h3">Opening</div>
+      <div class="ctl"><div class="row"><label for="tilt" id="tiltLabel">Fold (0 flat · 90 fully folded)</label><output id="tiltOut"></output></div><input id="tilt" type="range" min="0" max="90" step="1" value="45"></div>
+      <div class="note">Master control: drag it and every facade below follows; drag one facade to change only that one. Unticked = no device on that facade.</div>
       <table class="fac" id="facTable">
         <tr data-k="A"><td id="facLabA">A</td><td><input type="checkbox" id="fOnA" checked></td><td><input type="range" id="fTiltA" min="0" max="90" step="1" value="45"></td><td><output id="fTiltAOut"></output></td></tr>
         <tr data-k="B"><td id="facLabB">B</td><td><input type="checkbox" id="fOnB" checked></td><td><input type="range" id="fTiltB" min="0" max="90" step="1" value="45"></td><td><output id="fTiltBOut"></output></td></tr>
         <tr data-k="C"><td id="facLabC">C</td><td><input type="checkbox" id="fOnC" checked></td><td><input type="range" id="fTiltC" min="0" max="90" step="1" value="45"></td><td><output id="fTiltCOut"></output></td></tr>
         <tr data-k="D"><td id="facLabD">D</td><td><input type="checkbox" id="fOnD" checked></td><td><input type="range" id="fTiltD" min="0" max="90" step="1" value="45"></td><td><output id="fTiltDOut"></output></td></tr>
-        <tr data-k="court"><td id="facLabcourt">庭院内墙</td><td><input type="checkbox" id="fOncourt"></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
+        <tr data-k="court"><td id="facLabcourt">Courtyard walls</td><td><input type="checkbox" id="fOncourt"></td><td><input type="range" id="fTiltcourt" min="0" max="90" step="1" value="45"></td><td><output id="fTiltcourtOut"></output></td></tr>
       </table>
-      <div class="note">凹口里的墙跟着它所在的边；分裂的缝两侧按默认折角。</div>
+      <div class="note">Walls inside a notch follow their edge; the two sides of a split gap use the default angle.</div>
 
-      <div class="h3">单元与排布</div>
-      <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">单元宽度</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
-      <div class="ctl"><div class="row"><label for="thick" id="thickLabel">板厚</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
+      <div class="h3">Unit & layout</div>
+      <div class="ctl"><div class="row"><label for="unitW" id="unitWLabel">Unit width</label><output id="unitWOut"></output></div><input id="unitW" type="range" min="0.5" max="6" step="0.1" value="3.0"></div>
+      <div class="ctl"><div class="row"><label for="thick" id="thickLabel">Thickness</label><output id="thickOut"></output></div><input id="thick" type="range" min="0.005" max="0.3" step="0.005" value="0.15"></div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="groupMode">每组几片</label></div>
-          <select id="groupMode"><option value="fill" selected>排满，不分组</option><option value="1">每组 1 片</option><option value="2">每组 2 片</option><option value="3">每组 3 片</option><option value="mix">随机 1 / 2 / 3 片</option></select></div>
-        <div class="ctl"><div class="row"><label for="fixed" id="fixedLabel">固定边</label></div>
-          <select id="fixed"><option value="alt" selected>逐片交替</option><option value="same">同向</option><option value="rand">随机</option></select></div>
+        <div class="ctl"><div class="row"><label for="groupMode">Panels per group</label></div>
+          <select id="groupMode"><option value="fill" selected>fill, no groups</option><option value="1">1 per group</option><option value="2">2 per group</option><option value="3">3 per group</option><option value="mix">random 1 / 2 / 3  panels</option></select></div>
+        <div class="ctl"><div class="row"><label for="fixed" id="fixedLabel">Fixed edge</label></div>
+          <select id="fixed"><option value="alt" selected>alternate</option><option value="same">same side</option><option value="rand">random</option></select></div>
       </div>
       <div class="two">
-        <div class="ctl"><div class="row"><label for="gapPanel">片间隔</label><output id="gapPanelOut"></output></div><input id="gapPanel" type="range" min="0" max="2" step="0.05" value="0"></div>
-        <div class="ctl"><div class="row"><label for="gapGroup">组间隔</label><output id="gapGroupOut"></output></div><input id="gapGroup" type="range" min="0" max="10" step="0.1" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gapPanel">Panel gap</label><output id="gapPanelOut"></output></div><input id="gapPanel" type="range" min="0" max="2" step="0.05" value="0"></div>
+        <div class="ctl"><div class="row"><label for="gapGroup">Group gap</label><output id="gapGroupOut"></output></div><input id="gapGroup" type="range" min="0" max="10" step="0.1" value="0"></div>
       </div>
-      <div class="note">沿每段墙从中间排起，能放几组放几组。分了组，两个间隔才起作用。灰掉的 = 这种装置用不到。</div>
+      <div class="note">Laid out from the middle of each wall, as many groups as fit. The two gaps only matter once panels are grouped. Greyed = not used by this device.</div>
 
       <div id="hiddenParams" hidden>
         <input id="standoff" type="range" min="0" max="2" step="0.05" value="0.4"><output id="standoffOut"></output>
@@ -281,71 +281,71 @@
   </details>
 
   <details class="grp" id="g3">
-    <summary><span>Rhino 状态</span><b id="g3Sum"></b></summary>
+    <summary><span>Rhino status</span><b id="g3Sum"></b></summary>
     <div class="body">
       <div class="readout">
-        <span>Rhino 最近写回</span><span id="rAt">—</span>
-        <span>立面段数</span><span id="rSegs">—</span>
-        <span>各层面积</span><span id="rArea">—</span>
-        <span>窗高</span><span id="rWinH">—</span>
+        <span>Rhino Last write-back</span><span id="rAt">—</span>
+        <span>Facade segments</span><span id="rSegs">—</span>
+        <span>Floor areas</span><span id="rArea">—</span>
+        <span>Window height</span><span id="rWinH">—</span>
       </div>
-      <div class="note">滑块一动就自动同步到 Rhino，重算后页面自己更新；这里只是看一眼状态。</div>
+      <div class="note">Sliders sync to Rhino automatically and the page refreshes after each recompute; this is just a status readout.</div>
     </div>
   </details>
 </aside>
 
 <main>
   <div class="card plan" id="planCard">
-    <div class="bar"><label>平面</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select>
-      <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>过热暴露</option><option value="df">采光</option><option value="none">只看立面段</option></select>
-      <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">格 0.5 m</option><option value="1" selected>格 1 m</option><option value="2">格 2 m</option></select><b id="planSum"></b></div>
-    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="标准层平面与立面段"></svg>
-    <div class="note">北朝上。外圈是罗盘；两道弧是太阳方位：橙色冬至、红色夏至，弧的两端是日出和日落方向，鼠标停上去看角度。底色是每一格的过热暴露或采光，从面向它的墙段按距离摊开；灰格离所有外墙都太远，立面管不到。彩色点是 Rhino 里的手柄。</div>
+    <div class="bar"><label>Plan</label><select id="planFloor" style="width:auto;padding:2px 6px;font-size:12px"></select>
+      <select id="planMode" style="width:auto;padding:2px 6px;font-size:12px"><option value="hot" selected>Overheating exposure</option><option value="df">Daylight</option><option value="none">segments only</option></select>
+      <select id="planGrid" style="width:auto;padding:2px 6px;font-size:12px"><option value="0.5">cell 0.5 m</option><option value="1" selected>cell 1 m</option><option value="2">cell 2 m</option></select><b id="planSum"></b></div>
+    <svg id="plan" viewBox="0 0 100 100" role="img" aria-label="Typical floor plan with facade segments"></svg>
+    <div class="note">North is up. The outer ring is a compass; the two arcs are sun azimuths, orange winter solstice and red summer solstice, their ends are sunrise and sunset, hover for angles. Cell colour is overheating exposure or daylight, spread from the wall segments facing it by distance; grey cells are too far from every outer wall for the facade to matter. Coloured dots are Rhino handles.</div>
   </div>
 
   <div class="card" id="dataCard">
-    <div class="bar"><label>立面段</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">全部楼层</option></select><b id="dataSum"></b></div>
+    <div class="bar"><label>Facade segments</label><select id="floorSel" style="width:auto;padding:2px 6px;font-size:12px"><option value="all">all floors</option></select><b id="dataSum"></b></div>
     <table class="heat">
-      <thead><tr><th>段</th><th>朝向</th><th>长度</th><th>视野</th><th>过热 无板</th><th>有板</th><th>采光 无板</th><th>有板</th><th>受晒</th><th id="sunHead">日照</th></tr></thead>
-      <tbody id="segBody"><tr><td colspan="9" class="cap">等待 Rhino 写回立面段…</td></tr></tbody>
+      <thead><tr><th>Seg</th><th>Facing</th><th>Length</th><th>View</th><th>Overheat bare</th><th>with</th><th>Daylight bare</th><th>with</th><th>Exposure</th><th id="sunHead">Sun</th></tr></thead>
+      <tbody id="segBody"><tr><td colspan="9" class="cap">waiting for Rhino to write back the segments……</td></tr></tbody>
     </table>
     <div class="readout" style="margin-top:6px">
-      <span>整栋过热（无板 → 有板）</span><span id="rOvhDev">—</span>
-      <span>整栋采光（无板 → 有板）</span><span id="rDFDev">—</span>
-      <span>整栋过热（无凹口 → 有凹口，均无板）</span><span id="rOvh">—</span>
-      <span>整栋采光（无凹口 → 有凹口，均无板）</span><span id="rDF">—</span>
-      <span>冬季净得热（无板 → 有板）</span><span id="rNet">—</span>
+      <span>Whole building overheating (bare → with device)</span><span id="rOvhDev">—</span>
+      <span>Whole building daylight (bare → with device)</span><span id="rDFDev">—</span>
+      <span>Whole building overheating (no notch → with notch, both bare)</span><span id="rOvh">—</span>
+      <span>Whole building daylight (no notch → with notch, both bare)</span><span id="rDF">—</span>
+      <span>Winter net gain (bare → with device)</span><span id="rNet">—</span>
     </div>
-    <div class="note">过热 = 全年室内高于 25 °C 的小时占比，被动房要求不超过 10 %，建议 5 % 以内。采光 = 房间带平均采光系数，3 % 算充足。两列「无板 / 有板」= 不装 / 装遮阳装置。受晒 = 这段墙被自己的体量挡掉后还能晒到的比例。日照 = Ladybug 算的直射小时数。过热和采光是估算，适合比大小，不适合当绝对值。</div>
+    <div class="note">Overheating = share of hours above 25 °C indoors over the year; Passive House allows at most 10 %, 5 % is recommended. Daylight = mean daylight factor of the room band, 3 % counts as sufficient. “bare / with” = without / with the shading device. Exposure = how much direct sun this segment still gets after the building massing itself blocks part of it. Sun = = Ladybug direct sun hours from Ladybug. Overheating and daylight are estimates: good for comparing, not for absolute values.</div>
   </div>
 
   <div class="card" id="secCard">
-    <div class="bar"><label>剖面</label><b id="secSum"></b></div>
-    <svg id="section" viewBox="0 0 640 320" role="img" aria-label="所选立面段的窗洞剖面：窗台、窗头、遮阳装置与太阳角"></svg>
-    <div class="note" id="secNote">等待数据。</div>
-    <div class="note">切在遮阳装置上：自动取装了装置、过热最高的那段外墙（没装置时画窗洞本身）。外面在左，房间在右。黑色粗线是遮阳装置的侧影。红色是高温时段的直射光，橙色是冬季直射光，角度是这个朝向在那段时间里的直射加权平均剖面角（气象数据）；两条细虚线是夏至、冬至正午的实际太阳角（按气候站纬度）。光线被装置挡掉的部分不画；穿过板缝的用淡色画。</div>
+    <div class="bar"><label>Section</label><b id="secSum"></b></div>
+    <svg id="section" viewBox="0 0 640 320" role="img" aria-label="Window section of the chosen segment: sill, head, shading device and sun angles"></svg>
+    <div class="note" id="secNote">Waiting for data.</div>
+    <div class="note">Cut through the shading device: the outer wall with a device and the highest overheating is picked automatically (just the window if there is no device). Outside on the left, room on the right. The thick black line is the device profile. Red is direct sun in hot hours, orange is winter direct sun; the angles are the direct-weighted mean profile angles for this orientation (climate data). The two thin dashed lines are the real solstice-noon sun angles (station latitude). Light blocked by the device is not drawn; light through gaps is drawn faint.</div>
   </div>
 
   <div class="card interp" id="interpCard">
-    <div class="bar"><label>解读</label></div>
-    <div id="interp"><p class="cap">等待数据。</p></div>
+    <div class="bar"><label>Reading</label></div>
+    <div id="interp"><p class="cap">Waiting for data.</p></div>
   </div>
   <div class="card only-compare" id="snapCard" style="flex:1 1 300px;max-width:380px">
-    <div class="bar"><label>方案列表</label><b id="snapSum"></b></div>
-    <div class="cap">勾 2–4 个并排看。点名字改名，点「删」两次删掉。</div>
+    <div class="bar"><label>Schemes</label><b id="snapSum"></b></div>
+    <div class="cap">Tick 2–4 to compare. Click a name to rename, click Del twice to delete.</div>
     <div class="snaps" id="snapList"></div>
-    <div class="two" style="margin-top:6px"><button type="button" id="snapExport">导出全部</button><button type="button" id="snapImportBtn">导入</button></div><input type="file" id="snapImport" accept=".json" hidden>
+    <div class="two" style="margin-top:6px"><button type="button" id="snapExport">Export all</button><button type="button" id="snapImportBtn">Import</button></div><input type="file" id="snapImport" accept=".json" hidden>
   </div>
   <div class="card only-compare" id="cmpCard" style="flex:1 1 560px;max-width:none">
-    <div class="bar"><label>方案对比</label><b id="cmpSum"></b></div>
-    <div id="cmpBody"><p class="cap">在左边勾选方案。</p></div>
+    <div class="bar"><label>Scheme comparison</label><b id="cmpSum"></b></div>
+    <div id="cmpBody"><p class="cap">Tick schemes on the left.</p></div>
   </div>
   <div class="card only-read" id="readCard" style="flex-basis:100%;max-width:none">
-    <div class="bar"><label>读图 · 新装置</label><b id="readMode"></b></div>
+    <div class="bar"><label>Read image · new device</label><b id="readMode"></b></div>
     <div class="two" style="align-items:start">
-      <div class="ctl"><label>图（可多张，最多 6）</label><input type="file" id="readFiles" accept="image/*" multiple><div class="thumbs" id="readPreview"></div></div>
-      <div class="ctl"><label for="readNote">一句描述（可空，比如"两片板，底边固定，膝盖向外"）</label><textarea id="readNote" class="note" rows="4"></textarea>
-        <button type="button" id="readSend" class="primary">发送</button><div class="cap" id="readStatus"></div></div>
+      <div class="ctl"><label>Images (up to 6)</label><input type="file" id="readFiles" accept="image/*" multiple><div class="thumbs" id="readPreview"></div></div>
+      <div class="ctl"><label for="readNote">One line (optional, e.g."two leaves, bottom fixed, knee outward")</label><textarea id="readNote" class="note" rows="4"></textarea>
+        <button type="button" id="readSend" class="primary">Send</button><div class="cap" id="readStatus"></div></div>
     </div>
     <div id="inboxList"></div>
   </div>
@@ -357,18 +357,19 @@
 (function(){
   const $ = id => document.getElementById(id);
   const ENGINE = (typeof window.WWR!=='undefined') ? window.WWR : null;
+  if(ENGINE){ ENGINE.DIRS = ['N','NE','E','SE','S','SW','W','NW']; ENGINE.dirName = az => ENGINE.DIRS[Math.round(ENGINE.norm(az)/45)%8]; }
   const ids = ['L','W','floors','H','slab','az0','gn','sbA','sbB','sbC','sbD','wwr','sill','depth','pos','nw','nd','cu','cv','cw','cd','spos','sgap','gsx','gsy','tilt','unitW','standoff','gapPanel','gapGroup','devFrom','thick','skin','holeD','perfMin','perfMax'];
   const sels = ['clim','mass','vent','edge','period','devType','applyN','applyC','axis','applyS','groupMode','fixed'];
   const FAC = ['A','B','C','D','court'];
-  const units = {L:' m', W:' m', floors:' 层', H:' m', slab:' m', az0:'°', gn:' 层', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', gapPanel:' m', gapGroup:' m', devFrom:' 层起', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
+  const units = {L:' m', W:' m', floors:' floors', H:' m', slab:' m', az0:'°', gn:' floors', sbA:' m', sbB:' m', sbC:' m', sbD:' m', wwr:'%', sill:' m', depth:' m', pos:'', nw:' m', nd:' m', cu:'', cv:'', cw:' m', cd:' m', spos:'', sgap:' m', gsx:' m', gsy:' m', gapPanel:' m', gapGroup:' m', devFrom:' up', tilt:'°', unitW:' m', standoff:' m', thick:' m', skin:' mm', holeD:' mm', perfMin:'%', perfMax:'%'};
   const dec = {L:0, W:0, floors:0, az0:0, gn:0, sbA:1, sbB:1, sbC:1, sbD:1, wwr:0, pos:2, nw:1, nd:1, cu:2, cv:2, cw:1, cd:1, spos:2, sgap:1, gsx:1, gsy:1, gapPanel:2, gapGroup:1, devFrom:0, H:2, slab:2, sill:2, depth:1, tilt:0, unitW:1, standoff:2, thick:3, skin:1, holeD:1, perfMin:0, perfMax:0};
   const fmt = (v,d=1)=> (+v).toFixed(d);
   const MECH = {
-    none:    {tilt:'—', unitW:'—', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false, thick:false}, cap:'不装遮阳装置。'},
-    pivot:   {tilt:'倾角（0 贴平 · 90 垂直）', unitW:'单片宽', fixed:'倾角方向', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'一片板绕自己的竖向中轴转动。倾角越大，板越侧过去，挡得越少、看出去越通透。'},
-    bifoldV: {tilt:'折角（0 贴平 · 90 全折）', unitW:'单元宽（贴平时）', fixed:'固定边', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'两片竖板像书脊朝外的书：一边固定，另一边沿导轨滑过来，折线向外凸。折得越开，占的立面越短、露出的窗越多。'},
-    bifoldH: {tilt:'折角（0 贴平 · 90 全折）', unitW:'板宽（一开间）', fixed:'固定边（不适用）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'一块一层高的板横着折：顶边固定，底边往上滑，膝盖向外凸。折起来露出窗的下部，凸出的膝盖像一道挑檐挡高角度的太阳。'},
-    umbrella:{tilt:'折角（0 全闭 · 90 全开）', unitW:'单元宽（平边距）', fixed:'固定边（不适用）', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'六角形的伞：六个角固定，中间的推杆把六片网布顶起来。折角越大，伞收得越紧，盖住的面积越小。'}
+    none:    {tilt:'—', unitW:'—', fixed:'—', uses:{groupMode:false, fixed:false, gapPanel:false, thick:false}, cap:'No shading device.'},
+    pivot:   {tilt:'Tilt (0 flat · 90 perpendicular)', unitW:'Panel width', fixed:'Tilt direction', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'One panel turns about its own vertical axis. The larger the tilt, the more it turns away: less shading, more view.'},
+    bifoldV: {tilt:'Fold (0 flat · 90 fully folded)', unitW:'Unit width (flat)', fixed:'Fixed edge', uses:{groupMode:true, fixed:true, gapPanel:true, thick:true}, cap:'Two vertical leaves like a book with its spine outward: one edge fixed, the other slides along a rail, the fold bulges out. The more it folds, the shorter the facade it covers and the more window shows.'},
+    bifoldH: {tilt:'Fold (0 flat · 90 fully folded)', unitW:'Panel width (one bay)', fixed:'Fixed edge (n/a)', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'A floor-high panel folds across: top edge fixed, bottom edge slides up, the knee bulges out. Folding exposes the lower window; the knee works like an overhang against high sun.'},
+    umbrella:{tilt:'Fold (0 closed · 90 fully open)', unitW:'Unit width (across flats)', fixed:'Fixed edge (n/a)', uses:{groupMode:true, fixed:false, gapPanel:true, thick:false}, cap:'A hexagonal umbrella: six corners fixed, a central rod pushes six mesh leaves out. The larger the fold, the tighter the umbrella and the smaller the covered area.'}
   };
   const P = {};
   let STATE = null, lastResultsAt = '', lastSunAt = '', suppressPost = false, postTimer = null;
@@ -376,18 +377,18 @@
   const LIST = { groups:[{n:3, setback:{A:0,B:0,C:0,D:0}, shift:{x:0,y:0}}], notches:[], courts:[], splits:[] }; let gSel = 0, nSel = 0, cSel = 0, sSel = 0; const lastHandle = {};
   const pad2 = i => 'notch'.length && String(i+1).padStart(2,'0');
   function tabs(el, items, sel, label, onPick, onAdd, onDel){ el.innerHTML = ''; items.forEach((it,i)=>{ const b = document.createElement('button'); b.type='button'; b.textContent = label(it,i); b.className = i===sel ? 'on' : ''; b.onclick = ()=>onPick(i); el.appendChild(b); });
-    const a = document.createElement('button'); a.type='button'; a.textContent = '+'; a.className = 'add'; a.title = '新增'; a.onclick = onAdd; el.appendChild(a);
-    if(items.length && onDel){ const d = document.createElement('button'); d.type='button'; d.textContent = '删'; d.className = 'del'; d.title = '删掉当前这条'; d.onclick = ()=>onDel(sel); el.appendChild(d); } }
+    const a = document.createElement('button'); a.type='button'; a.textContent = '+'; a.className = 'add'; a.title = 'Add'; a.onclick = onAdd; el.appendChild(a);
+    if(items.length && onDel){ const d = document.createElement('button'); d.type='button'; d.textContent = 'Del'; d.className = 'del'; d.title = 'Delete the current one'; d.onclick = ()=>onDel(sel); el.appendChild(d); } }
   function groupRanges(){ const N = P.floors; let used = 0; return LIST.groups.map((g,i)=>{ const n = i===LIST.groups.length-1 ? Math.max(0, N-used) : Math.max(0, Math.min(g.n, N-used)); const r = {from:used+1, to:used+n, n}; used += n; return r; }); }
-  // ---- 2026-10-02：页面先按 massing_sync 同一套规则算"哪个凹口 / 庭院会被忽略"，不用等 Rhino 的警告 ----
+
   const WALLm = 1.0;
   function floorRectOf(fl){ const rs = groupRanges(); let gi = rs.findIndex(r=>fl>=r.from && fl<=r.to); if(gi<0) gi = rs.length-1; const g = LIST.groups[gi]||{}; const sb = g.setback||{}, sh = g.shift||{};
     let x0 = +sb.D||0, y0 = +sb.A||0, x1 = P.L-(+sb.B||0), y1 = P.W-(+sb.C||0);
     if(x1-x0 < 2*WALLm || y1-y0 < 2*WALLm){ const cx=(x0+x1)/2, cy=(y0+y1)/2; x0=Math.min(x0,cx-WALLm); x1=Math.max(x1,cx+WALLm); y0=Math.min(y0,cy-WALLm); y1=Math.max(y1,cy+WALLm); }
     return {rect:[x0+(+sh.x||0), y0+(+sh.y||0), x1+(+sh.x||0), y1+(+sh.y||0)], gi}; }
   function notchSpan(rect, n){ const [x0,y0,x1,y1] = rect; const ac = n.edge==='A'||n.edge==='C'; const E = ac ? x1-x0 : y1-y0, opp = ac ? y1-y0 : x1-x0, dmax = Math.max(0, opp-WALLm);
-    const w = Math.min(n.width, E), cp = n.pos*E; let a = Math.max(0, cp-w/2), b = Math.min(E, cp+w/2); if(a < WALLm) a = 0; if(E-b < WALLm) b = E;   // 离拐角不到 1 m 的薄墙去掉
-    const through = n.depth >= dmax-1e-9; return {a, b, d: through ? opp : Math.min(n.depth, dmax), E, through}; }   // 深到对面墙前不到 1 m = 切穿（同 massing_sync.notch_span）
+    const w = Math.min(n.width, E), cp = n.pos*E; let a = Math.max(0, cp-w/2), b = Math.min(E, cp+w/2); if(a < WALLm) a = 0; if(E-b < WALLm) b = E;
+    const through = n.depth >= dmax-1e-9; return {a, b, d: through ? opp : Math.min(n.depth, dmax), E, through}; }
   function notchRectOf(rect, n){ if(!n || n.depth<=0.01 || n.width<=0.01) return null; const [x0,y0,x1,y1] = rect; const {a,b,d} = notchSpan(rect, n); if(b-a < 0.01) return null;
     if(n.edge==='A') return [x0+a, y0, x0+b, y0+d];
     if(n.edge==='C') return [x1-b, y1-d, x1-a, y1];
@@ -397,15 +398,15 @@
     const cx = Math.min(Math.max(x0+c.pos_u*Lr, x0+WALLm+w/2), x1-WALLm-w/2), cy = Math.min(Math.max(y0+c.pos_v*Wr, y0+WALLm+d/2), y1-WALLm-d/2); return [cx-w/2, cy-d/2, cx+w/2, cy+d/2]; }
   const rectsClash = (r, others) => others.some(o => !(r[2] <= o[0]-WALLm || r[0] >= o[2]+WALLm || r[3] <= o[1]-WALLm || r[1] >= o[3]+WALLm));
   const appliesTo = (a, gi) => !a || a==='all' || a==='g'+(gi+1);
-  function opClashes(){   // 先加的凹口优先；庭院碰到凹口或前一个庭院就被忽略（和 massing_sync.outer_loop / floor_outline 一致）
+  function opClashes(){
     const out = {n:{}, c:{}}; const say = (m, i, t) => (m[i] = m[i] || []).push(t);
     for(let fl=1; fl<=P.floors; fl++){ const {rect, gi} = floorRectOf(fl); const acc = [];
-      LIST.notches.forEach((n,i)=>{ if(!appliesTo(n.apply, gi)) return; const r = notchRectOf(rect, n); if(!r) return; const hit = acc.find(a=>rectsClash(r,[a.r])); if(hit){ say(out.n, i, `F${fl} 和 #${hit.i+1} 重叠`); return; } acc.push({r,i}); });
+      LIST.notches.forEach((n,i)=>{ if(!appliesTo(n.apply, gi)) return; const r = notchRectOf(rect, n); if(!r) return; const hit = acc.find(a=>rectsClash(r,[a.r])); if(hit){ say(out.n, i, `F${fl} overlaps # #${hit.i+1} overlaps`); return; } acc.push({r,i}); });
       const cacc = [];
-      LIST.courts.forEach((c,i)=>{ if(!appliesTo(c.apply, gi)) return; const r = courtRectOf(rect, c); if(!r){ say(out.c, i, `F${fl} 放不下`); return; } if(rectsClash(r, acc.map(a=>a.r))){ say(out.c, i, `F${fl} 碰到凹口`); return; } if(rectsClash(r, cacc)){ say(out.c, i, `F${fl} 和前一个庭院挨太近`); return; } cacc.push(r); }); }
+      LIST.courts.forEach((c,i)=>{ if(!appliesTo(c.apply, gi)) return; const r = courtRectOf(rect, c); if(!r){ say(out.c, i, `F${fl} does not fit`); return; } if(rectsClash(r, acc.map(a=>a.r))){ say(out.c, i, `F${fl} hits a notch`); return; } if(rectsClash(r, cacc)){ say(out.c, i, `F${fl} too close to an earlier courtyard`); return; } cacc.push(r); }); }
     return out; }
-  const squeeze = arr => arr.length<=3 ? arr.join('、') : arr.slice(0,2).join('、') + ` … 共 ${arr.length} 层`;
-  function applyOptions(sel){ const keep = sel.value; const rs = groupRanges(); sel.innerHTML = '<option value="all">全部楼层</option>' + rs.map((r,i)=>`<option value="g${i+1}">第 ${i+1} 组（${r.n ? `F${r.from}–F${r.to}` : '空'}）</option>`).join(''); sel.value = [...sel.options].some(o=>o.value===keep) ? keep : 'all'; }
+  const squeeze = arr => arr.length<=3 ? arr.join(', ') : arr.slice(0,2).join(', ') + ` … in ${arr.length} floors`;
+  function applyOptions(sel){ const keep = sel.value; const rs = groupRanges(); sel.innerHTML = '<option value="all">all floors</option>' + rs.map((r,i)=>`<option value="g${i+1}">group ${i+1} (${r.n ? `F${r.from}–F${r.to}` : 'empty'})</option>`).join(''); sel.value = [...sel.options].some(o=>o.value===keep) ? keep : 'all'; }
   function loadGroup(i){ const g = LIST.groups[i]; if(!g) return; $('gn').value = g.n; ['A','B','C','D'].forEach(k=> $('sb'+k).value = g.setback[k]||0); $('gsx').value = (g.shift||{}).x||0; $('gsy').value = (g.shift||{}).y||0; }
   function loadSplit(i){ const sp = LIST.splits[i]; if(!sp) return; $('axis').value = sp.axis; applyOptions($('applyS')); $('applyS').value = sp.apply; $('spos').value = sp.pos; $('sgap').value = sp.gap; }
   function loadNotch(i){ const n = LIST.notches[i]; if(!n) return; $('edge').value = n.edge; applyOptions($('applyN')); $('applyN').value = n.apply; $('pos').value = n.pos; $('nw').value = n.width; $('nd').value = n.depth; }
@@ -415,11 +416,11 @@
     if(kind==='g'){ LIST.groups.push({n:1, setback:{A:0,B:0,C:0,D:0}, shift:{x:0,y:0}}); gSel = LIST.groups.length-1; loadGroup(gSel); }
     else if(kind==='s'){ const src = LIST.splits[sSel]; LIST.splits.push(src ? Object.assign({}, src, {pos:Math.min(0.9, src.pos+0.3)}) : {axis:'x', apply:'all', pos:0.5, gap:4}); sSel = LIST.splits.length-1; loadSplit(sSel); }
     else if(kind==='n'){ const src = LIST.notches[nSel]; const base = src ? Object.assign({}, src) : {edge:'A', apply:'all', pos:0.4, width:6, depth:4};
-      // 2026-10-02：试几个位置，挑第一个在所有楼层都不和已有凹口重叠的；都重叠就还是复制当前这个（标签会标 ⚠）
+
       const cands = [[base.edge, Math.min(0.95, base.pos+0.35)], [base.edge, Math.max(0.05, base.pos-0.35)]]; ['A','B','C','D'].forEach(e=> [0.5,0.25,0.75].forEach(ps=> cands.push([e, ps])));
       const courtsBad = () => Object.values(opClashes().c).reduce((a,v)=>a+v.length,0), before = courtsBad();
-      const depths = [base.depth].concat(base.depth > 3 ? [3] : []);   // 深的放不下就退一步试 3 m 深
-      let placed = null; for(const dp of depths) for(const [e, ps] of cands){ if(placed) break; const cand = Object.assign({}, base, {edge:e, pos:ps, depth:dp}); LIST.notches.push(cand); const cl = opClashes(); const bad = cl.n[LIST.notches.length-1] || Object.values(cl.c).reduce((a,v)=>a+v.length,0) > before; LIST.notches.pop(); if(!bad){ placed = cand; break; } }   // 也不能把已有的庭院挤掉
+      const depths = [base.depth].concat(base.depth > 3 ? [3] : []);
+      let placed = null; for(const dp of depths) for(const [e, ps] of cands){ if(placed) break; const cand = Object.assign({}, base, {edge:e, pos:ps, depth:dp}); LIST.notches.push(cand); const cl = opClashes(); const bad = cl.n[LIST.notches.length-1] || Object.values(cl.c).reduce((a,v)=>a+v.length,0) > before; LIST.notches.pop(); if(!bad){ placed = cand; break; } }
       LIST.notches.push(placed || Object.assign({}, base, {pos:Math.min(0.95, base.pos+0.35)})); nSel = LIST.notches.length-1; loadNotch(nSel); }
     else { const src = LIST.courts[cSel]; LIST.courts.push(src ? Object.assign({}, src, {pos_u:Math.min(0.95, src.pos_u+0.35)}) : {apply:'all', pos_u:0.5, pos_v:0.5, width:6, depth:6}); cSel = LIST.courts.length-1; loadCourt(cSel); }
     read(); schedulePost(); }
@@ -440,29 +441,29 @@
     if(LIST.notches[nSel]) LIST.notches[nSel] = {edge:P.edge, apply:P.applyN, pos:P.pos, width:P.nw, depth:P.nd};
     if(LIST.courts[cSel]) LIST.courts[cSel] = {apply:P.applyC, pos_u:P.cu, pos_v:P.cv, width:P.cw, depth:P.cd};
     const rs = groupRanges(), lastG = gSel===LIST.groups.length-1;
-    $('gn').disabled = lastG; $('gnLabel').textContent = lastG ? '本组层数（其余楼层）' : '本组层数'; if(lastG && rs[gSel]) $('gnOut').innerHTML = `<b>${rs[gSel].n}</b> 层`;
-    tabs($('grpTabs'), LIST.groups, gSel, (g,i)=>`组 ${i+1}${rs[i].n ? ` F${rs[i].from}–F${rs[i].to}` : '（空）'}`, i=>pick('g',i), ()=>addItem('g'), LIST.groups.length>1 ? i=>delItem('g',i) : null);
+    $('gn').disabled = lastG; $('gnLabel').textContent = lastG ? 'Floors in group (the rest)' : 'Floors in group'; if(lastG && rs[gSel]) $('gnOut').innerHTML = `<b>${rs[gSel].n}</b> floors`;
+    tabs($('grpTabs'), LIST.groups, gSel, (g,i)=>`Group ${i+1}${rs[i].n ? ` F${rs[i].from}–F${rs[i].to}` : ' (empty)'}`, i=>pick('g',i), ()=>addItem('g'), LIST.groups.length>1 ? i=>delItem('g',i) : null);
     const CL = opClashes();
-    tabs($('notchTabs'), LIST.notches, nSel, (n,i)=>`#${i+1} ${n.edge} 深 ${fmt(n.depth,1)}${CL.n[i]?' ⚠':''}`, i=>pick('n',i), ()=>addItem('n'), i=>delItem('n',i));
+    tabs($('notchTabs'), LIST.notches, nSel, (n,i)=>`#${i+1} ${n.edge} depth ${fmt(n.depth,1)}${CL.n[i]?' ⚠':''}`, i=>pick('n',i), ()=>addItem('n'), i=>delItem('n',i));
     tabs($('courtTabs'), LIST.courts, cSel, (c,i)=>`#${i+1} ${fmt(c.width,1)}×${fmt(c.depth,1)}${CL.c[i]?' ⚠':''}`, i=>pick('c',i), ()=>addItem('c'), i=>delItem('c',i));
-    const nw = Object.keys(CL.n).map(i=>`#${+i+1}：${squeeze(CL.n[i])}`); $('notchWarn').hidden = !nw.length; $('notchWarn').textContent = nw.length ? `⚠ ${nw.join('；')} → 这些楼层上 Rhino 忽略了它（两个凹口之间至少留 1 m 墙）。换条边、挪位置或改小就会出现。` : '';
-    const cw = Object.keys(CL.c).map(i=>`#${+i+1}：${squeeze(CL.c[i])}`); $('courtWarn').hidden = !cw.length; $('courtWarn').textContent = cw.length ? `⚠ ${cw.join('；')} → 这些楼层上 Rhino 忽略了它（庭院离凹口、外墙和其他庭院至少 1 m）。` : '';
-    tabs($('splitTabs'), LIST.splits, sSel, (sp,i)=>`#${i+1} ${sp.axis==='x'?'横切':'竖切'} 缝 ${fmt(sp.gap,1)}`, i=>pick('s',i), ()=>addItem('s'), i=>delItem('s',i));
+    const nw = Object.keys(CL.n).map(i=>`#${+i+1}: ${squeeze(CL.n[i])}`); $('notchWarn').hidden = !nw.length; $('notchWarn').textContent = nw.length ? `⚠ ${nw.join('; ')} → on these floors Rhino ignores it (keep at least 1 m of wall between notches). Change the edge, move it or shrink it and it will appear.` : '';
+    const cw = Object.keys(CL.c).map(i=>`#${+i+1}: ${squeeze(CL.c[i])}`); $('courtWarn').hidden = !cw.length; $('courtWarn').textContent = cw.length ? `⚠ ${cw.join('; ')} → on these floors Rhino ignores it (a courtyard needs 1 m from notches, outer walls and other courtyards).` : '';
+    tabs($('splitTabs'), LIST.splits, sSel, (sp,i)=>`#${i+1} ${sp.axis==='x'?'across':'along'} gap ${fmt(sp.gap,1)}`, i=>pick('s',i), ()=>addItem('s'), i=>delItem('s',i));
     applyOptions($('applyN')); applyOptions($('applyC')); applyOptions($('applyS'));
     const hasN = LIST.notches.length>0, hasC = LIST.courts.length>0, hasS = LIST.splits.length>0;
     ['edge','applyN','pos','nw','nd'].forEach(id=> $(id).disabled = !hasN); ['applyC','cu','cv','cw','cd'].forEach(id=> $(id).disabled = !hasC); ['axis','applyS','spos','sgap'].forEach(id=> $(id).disabled = !hasS);
     const nSb = LIST.groups.filter(g=>['A','B','C','D'].some(k=>(g.setback[k]||0)>0)).length, nSh = LIST.groups.filter(g=>g.shift && (g.shift.x||g.shift.y)).length;
-    $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} 层 · ${LIST.groups.length} 组${nSb?`（${nSb} 组退台）`:''}${nSh?`（${nSh} 组错位）`:''} · 窗墙比 ${P.wwr}%`;
-    $('g2Sum').textContent = [hasN ? `凹口 ×${LIST.notches.length}` : '', hasC ? `庭院 ×${LIST.courts.length}` : '', hasS ? `分裂 ×${LIST.splits.length}` : ''].filter(Boolean).join(' · ') || '无操作';
-    P.fac = {}; FAC.forEach(k=>{ const on = $('fOn'+k).checked, t = parseFloat($('fTilt'+k).value); P.fac[k] = {on, tilt:t}; $('fTilt'+k+'Out').textContent = on ? t+'°' : '不装'; $('fTilt'+k).disabled = !on; document.querySelector('#facTable tr[data-k="'+k+'"]').classList.toggle('off', !on); });
-    const facAz = {A:P.az0, B:P.az0-90, C:P.az0+180, D:P.az0+90}; ['A','B','C','D'].forEach(k=> $('facLab'+k).textContent = k + (ENGINE ? '（'+ENGINE.dirName(facAz[k])+'）' : ''));
-    const facTxt = FAC.map(k=> (k==='court'?'庭':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
+    $('g1Sum').textContent = `${P.L}×${P.W} m · ${P.floors} floors · ${LIST.groups.length} groups${nSb?` (${nSb} set back)`:''}${nSh?` (${nSh} shifted)`:''} · WWR ${P.wwr}%`;
+    $('g2Sum').textContent = [hasN ? `Notch ×${LIST.notches.length}` : '', hasC ? `Courtyard ×${LIST.courts.length}` : '', hasS ? `Split ×${LIST.splits.length}` : ''].filter(Boolean).join(' · ') || 'none';
+    P.fac = {}; FAC.forEach(k=>{ const on = $('fOn'+k).checked, t = parseFloat($('fTilt'+k).value); P.fac[k] = {on, tilt:t}; $('fTilt'+k+'Out').textContent = on ? t+'°' : 'no device'; $('fTilt'+k).disabled = !on; document.querySelector('#facTable tr[data-k="'+k+'"]').classList.toggle('off', !on); });
+    const facAz = {A:P.az0, B:P.az0-90, C:P.az0+180, D:P.az0+90}; ['A','B','C','D'].forEach(k=> $('facLab'+k).textContent = k + (ENGINE ? ' ('+ENGINE.dirName(facAz[k])+')' : ''));
+    const facTxt = FAC.map(k=> (k==='court'?'court':k) + (P.fac[k].on ? P.fac[k].tilt : '—')).join(' ');
     $('devFrom').max = Math.max(1, P.floors); if(P.devFrom > P.floors){ $('devFrom').value = P.floors; P.devFrom = P.floors; }
-    $('g4Sum').textContent = P.devType==='none' ? '无装置' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}${P.devFrom>1 ? ` · ${P.devFrom} 层起` : ''}`;
+    $('g4Sum').textContent = P.devType==='none' ? 'none' : `${$('devType').selectedOptions[0].textContent.split(' ')[0]} · ${facTxt}${P.devFrom>1 ? ` · from floor ${P.devFrom}` : ''}`;
     const mv = MECH[P.devType]||MECH.none; $('tiltLabel').textContent = mv.tilt; $('unitWLabel').textContent = mv.unitW; $('devCap').textContent = mv.cap;
-    $('g5Sum').textContent = `${$('clim').selectedOptions[0].textContent} · 进深 ${P.depth} m`;
-    $('fixedLabel').textContent = mv.fixed || '固定边'; const uses = mv.uses || {}; $('groupMode').disabled = !uses.groupMode; $('fixed').disabled = !uses.fixed; $('gapPanel').disabled = !(uses.gapPanel && P.groupMode!=='fill'); $('gapGroup').disabled = !(uses.groupMode && P.groupMode!=='fill');
-    $('thick').disabled = !uses.thick; $('thickLabel').textContent = uses.thick ? '板厚' : '板厚（不用）'; $('thickLabel').title = uses.thick ? '' : '这种装置按面状投影算，板厚不影响结果'; $('fixedLabel').title = uses.fixed ? '' : '这种装置的固定边是定死的';
+    $('g5Sum').textContent = `${$('clim').selectedOptions[0].textContent} · depth ${P.depth} m`;
+    $('fixedLabel').textContent = mv.fixed || 'Fixed edge'; const uses = mv.uses || {}; $('groupMode').disabled = !uses.groupMode; $('fixed').disabled = !uses.fixed; $('gapPanel').disabled = !(uses.gapPanel && P.groupMode!=='fill'); $('gapGroup').disabled = !(uses.groupMode && P.groupMode!=='fill');
+    $('thick').disabled = !uses.thick; $('thickLabel').textContent = uses.thick ? 'Thickness' : 'Thickness (unused)'; $('thickLabel').title = uses.thick ? '' : 'This device is evaluated as a projected screen; thickness has no effect'; $('fixedLabel').title = uses.fixed ? '' : 'The fixed edge of this device cannot change';
     P.perfOn = $('perfOn').checked; $('perfWrap').hidden = !P.perfOn;
     document.querySelectorAll('#g4 .ctl').forEach((e,i)=>{ if(i>1) e.style.opacity = P.devType==='none' ? .45 : 1; });
   }
@@ -483,8 +484,8 @@
     try{
       const r = await fetch('/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
       const d = await r.json(); if(!r.ok) throw new Error(d.error||r.status);
-      STATE = d; setConn(true, '已写入 state.json，等待 Rhino…'); $('fromRhino').hidden = true; $('fromRhinoC').hidden = true; $('fromRhinoS').hidden = true;
-    }catch(e){ setConn(false, '写入失败：'+e.message); }
+      STATE = d; setConn(true, 'written to state.json, waiting for Rhino…'); $('fromRhino').hidden = true; $('fromRhinoC').hidden = true; $('fromRhinoS').hidden = true;
+    }catch(e){ setConn(false, 'write failed: '+e.message); }
   }
   function schedulePost(){ if(suppressPost) return; clearTimeout(postTimer); postTimer = setTimeout(post, 250); }
   function setConn(on, text){ $('conn').classList.toggle('on', on); $('connText').textContent = text; }
@@ -493,7 +494,7 @@
     try{
       const r = await fetch('/state'); if(!r.ok) throw new Error(r.status);
       const d = await r.json(); STATE = d;
-      if(!document.querySelector('.conn.on')) setConn(true, '已连接本地服务');
+      if(!document.querySelector('.conn.on')) setConn(true, 'connected to local service');
       // handle dragged in Rhino → sliders follow (no POST back)
       let touched = false;
       (d.ops||[]).forEach(op=>{ const h = (d.handle||{})[op.id]; if(!(h && h.at > (op.at||'') && h.at !== lastHandle[op.id])) return; lastHandle[op.id] = h.at;
@@ -503,21 +504,21 @@
         if(m[1]==='court' && LIST.courts[i]){ LIST.courts[i].pos_u = h.pos_u; LIST.courts[i].pos_v = h.pos_v; if(i===cSel) loadCourt(i); $('fromRhinoC').hidden = false; touched = true; } });
       if(touched){ suppressPost = true; read(); suppressPost = false; }
       const sunAt = d.results && d.results.sun ? d.results.sun.at : '';
-      if(d.results && d.results.at && (d.results.at !== lastResultsAt || sunAt !== lastSunAt)){ lastResultsAt = d.results.at; lastSunAt = sunAt; render(d); setConn(true, 'Rhino 已写回 '+(sunAt && sunAt > d.results.at ? sunAt : d.results.at).slice(11,19)); }
-      // 2026-10-02：页面写了、Rhino 15 秒还没回写 → 多半是 Grasshopper 的 Trigger 定时器停了（跑过别的脚本或存盘失败后会这样）
-      else if(d.updated_by==='tool' && d.updated_at && (Date.now() - new Date(d.updated_at).getTime()) > 15000) setConn(true, 'Rhino 15 秒没回写：Grasshopper 里的 Trigger 可能停了，点它一下暂停再点播放（或重新打开 massing.gh）');
-    }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
+      if(d.results && d.results.at && (d.results.at !== lastResultsAt || sunAt !== lastSunAt)){ lastResultsAt = d.results.at; lastSunAt = sunAt; render(d); setConn(true, 'Rhino wrote back at '+(sunAt && sunAt > d.results.at ? sunAt : d.results.at).slice(11,19)); }
+
+      else if(d.updated_by==='tool' && d.updated_at && (Date.now() - new Date(d.updated_at).getTime()) > 15000) setConn(true, 'Rhino 15  s without a write-back: Grasshopper   Trigger may have stopped: click it to pause then play (or reopen massing.gh)');
+    }catch(e){ setConn(false, 'no local service (double-click rhino/start_server.bat)'); }
   }
 
   // ---------- engine ----------
   function ctx(floors){ const A = Object.assign({Gt:CLIM[P.clim].Gt}, ENGINE.V06_DEFAULT.A); return {H:P.H, floors:floors||1, depth:Math.min(P.depth, Math.min(P.L,P.W)/2), A, clim:P.clim, mass:P.mass, vent:P.vent}; }
-  function calcSegs(segs, winH, withDev, expo){   // expo：每段受晒比例数组（Ladybug 自遮挡），缺省全 1
-    const c = ctx(1);   // 每段按自己的楼层单独算（楼层组之后各层周界不同）
+  function calcSegs(segs, winH, withDev, expo){
+    const c = ctx(1);
     return segs.map((s,i)=>{ const dv = withDev && s.dev && s.dev.units>0 ? s.dev : null; const ex = expo && expo[i]!=null ? expo[i] : 1;
       let wins = [];
       if(winH>0.01){
         if(!dv) wins = [{w:s.len, h:winH, sill:P.sill}];
-        else if(dv.kind==='knee'){   // 横轴折板：屏后的上部 / 膝盖挑檐下的开口 / 没被单元盖住的长度
+        else if(dv.kind==='knee'){
           const cL = dv.c*s.len, oL = (1-dv.c)*s.len;
           if(cL>0.05 && dv.fA*winH>0.01) wins.push({w:cL, h:dv.fA*winH, sill:P.sill+(1-dv.fA)*winH, screen:dv.tS, screenDay:dv.tD});
           if(cL>0.05 && (1-dv.fA)*winH>0.01) wins.push({w:cL, h:(1-dv.fA)*winH, sill:P.sill, oh:dv.D, ohIn:0, ohGap:dv.gapH, ohOpacity:1-dv.tS});
@@ -539,39 +540,39 @@
   // ---------- render ----------
   function render(d){
     const res = d.results, winH = res.winH;
-    $('rAt').textContent = res.at.slice(11,19); $('rSegs').textContent = res.segments.length+' 段（'+res.floors.length+' 层）'; $('rArea').textContent = res.floors.map(f=>fmt(f.area,0)).join(' / ')+' m²'; $('rWinH').textContent = fmt(winH,2)+' m';
-    if(!ENGINE){ $('segBody').innerHTML = '<tr><td colspan="6" class="bad">引擎未加载</td></tr>'; return; }
+    $('rAt').textContent = res.at.slice(11,19); $('rSegs').textContent = res.segments.length+'  segments ('+res.floors.length+'  floors)'; $('rArea').textContent = res.floors.map(f=>fmt(f.area,0)).join(' / ')+' m²'; $('rWinH').textContent = fmt(winH,2)+' m';
+    if(!ENGINE){ $('segBody').innerHTML = '<tr><td colspan="6" class="bad">engine not loaded</td></tr>'; return; }
     const sunOk = res.sun && res.sun.perSegment && res.sun.perSegment.length === res.segments.length ? res.sun : null;
-    const expo = res.sun && res.sun.expo && res.sun.expo.length === res.segments.length ? res.sun.expo : null;   // 受晒只和楼板有关：换装置时照用，不等 Ladybug
+    const expo = res.sun && res.sun.expo && res.sun.expo.length === res.segments.length ? res.sun.expo : null;
     const rows0 = calcSegs(res.segments, winH, false, expo), rows = calcSegs(res.segments, winH, true, expo), base = calcSegs(baseSegs(res), winH, false);
     // floor selectors
     const nF = res.floors.length, fsel = $('floorSel'), psel = $('planFloor');
     const sig = res.floors.map(f=>f.i+':'+f.group).join(',');
-    if(fsel.dataset.sig !== sig){ const keep = fsel.value; fsel.innerHTML = '<option value="all">全部楼层</option>' + res.floors.map(f=>`<option value="${f.i}">F${f.i}（第 ${f.group} 组）</option>`).join(''); fsel.dataset.sig = sig; if([...fsel.options].some(o=>o.value===keep)) fsel.value = keep; }
+    if(fsel.dataset.sig !== sig){ const keep = fsel.value; fsel.innerHTML = '<option value="all">all floors</option>' + res.floors.map(f=>`<option value="${f.i}">F${f.i} (group ${f.group})</option>`).join(''); fsel.dataset.sig = sig; if([...fsel.options].some(o=>o.value===keep)) fsel.value = keep; }
     if(psel.options.length !== nF){ psel.innerHTML = res.floors.map(f=>`<option value="${f.i}">F${f.i}</option>`).join(''); psel.value = String(nF); }
     const showF = fsel.value;
     const agg0dev = aggregate(rows0);
     const sun = sunOk;
-    const PER = {summer:'夏季', winter:'冬季', annual:'全年'};
-    $('sunHead').textContent = sun ? `日照 h（${PER[sun.period]||sun.period}）` : '日照';
+    const PER = {summer:'Summer', winter:'Winter', annual:'Annual'};
+    $('sunHead').textContent = sun ? `Sun h (${PER[sun.period]||sun.period})` : 'Sun';
     const sunMax = sun ? Math.max(1, ...sun.perSegment.filter(v=>v!=null)) : 1;
     const agg = aggregate(rows), agg0 = aggregate(base);
-    const sunCell = i => sun ? (sun.perSegment[i]==null ? '<td>—</td>' : `<td style="color:color-mix(in srgb,var(--heat) ${Math.round(30+70*sun.perSegment[i]/sunMax)}%,var(--ink-2))">${fmt(sun.perSegment[i],0)}</td>`) : '<td class="cap">计算中</td>';
+    const sunCell = i => sun ? (sun.perSegment[i]==null ? '<td>—</td>' : `<td style="color:color-mix(in srgb,var(--heat) ${Math.round(30+70*sun.perSegment[i]/sunMax)}%,var(--ink-2))">${fmt(sun.perSegment[i],0)}</td>`) : '<td class="cap">computing</td>';
     const sunAvg = sun ? rows.reduce((a,x,i)=>a+(sun.perSegment[i]||0)*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
     const viewOf = x => x.dev ? fmt(x.dev.view*100,0)+' %' : '—';
-    const expoCell = i => expo ? (expo[i]==null ? '<td>—</td>' : `<td class="${expo[i]>=0.9?'ok':expo[i]>=0.6?'warn':'bad'}">${fmt(expo[i]*100,0)} %</td>`) : '<td class="cap">待日照</td>';
+    const expoCell = i => expo ? (expo[i]==null ? '<td>—</td>' : `<td class="${expo[i]>=0.9?'ok':expo[i]>=0.6?'warn':'bad'}">${fmt(expo[i]*100,0)} %</td>`) : '<td class="cap">needs sun</td>';
     const expoAvg = expo ? rows.reduce((a,x,i)=>a+(expo[i]==null?1:expo[i])*x.winArea,0)/Math.max(1e-9, rows.reduce((a,x)=>a+x.winArea,0)) : null;
     const vis = i => showF==='all' || String(rows[i].floor)===showF;
     const totalView = rows.reduce((a,x)=>a+(x.dev?x.dev.view:1)*x.len,0)/Math.max(1e-9,rows.reduce((a,x)=>a+x.len,0));
     $('segBody').innerHTML = rows.map((x,i)=> !vis(i) ? '' : `<tr><td>${nF>1?'F'+x.floor+' ':''}${x.edge}</td><td>${ENGINE.dirName(x.az)} ${fmt(x.az,0)}°</td><td>${fmt(x.len,1)} m</td><td>${viewOf(x)}</td><td class="${cls(rows0[i].r.ovh)}">${fmt(rows0[i].r.ovh,1)} %</td><td class="${cls(x.r.ovh)}">${fmt(x.r.ovh,1)} %</td><td class="${dcls(rows0[i].r.DF)}">${fmt(rows0[i].r.DF,1)} %</td><td class="${dcls(x.r.DF)}">${fmt(x.r.DF,1)} %</td>${expoCell(i)}${sunCell(i)}</tr>`).join('')
-      + `<tr class="sum"><td>整栋</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${expoAvg==null?'':fmt(expoAvg*100,0)+' %'}</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
+      + `<tr class="sum"><td>Total</td><td></td><td>${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m</td><td>${fmt(totalView*100,0)} %</td><td class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</td><td class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</td><td class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</td><td class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</td><td>${expoAvg==null?'':fmt(expoAvg*100,0)+' %'}</td><td>${sunAvg==null?'':fmt(sunAvg,0)}</td></tr>`;
     $('rOvhDev').innerHTML = `<span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span> → <span class="${cls(agg.ovh)}">${fmt(agg.ovh,1)} %</span>`;
     $('rDFDev').innerHTML = `<span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span> → <span class="${dcls(agg.DF)}">${fmt(agg.DF,1)} %</span>`;
     window.__sun = sun; window.__expo = expo; window.__expoAvg = expoAvg; window.__sunAvg = sunAvg;
     $('rOvh').innerHTML = `<span class="${cls(agg0.ovh)}">${fmt(agg0.ovh,1)} %</span> → <span class="${cls(agg0dev.ovh)}">${fmt(agg0dev.ovh,1)} %</span>`;
     $('rDF').innerHTML = `<span class="${dcls(agg0.DF)}">${fmt(agg0.DF,1)} %</span> → <span class="${dcls(agg0dev.DF)}">${fmt(agg0dev.DF,1)} %</span>`;
     $('rNet').textContent = `${fmt(agg0dev.net,0)} → ${fmt(agg.net,0)} kWh/a`;
-    $('dataSum').textContent = `整栋过热 ${fmt(agg.ovh,1)} %`; $('g3Sum').textContent = `seq ${res.seq}`;
+    $('dataSum').textContent = `Whole-building overheating ${fmt(agg.ovh,1)} %`; $('g3Sum').textContent = `seq ${res.seq}`;
     window.__rows0 = rows0; window.__agg0dev = agg0dev; window.__view = totalView;
     drawPlan(d, rows); renderSection(d, rows, rows0); interpret(d, rows, agg, agg0);
     window.__rows = rows; window.__agg = agg; window.__agg0 = agg0;
@@ -581,20 +582,20 @@
   let secSel = 0;
   function renderSection(d, rows, rows0){
     const svg = $('section'); if(!rows || !rows.length){ svg.innerHTML = ''; $('secSum').textContent = ''; return; }
-    { let best=-1, bv=-1; rows.forEach((x,i)=>{ const v = (x.winArea>0 ? x.r.hotPer : -1) + (x.dev && x.dev.units>0 ? 1e6 : 0) + (String(x.loop||'outer').startsWith('outer') ? 1e3 : 0); if(v>bv){ bv=v; best=i; } }); secSel = best<0?0:best; }   // 切在装置上：外圈、装了装置、过热最高的那一段（2026-10-02 用户：不用每面墙都展示）
+    { let best=-1, bv=-1; rows.forEach((x,i)=>{ const v = (x.winArea>0 ? x.r.hotPer : -1) + (x.dev && x.dev.units>0 ? 1e6 : 0) + (String(x.loop||'outer').startsWith('outer') ? 1e3 : 0); if(v>bv){ bv=v; best=i; } }); secSel = best<0?0:best; }
     const x = rows[secSel], r = x.r, r0 = rows0 ? rows0[secSel].r : r, dv = x.dev && x.dev.units>0 ? x.dev : null;
     const H = P.H, slab = P.slab, sill = P.sill, winH = d.results.winH, head = sill+winH, Dr = Math.min(P.depth, 6), wall = 0.3;
     const dst = P.standoff, w = P.unitW, tiltDeg = dv && dv.tilt!=null ? dv.tilt : P.tilt, th = tiltDeg*Math.PI/180, cT = Math.cos(th), sT = Math.sin(th);
     const type = dv ? P.devType : 'none';
     // device profile: m = distance from the outer wall face (outside negative), y = height above this floor
-    let devOut = 0, dev = '', devTxt = '不装遮阳装置';
+    let devOut = 0, dev = '', devTxt = 'No shading device';
     let openTop = null, screenFrom = null, trans = 1;     // knee: open part below screenFrom, with the knee tip as an overhang; areal: a screen over the whole window
     const kneeTip = {};
     if(type==='bifoldH'){ const a = H/2, yk = H-a*cT, yb = H-2*a*cT, D = dst+a*sT; devOut = D; kneeTip.D = D; kneeTip.y = yk; screenFrom = Math.min(yb, head); trans = dv.tS;
-      devTxt = `横轴折板：挂在上层楼板下，折角 ${fmt(tiltDeg,0)}°，膝点挑出 ${fmt(D,2)} m，板脚落到 ${fmt(yb,2)} m 高（窗头 ${fmt(head,2)} m）`; }
-    else if(type==='pivot'){ const e = (w/2)*sT; devOut = dst+e; trans = dv.screen; devTxt = `竖向旋转板：离墙 ${fmt(dst,2)} m，转 ${fmt(tiltDeg,0)}°，侧影伸出 ${fmt(devOut,2)} m；板与板之间透过 ${fmt(dv.screen*100,0)} % 直射`; }
-    else if(type==='bifoldV'){ const e = (w/2)*sT; devOut = dst+e; trans = dv.screen; devTxt = `竖向折板：离墙 ${fmt(dst,2)} m，折角 ${fmt(tiltDeg,0)}°，折缝伸出 ${fmt(devOut,2)} m；板与板之间透过 ${fmt(dv.screen*100,0)} % 直射`; }
-    else if(type==='umbrella'){ const R = w/Math.sqrt(3), rA = R*Math.cos(Math.PI/6), e = rA*sT; devOut = dst+e; trans = dv.screen; devTxt = `伞状单元：对着窗中心，离墙 ${fmt(dst,2)} m，开 ${fmt(tiltDeg,0)}°，尖点伸出 ${fmt(devOut,2)} m；单元之间透过 ${fmt(dv.screen*100,0)} % 直射`; }
+      devTxt = `Horizontal fold: hung from the slab above, fold ${fmt(tiltDeg,0)}°, knee projects ${fmt(D,2)} m, foot ends at ${fmt(yb,2)} m  height (head at ${fmt(head,2)} m)`; }
+    else if(type==='pivot'){ const e = (w/2)*sT; devOut = dst+e; trans = dv.screen; devTxt = `Vertical pivot panel: standoff ${fmt(dst,2)} m, turned ${fmt(tiltDeg,0)}°, profile reaches ${fmt(devOut,2)} m; between panels ${fmt(dv.screen*100,0)} % of direct sun passes`; }
+    else if(type==='bifoldV'){ const e = (w/2)*sT; devOut = dst+e; trans = dv.screen; devTxt = `Vertical fold: standoff ${fmt(dst,2)} m, fold ${fmt(tiltDeg,0)}°, fold line reaches ${fmt(devOut,2)} m; between panels ${fmt(dv.screen*100,0)} % of direct sun passes`; }
+    else if(type==='umbrella'){ const R = w/Math.sqrt(3), rA = R*Math.cos(Math.PI/6), e = rA*sT; devOut = dst+e; trans = dv.screen; devTxt = `Umbrella unit: centred on the window, standoff ${fmt(dst,2)} m, opened ${fmt(tiltDeg,0)}°, tip reaches ${fmt(devOut,2)} m; between units ${fmt(dv.screen*100,0)} % of direct sun passes`; }
     const ext = Math.max(1.6, devOut+1.0), VW = 640;
     const sc = Math.min((VW-40)/(Dr+ext+0.2), 236/(H+slab+0.3));
     const X = m => 20+(m+ext)*sc, Y = h => 22+(H-h)*sc, vbH = Y(-slab)+46;
@@ -605,15 +606,15 @@
     if(type==='bifoldH'){ const a = H/2, yk = H-a*cT, yb = H-2*a*cT, D = dst+a*sT;
       dev += `<polygon points="${pt(-dst,H)} ${pt(-D,yk)} ${pt(-dst,yb)}" fill="var(--ink)" fill-opacity=".08"/><polyline points="${pt(-dst,H)} ${pt(-D,yk)} ${pt(-dst,yb)}" fill="none" stroke="var(--ink)" stroke-width="3.5" stroke-linejoin="round"/>`;
       [[-dst,H],[-D,yk],[-dst,yb]].forEach(([m,h])=> dev += `<circle cx="${X(m)}" cy="${Y(h)}" r="3" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>`);
-      dev += `<line x1="${X(-D)}" y1="${Y(yk)-10}" x2="${X(-D)}" y2="${Y(H)-6}" stroke="var(--ink-2)" stroke-dasharray="2 3"/><text x="${X(-D)}" y="${Y(H)-10}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">挑出 ${fmt(D,2)} m</text>`; }
+      dev += `<line x1="${X(-D)}" y1="${Y(yk)-10}" x2="${X(-D)}" y2="${Y(H)-6}" stroke="var(--ink-2)" stroke-dasharray="2 3"/><text x="${X(-D)}" y="${Y(H)-10}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">projects ${fmt(D,2)} m</text>`; }
     else if(type==='pivot' || type==='bifoldV'){ const e = (w/2)*sT, m0 = -(dst+e), m1 = type==='pivot' ? -(dst-e) : -dst;
       dev += `<rect x="${X(m0)}" y="${Y(H)}" width="${Math.max(1.5, X(m1)-X(m0))}" height="${Y(0)-Y(H)}" fill="var(--ink)" fill-opacity=".10" stroke="var(--ink)" stroke-dasharray="3 3"/>`;
       dev += `<line x1="${X(-dst)}" y1="${Y(H)}" x2="${X(-dst)}" y2="${Y(0)}" stroke="var(--ink)" stroke-width="3.5"/>`;
-      dev += `<text x="${(X(m0)+X(m1))/2}" y="${Y(H)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">${type==='pivot'?'旋转板侧影':'折板侧影'}</text>`; }
+      dev += `<text x="${(X(m0)+X(m1))/2}" y="${Y(H)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">${type==='pivot'?'pivot panel profile':'fold profile'}</text>`; }
     else if(type==='umbrella'){ const R = w/Math.sqrt(3), rA = R*Math.cos(Math.PI/6), zc = sill+winH/2, e = rA*sT;
       dev += `<polygon points="${pt(-dst,zc+R)} ${pt(-(dst+e),zc)} ${pt(-dst,zc-R)}" fill="var(--ink)" fill-opacity=".10" stroke="var(--ink)" stroke-width="1.5"/>`;
       dev += `<line x1="${X(-dst)}" y1="${Y(zc+R)}" x2="${X(-dst)}" y2="${Y(zc-R)}" stroke="var(--ink)" stroke-width="3.5"/>`;
-      dev += `<line x1="${X(-dst-e)}" y1="${Y(zc)}" x2="${X(-dst-0.08)}" y2="${Y(zc)}" stroke="var(--ink-2)" stroke-dasharray="2 3"/><text x="${X(-dst-e/2)}" y="${Y(zc)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">伸出 ${fmt(e,2)} m</text>`; }
+      dev += `<line x1="${X(-dst-e)}" y1="${Y(zc)}" x2="${X(-dst-0.08)}" y2="${Y(zc)}" stroke="var(--ink-2)" stroke-dasharray="2 3"/><text x="${X(-dst-e/2)}" y="${Y(zc)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">reach ${fmt(e,2)} m</text>`; }
     // sun beams through the window into the room (V08 renderSection geometry); a knee tip acts as an overhang, a screen dims the beam
     const labels = [];
     function beam(p, dfrac, color, alpha, label, yTop, yBot, tr, tag){
@@ -621,25 +622,25 @@
       const t = Math.tan(p*Math.PI/180);
       let topY = yTop;
       if(kneeTip.D && yBot < screenFrom+1e-9 && yTop <= screenFrom+1e-9) topY = Math.min(yTop, kneeTip.y - kneeTip.D*t);   // open part under the knee
-      if(topY <= yBot+0.01){ labels.push([color, `${label} ${Math.round(p)}°：被装置完全挡住`]); return ''; }
+      if(topY <= yBot+0.01){ labels.push([color, `${label} ${Math.round(p)}°: fully blocked by the device`]); return ''; }
       const x0 = 0, end = y0 => { let xe = x0+y0/t, ye = 0; if(xe > Dr){ xe = Dr; ye = y0-(Dr-x0)*t; } return [xe,ye]; };
       const te = end(topY), be = end(yBot); const pts = [[x0,topY],te]; if(te[0]>=Dr-1e-9 && be[0]<Dr-1e-9) pts.push([Dr,0]); pts.push(be,[x0,yBot]);
       let q = `<polygon clip-path="url(#secIn)" points="${pts.map(([a,b])=>pt(a,b)).join(' ')}" fill="${color}" opacity="${(alpha*tr*Math.min(1,dfrac/0.5)).toFixed(3)}"/>`;
       q += `<g clip-path="url(#secOut)"><line x1="${X(-ext)}" y1="${Y(topY+ext*t)}" x2="${X(0)}" y2="${Y(topY)}" stroke="${color}" stroke-width="${tr<1?1:1.5}" ${tr<1?'stroke-dasharray="3 2"':''} opacity="${tr<1?0.6:1}"/><line x1="${X(-ext)}" y1="${Y(yBot+ext*t)}" x2="${X(0)}" y2="${Y(yBot)}" stroke="${color}" stroke-width="1" stroke-dasharray="4 3" opacity="${tr<1?0.5:0.9}"/></g>`;
-      if(tag){ const pen = te[1]===0 ? te[0] : Dr; labels.push([color, `${label} ${Math.round(p)}°${tr<1?`（透过 ${fmt(tr*100,0)} %）`:''} · ${pen>=Dr-1e-9?'照到内墙':'照入 '+fmt(Math.max(0,pen),1)+' m'}`]); }
+      if(tag){ const pen = te[1]===0 ? te[0] : Dr; labels.push([color, `${label} ${Math.round(p)}°${tr<1?` (passes ${fmt(tr*100,0)} %)`:''} · ${pen>=Dr-1e-9?'reaches the back wall':'reaches '+fmt(Math.max(0,pen),1)+' m'}`]); }
       return q; }
-    const parts = [['pH','dH','var(--heat)',0.35,'高温时段'], ['pW','dW','var(--sun)',0.45,'冬季']];
+    const parts = [['pH','dH','var(--heat)',0.35,'Hot hours'], ['pW','dW','var(--sun)',0.45,'Winter']];
     parts.forEach(([pk,dk,color,alpha,label])=>{
       if(kneeTip.D){ o += beam(r[pk], r[dk], color, alpha, label, screenFrom, sill, 1, true); if(head>screenFrom+0.01) o += beam(r[pk], r[dk], color, alpha, label, head, screenFrom, trans, false); }
       else o += beam(r[pk], r[dk], color, alpha, label, head, sill, trans, true); });
-    if(r.has && r.dW<0.05) labels.push(['var(--ink-2)', '冬季这面几乎没有直射光']);
-    if(type==='pivot' && (w/2)*sT > dst+0.01) labels.push(['var(--bad)', `转 ${fmt(tiltDeg,0)}° 时板的内半边伸进墙 ${fmt((w/2)*sT-dst,2)} m：离墙距离不够或板太宽`]);
-    if(dv){ const cov = kneeTip.D ? dv.c : (1-dv.view); if(cov < 0.98) labels.push(['var(--ink-2)', `这是一个单元的剖面：沿墙只有 ${fmt(cov*100,0)} % 被单元盖住，其余窗面照常进光`]); }
+    if(r.has && r.dW<0.05) labels.push(['var(--ink-2)', 'almost no winter direct sun on this facade']);
+    if(type==='pivot' && (w/2)*sT > dst+0.01) labels.push(['var(--bad)', `Turned ${fmt(tiltDeg,0)}°, the inner half of the panel runs into the wall by ${fmt((w/2)*sT-dst,2)} m: standoff too small or panel too wide`]);
+    if(dv){ const cov = kneeTip.D ? dv.c : (1-dv.view); if(cov < 0.98) labels.push(['var(--ink-2)', `Section of one unit: only ${fmt(cov*100,0)} % of the wall is covered, the rest of the window gets sun as usual`]); }
     // real sun: solstice noon on this facade (latitude of the climate station), drawn outside only
     const lat = (CLIM[P.clim]||CLIM.apNow).lat, cosD = Math.cos((x.az-180)*Math.PI/180); const noonTxt = [];
-    [[90-lat+23.44,'夏至正午','var(--heat)'],[90-lat-23.44,'冬至正午','var(--sun)']].forEach(([alt,label,color])=>{
-      if(cosD<=0.05){ noonTxt.push(`${label}晒不到这面`); labels.push([color, `${label}：太阳在这面墙背后`]); return; }
-      const pp = Math.atan(Math.tan(alt*Math.PI/180)/cosD)*180/Math.PI, t = Math.tan(pp*Math.PI/180); noonTxt.push(`${label} ${fmt(pp,0)}°`); labels.push([color, `${label} ${fmt(pp,0)}°（细虚线，实际太阳）`]);
+    [[90-lat+23.44,'Summer-solstice noon','var(--heat)'],[90-lat-23.44,'Winter-solstice noon','var(--sun)']].forEach(([alt,label,color])=>{
+      if(cosD<=0.05){ noonTxt.push(`${label} does not reach this facade`); labels.push([color, `${label}: sun is behind this wall`]); return; }
+      const pp = Math.atan(Math.tan(alt*Math.PI/180)/cosD)*180/Math.PI, t = Math.tan(pp*Math.PI/180); noonTxt.push(`${label} ${fmt(pp,0)}°`); labels.push([color, `${label} ${fmt(pp,0)}° (thin dashed, real sun)`]);
       o += `<g clip-path="url(#secOut)"><line x1="${X(-ext)}" y1="${Y(head+ext*t)}" x2="${X(0)}" y2="${Y(head)}" stroke="${color}" stroke-width="0.9" stroke-dasharray="1.5 3"/></g>`; });
     // structure: slab above, slab below, wall with the window
     o += `<rect x="${X(0)}" y="${Y(H)}" width="${X(Dr)-X(0)}" height="${slab*sc}" fill="var(--track)"/><rect x="${X(0)}" y="${Y(0)}" width="${X(Dr)-X(0)}" height="${slab*sc}" fill="var(--track)"/>`;
@@ -651,22 +652,22 @@
     o += dev;
     // dimensions
     const dimX = X(wall)+10;
-    o += `<line x1="${dimX}" y1="${Y(0)}" x2="${dimX}" y2="${Y(sill)}" stroke="var(--ink-2)"/><text x="${dimX+4}" y="${(Y(0)+Y(sill))/2+4}" font-size="10.5" fill="var(--ink-2)">窗台 ${fmt(sill,2)}</text>`;
-    o += `<line x1="${dimX}" y1="${Y(sill)}" x2="${dimX}" y2="${Y(head)}" stroke="var(--accent)" stroke-width="1.2"/><text x="${dimX+4}" y="${(Y(sill)+Y(head))/2+4}" font-size="10.5" fill="var(--accent)">窗高 ${fmt(winH,2)}</text>`;
-    o += `<text x="${dimX+4}" y="${Y(head)-4}" font-size="10.5" fill="var(--ink-2)">窗头 ${fmt(head,2)}</text>`;
-    if(dst>0 && type!=='none') o += `<line x1="${X(-dst)}" y1="${Y(0)+8}" x2="${X(0)}" y2="${Y(0)+8}" stroke="var(--ink-2)"/><text x="${(X(-dst)+X(0))/2}" y="${Y(0)+20}" text-anchor="middle" font-size="10" fill="var(--ink-2)">离墙 ${fmt(dst,2)}</text>`;
-    o += `<text x="${X(Dr)-6}" y="${Y(0)-6}" text-anchor="end" font-size="11" fill="var(--ink)">进深 ${fmt(Dr,1)} m${P.depth>Dr?'（只画到 6 m）':''}</text>`;
-    o += `<text x="${X(-ext)+4}" y="${Y(H)-8}" font-size="11" fill="var(--ink-2)">外</text><text x="${X(Dr)-6}" y="${Y(H)-8}" text-anchor="end" font-size="11" fill="var(--ink-2)">内</text>`;
-    if(labels.length){ const lw = Math.min(VW-40, 12+Math.max(...labels.map(l=>l[1].length))*11.2), lx = X(Dr)-lw-4; o += `<rect x="${lx}" y="${Y(H)+4}" width="${lw}" height="${labels.length*14+8}" rx="4" fill="var(--panel)" opacity=".88"/>` + labels.map((l,i)=>`<text x="${lx+6}" y="${Y(H)+18+i*14}" font-size="11" font-weight="${i<2?700:400}" fill="${l[0]}">${l[1]}</text>`).join(''); }   // 图例放在房间上方（光线都在下面）
+    o += `<line x1="${dimX}" y1="${Y(0)}" x2="${dimX}" y2="${Y(sill)}" stroke="var(--ink-2)"/><text x="${dimX+4}" y="${(Y(0)+Y(sill))/2+4}" font-size="10.5" fill="var(--ink-2)">sill ${fmt(sill,2)}</text>`;
+    o += `<line x1="${dimX}" y1="${Y(sill)}" x2="${dimX}" y2="${Y(head)}" stroke="var(--accent)" stroke-width="1.2"/><text x="${dimX+4}" y="${(Y(sill)+Y(head))/2+4}" font-size="10.5" fill="var(--accent)">Window height ${fmt(winH,2)}</text>`;
+    o += `<text x="${dimX+4}" y="${Y(head)-4}" font-size="10.5" fill="var(--ink-2)">head ${fmt(head,2)}</text>`;
+    if(dst>0 && type!=='none') o += `<line x1="${X(-dst)}" y1="${Y(0)+8}" x2="${X(0)}" y2="${Y(0)+8}" stroke="var(--ink-2)"/><text x="${(X(-dst)+X(0))/2}" y="${Y(0)+20}" text-anchor="middle" font-size="10" fill="var(--ink-2)">standoff ${fmt(dst,2)}</text>`;
+    o += `<text x="${X(Dr)-6}" y="${Y(0)-6}" text-anchor="end" font-size="11" fill="var(--ink)">depth ${fmt(Dr,1)} m${P.depth>Dr?' (drawn to 6 m)':''}</text>`;
+    o += `<text x="${X(-ext)+4}" y="${Y(H)-8}" font-size="11" fill="var(--ink-2)">out</text><text x="${X(Dr)-6}" y="${Y(H)-8}" text-anchor="end" font-size="11" fill="var(--ink-2)">in</text>`;
+    if(labels.length){ const lw = Math.min(VW-40, 12+Math.max(...labels.map(l=>l[1].length))*11.2), lx = X(Dr)-lw-4; o += `<rect x="${lx}" y="${Y(H)+4}" width="${lw}" height="${labels.length*14+8}" rx="4" fill="var(--panel)" opacity=".88"/>` + labels.map((l,i)=>`<text x="${lx+6}" y="${Y(H)+18+i*14}" font-size="11" font-weight="${i<2?700:400}" fill="${l[0]}">${l[1]}</text>`).join(''); }
     svg.innerHTML = o;
     // words
-    const sun = window.__sun, expo = window.__expo; const PER = {summer:'夏季', winter:'冬季', annual:'全年'};
+    const sun = window.__sun, expo = window.__expo; const PER = {summer:'Summer', winter:'Winter', annual:'Annual'};
     const hotKeep = r0.Qhot>0 ? r.Qhot/r0.Qhot : 1, winKeep = r0.Qgain>0 ? r.Qgain/r0.Qgain : 1;
     $('secSum').textContent = `F${x.floor} ${x.edge} · ${ENGINE.dirName(x.az)} ${fmt(x.az,0)}° · ${devName(type)}`;
-    let n = `${devTxt}。`;
-    n += dv ? `装置后高温时段的太阳得热剩 ${fmt(hotKeep*100,0)} %，冬季得热剩 ${fmt(winKeep*100,0)} %（都相对不装）。` : '';
-    n += sun && sun.perSegment[secSel]!=null ? `Ladybug ${PER[sun.period]||sun.period}直射：窗面 ${fmt(sun.perSegment[secSel],0)} h${sun.massOnly && sun.massOnly[secSel]!=null ? `，只有楼板遮挡时 ${fmt(sun.massOnly[secSel],0)} h` : ''}${expo && expo[secSel]!=null ? `，受晒 ${fmt(expo[secSel]*100,0)} %` : ''}。` : 'Ladybug 日照还没算完。';
-    n += `${noonTxt.join('，')}（纬度 ${fmt(lat,1)}°）。`;
+    let n = `${devTxt}. `;
+    n += dv ? `With the device, hot-hour solar gain is ${fmt(hotKeep*100,0)} %, winter gain ${fmt(winKeep*100,0)} % (both relative to no device). ` : '';
+    n += sun && sun.perSegment[secSel]!=null ? `Ladybug ${PER[sun.period]||sun.period} direct sun: window ${fmt(sun.perSegment[secSel],0)} h${sun.massOnly && sun.massOnly[secSel]!=null ? `, slabs only ${fmt(sun.massOnly[secSel],0)} h` : ''}${expo && expo[secSel]!=null ? `, exposure ${fmt(expo[secSel]*100,0)} %` : ''}. ` : 'Ladybug sun hours not finished yet.';
+    n += `${noonTxt.join(', ')} (latitude ${fmt(lat,1)}°).`;
     $('secNote').textContent = n;
   }
 
@@ -712,19 +713,19 @@
     const ink=css('--ink'), ink2=css('--ink-2'), line=css('--line'), panel=css('--panel'), heat=css('--heat');
     // plan coords: x right, y up (Rhino) → svg y down; rotate so north is up: A faces az0, A's outward normal is −Y → rotate by (az0 − 180) clockwise
     const rot = b.az0 - 180, cx = b.L/2, cy = b.W/2;
-    // 罗盘环 + 日照弧线（搬自 Version_06 的平面）：外环 15° 刻度；夏至 / 冬至的太阳方位弧，端点 = 日出 / 日落方位；按所选气候站的纬度算
+
     const pt = (a,r)=>[r*Math.sin(a*Math.PI/180), -r*Math.cos(a*Math.PI/180)];
     const arc = (a1,a2,r)=>{ const [x1,y1]=pt(a1,r), [x2,y2]=pt(a2,r); return `M${n2(x1)},${n2(y1)} A${n2(r)},${n2(r)} 0 ${(a2-a1)>180?1:0} 1 ${n2(x2)},${n2(y2)}`; };
     const lat = (CLIM[P.clim]||CLIM.apNow).lat, cosA = Math.sin(23.44*Math.PI/180)/Math.cos(lat*Math.PI/180), aS = Math.acos(Math.max(-1,Math.min(1,cosA)))*180/Math.PI, aW = 180-aS;
     const rR = R0+2.4, rS = R0+1.6, rW = R0+1.0, sunC = css('--sun');
     let o = `<circle r="${n2(rR)}" fill="none" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`;
     for(let a=0;a<360;a+=15){ const [x1,y1]=pt(a,rR), [x2,y2]=pt(a,rR-(a%45?0.3:0.5)*fs); o += `<line x1="${n2(x1)}" y1="${n2(y1)}" x2="${n2(x2)}" y2="${n2(y2)}" stroke="${line}" stroke-width="${n2(fs*0.06)}"/>`; }
-    [['北',0],['东',90],['南',180],['西',270]].forEach(([t,a])=>{ const [x,y]=pt(a,rR+fs*0.7); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*(a?0.85:1.05))}" font-weight="${a?500:700}" fill="${a?ink2:ink}">${t}</text>`; });
-    o += `<path d="${arc(aS,360-aS,rS)}" fill="none" stroke="${heat}" stroke-width="${n2(fs*0.14)}" opacity=".7"><title>夏至：太阳从 ${fmt(aS,0)}° 升起、${fmt(360-aS,0)}° 落下</title></path>`;
-    o += `<path d="${arc(aW,360-aW,rW)}" fill="none" stroke="${sunC}" stroke-width="${n2(fs*0.22)}"><title>冬至：太阳从 ${fmt(aW,0)}° 升起、${fmt(360-aW,0)}° 落下</title></path>`;
+    [['N',0],['E',90],['S',180],['W',270]].forEach(([t,a])=>{ const [x,y]=pt(a,rR+fs*0.7); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*(a?0.85:1.05))}" font-weight="${a?500:700}" fill="${a?ink2:ink}">${t}</text>`; });
+    o += `<path d="${arc(aS,360-aS,rS)}" fill="none" stroke="${heat}" stroke-width="${n2(fs*0.14)}" opacity=".7"><title>Summer solstice: sun rises at ${fmt(aS,0)}°, sets at ${fmt(360-aS,0)}°</title></path>`;
+    o += `<path d="${arc(aW,360-aW,rW)}" fill="none" stroke="${sunC}" stroke-width="${n2(fs*0.22)}"><title>Winter solstice: sun rises at ${fmt(aW,0)}°, sets at ${fmt(360-aW,0)}°</title></path>`;
     [[aS,heat,rS],[360-aS,heat,rS],[aW,sunC,rW],[360-aW,sunC,rW]].forEach(([a,c,r])=>{ const [x,y]=pt(a,r), [x2,y2]=pt(a,r-0.55*fs); o += `<line x1="${n2(x)}" y1="${n2(y)}" x2="${n2(x2)}" y2="${n2(y2)}" stroke="${c}" stroke-width="${n2(fs*0.14)}"/>`; });
-    { const [x,y]=pt(aW-7,rW-0.75*fs); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${sunC}">冬至</text>`;
-      const [x2,y2]=pt(aS+7,rS+0.6*fs); o += `<text x="${n2(x2)}" y="${n2(y2)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${heat}">夏至</text>`; }
+    { const [x,y]=pt(aW-7,rW-0.75*fs); o += `<text x="${n2(x)}" y="${n2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${sunC}">winter</text>`;
+      const [x2,y2]=pt(aS+7,rS+0.6*fs); o += `<text x="${n2(x2)}" y="${n2(y2)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.85)}" fill="${heat}">summer</text>`; }
     o += `<g transform="rotate(${rot})">`;
     const platesOf = g => (g.plates && g.plates.length ? g.plates : [{perimeter:g.perimeter, holes:g.holes||[]}]);
     const pts = per.map(p=>[p[0]-cx, -(p[1]-cy)]);
@@ -735,7 +736,7 @@
     holes.forEach(hp=>{ o += `<polygon points="${hp.map(p=>n2(p[0])+','+n2(p[1])).join(' ')}" fill="${css('--bg')}" stroke="${ink}" stroke-width="${n2(fs*0.1)}"/>`; });
     if(mode!=='none'){ const key = mode==='hot' ? 'Hx' : 'DF', mx = Math.max(1e-9, G.max[key]), col = mode==='hot' ? heat : css('--ok'), unit = mode==='hot' ? ' kWh/m²' : ' %';
       G.cells.forEach(c=>{ const v = c[key], a = c.inStrip ? 0.08+0.82*v/mx : 0; const fill = c.inStrip ? col : ink2;
-        o += `<rect x="${n2(c.x-c.gx/2-cx)}" y="${n2(-(c.y-cy)-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${fill}" fill-opacity="${(c.inStrip?a:0.12).toFixed(2)}" stroke="none"><title>${c.inStrip ? fmt(v, mode==='hot'?1:1)+unit+(c.top?'（主要来自 '+c.top.edge+'，离墙 '+fmt(c.topD,1)+' m）':'') : '离所有外墙都超过 '+fmt(depth,1)+' m，不在房间带内'}</title></rect>`; }); }
+        o += `<rect x="${n2(c.x-c.gx/2-cx)}" y="${n2(-(c.y-cy)-c.gy/2)}" width="${n2(c.gx)}" height="${n2(c.gy)}" fill="${fill}" fill-opacity="${(c.inStrip?a:0.12).toFixed(2)}" stroke="none"><title>${c.inStrip ? fmt(v, mode==='hot'?1:1)+unit+(c.top?' (mostly from '+c.top.edge+', '+fmt(c.topD,1)+' m in)':'') : 'more than '+fmt(depth,1)+' m from every outer wall, outside the room band'}</title></rect>`; }); }
     const allPts = pts.concat(...holes);   // segment order = outer loop then each hole loop (same as rows)
     const segPts = []; rows.forEach((x,i)=>{ segPts.push([[x.p[0]-cx, -(x.p[1]-cy)], [x.q[0]-cx, -(x.q[1]-cy)]]); });
     const mx = Math.max(0.01, ...rows.map(x=>x.r.ovh));
@@ -754,7 +755,7 @@
       const [lx,ly] = R([mxy[0]+nx*0.9*fs, mxy[1]+ny*0.9*fs]);
       if(x.len>2.5) o += `<text x="${n2(lx)}" y="${n2(ly)}" text-anchor="middle" dominant-baseline="middle" font-size="${n2(fs*0.75)}" fill="${ink2}">${x.edge}</text>`; });
     svg.innerHTML = o;
-    $('planSum').textContent = `F${F.i} · ${rows.length} 段 · ${fmt(F.area,0)} m²` + (mode==='hot' ? ` · 过热暴露最高 ${fmt(G.max.Hx,1)} kWh/m²` : mode==='df' ? ` · 采光最高 ${fmt(G.max.DF,1)} %` : '') + (G.deep>0.5 ? ` · ${fmt(100*G.deep/G.area,0)} % 面积在房间带外` : '');
+    $('planSum').textContent = `F${F.i} · ${rows.length} segments · ${fmt(F.area,0)} m²` + (mode==='hot' ? ` · max overheating exposure ${fmt(G.max.Hx,1)} kWh/m²` : mode==='df' ? ` · max daylight ${fmt(G.max.DF,1)} %` : '') + (G.deep>0.5 ? ` · ${fmt(100*G.deep/G.area,0)} % of area outside the room band` : '');
   }
 
   function interpret(d, rows, agg, agg0){
@@ -768,55 +769,55 @@
     const lab = x => (d.results.floors.length>1?'F'+x.floor+' ':'')+x.edge;
     const ps = [];
     const GL = (d.results.groups||{}).list || [];
-    if(GL.length>1){ ps.push(`楼层分 ${GL.length} 组：` + GL.map((g,i)=>{ const sb = g.setback||{}; const any = ['A','B','C','D'].filter(k=>(sb[k]||0)>0).map(k=>`${k} 退 ${fmt(sb[k],1)} m`).concat(g.shift && (g.shift.x||g.shift.y) ? [`错位 ${fmt(g.shift.x,1)} / ${fmt(g.shift.y,1)} m`] : []).join('、'); return `第 ${i+1} 组 ${g.floors&&g.floors.length ? `F${g.floors[0]}–F${g.floors[g.floors.length-1]}` : '空'}${any?`（${any}）`:''}`; }).join('；') + `；各层面积 ${d.results.floors.map(f=>fmt(f.area,0)).join(' / ')} m²。`); }
+    if(GL.length>1){ ps.push(`Floors in ${GL.length} groups: ` + GL.map((g,i)=>{ const sb = g.setback||{}; const any = ['A','B','C','D'].filter(k=>(sb[k]||0)>0).map(k=>`${k} set back ${fmt(sb[k],1)} m`).concat(g.shift && (g.shift.x||g.shift.y) ? [`shift ${fmt(g.shift.x,1)} / ${fmt(g.shift.y,1)} m`] : []).join(', '); return `group ${i+1} ${g.floors&&g.floors.length ? `F${g.floors[0]}–F${g.floors[g.floors.length-1]}` : 'empty'}${any?` (${any})`:''}`; }).join('; ') + `; floor areas ${d.results.floors.map(f=>fmt(f.area,0)).join(' / ')} m². `); }
     const dirOf = e => ENGINE.dirName(ENGINE.norm(P.az0 + {A:0,B:-90,C:180,D:90}[e]));
-    const grpSay = a => a && a!=='all' ? `，只作用于第 ${a.slice(1)} 组` : '';
-    if(notchOps.length){ const parts = notchOps.map((op,i)=>{ const h = (d.handle||{})[op.id]; const dep = h && h.at > (op.at||'') ? h.depth : op.depth; return `#${i+1} 在 ${op.edge} 边（${dirOf(op.edge)}）深 ${fmt(dep,1)} m、宽 ${fmt(op.width,1)} m${dep > Math.min(P.L,P.W)/2 ? '（深过一半，已是 U 形）' : ''}${grpSay(op.apply)}`; });
-      const cut = [...new Set(notchOps.map(o=>o.edge))].map(e=>{ const pc = pieces.filter(x=>x.edge.startsWith(e)); return pc.length ? `${e} 边被切成 ${pc.map(x=>x.edge).join(' / ')}` : ''; }).filter(Boolean).join('；');
+    const grpSay = a => a && a!=='all' ? `, only group ${a.slice(1)}` : '';
+    if(notchOps.length){ const parts = notchOps.map((op,i)=>{ const h = (d.handle||{})[op.id]; const dep = h && h.at > (op.at||'') ? h.depth : op.depth; return `#${i+1} on edge ${op.edge} (${dirOf(op.edge)}), depth ${fmt(dep,1)} m, width ${fmt(op.width,1)} m${dep > Math.min(P.L,P.W)/2 ? ' (deeper than half: a U)' : ''}${grpSay(op.apply)}`; });
+      const cut = [...new Set(notchOps.map(o=>o.edge))].map(e=>{ const pc = pieces.filter(x=>x.edge.startsWith(e)); return pc.length ? `edge ${e} is cut into ${pc.map(x=>x.edge).join(' / ')}` : ''; }).filter(Boolean).join('; ');
       const warn = (d.results.warnings||[]).filter(w=>/^F\d+: notch/.test(w)).length;
-      ps.push(`凹口 ${notchOps.length} 个：${parts.join('；')}。${cut ? cut + '。' : ''}${warn ? '有凹口因为挨得太近被忽略（见 Grasshopper 警告）。' : ''}`); }
-    else ps.push('当前没有凹口。');
+      ps.push(`Notches (${notchOps.length}): ${parts.join('; ')}. ${cut ? cut + '. ' : ''}${warn ? 'A notch too close to another was ignored (see Grasshopper warnings).' : ''}`); }
+    else ps.push('No notches.');
     if(splitOps.length){ const sp = splitOps[0]; const h = (d.handle||{})[sp.id]; const pos = h && h.at > (sp.at||'') ? h.pos : sp.pos; const F1 = d.results.floors[0]; const nPl = F1 && F1.plates ? F1.plates.length : 1;
       const sw = (d.results.warnings||[]).filter(w=>/split/.test(w)).length;
-      ps.push(`分裂：${sp.axis==='x' ? '横着' : '竖着'}在 ${fmt(pos*100,0)} % 处切开，缝 ${fmt(sp.gap,1)} m${grpSay(sp.apply)}；${nPl>1 ? `第 1 层分成两块（${F1.plates.map(pl=>{ const A = poly=>Math.abs(poly.reduce((a,p,i,arr)=>{ const q = arr[(i+1)%arr.length]; return a + p[0]*q[1] - q[0]*p[1]; },0))/2; return fmt(A(pl.perimeter) - (pl.holes||[]).reduce((a,h)=>a+A(h),0),0); }).join(' / ')} m²），缝两侧的新立面是 S1 / S2` : '本层没有生效'}${sw ? '；有楼层的分裂被忽略（切线穿过凹口 / 庭院，或一边太窄，见警告）' : ''}。`); }
+      ps.push(`Split: ${sp.axis==='x' ? 'across' : 'along'}at ${fmt(pos*100,0)} %, gap ${fmt(sp.gap,1)} m${grpSay(sp.apply)}; ${nPl>1 ? `floor 1 splits into two plates (${F1.plates.map(pl=>{ const A = poly=>Math.abs(poly.reduce((a,p,i,arr)=>{ const q = arr[(i+1)%arr.length]; return a + p[0]*q[1] - q[0]*p[1]; },0))/2; return fmt(A(pl.perimeter) - (pl.holes||[]).reduce((a,h)=>a+A(h),0),0); }).join(' / ')} m²); the new facades along the gap are S1 / S2` : 'not effective on this floor'}${sw ? '; on some floors the split is ignored (line crosses a notch / courtyard, or a side is too thin, see warnings)' : ''}. `); }
     const courtSegs = f1.filter(x=>x.loop && x.loop.startsWith('court'));
     if(courtOps.length){ const loops = [...new Set(courtSegs.map(x=>x.loop))]; const cw = courtSegs.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
-      ps.push(`庭院 ${courtOps.length} 个：` + courtOps.map((op,i)=>`#${i+1} ${fmt(op.width,1)} × ${fmt(op.depth,1)} m${grpSay(op.apply)}`).join('；') + `；本层生效 ${loops.length} 个` + (loops.length < courtOps.length ? '（其余太小、太靠外墙，或与凹口 / 其他庭院挨着，被忽略，见警告）' : '') + (cw ? `；内墙里过热最高的是 ${cw.edge}：${fmt(cw.r.ovh,1)} %` : '') + '。'); }
-    ps.push(`过热最高的是 ${lab(worst)}（${ENGINE.dirName(worst.az)}，${fmt(worst.len,1)} m）：${fmt(worst.r.ovh,1)} %；采光最好的是 ${lab(best)}：${fmt(best.r.DF,1)} %。`);
+      ps.push(`Courtyards (${courtOps.length}): ` + courtOps.map((op,i)=>`#${i+1} ${fmt(op.width,1)} × ${fmt(op.depth,1)} m${grpSay(op.apply)}`).join('; ') + `; ${loops.length} effective on this floor` + (loops.length < courtOps.length ? ' (the rest are too small, too close to the outer wall, or touch a notch / other courtyard, see warnings)' : '') + (cw ? `; hottest inner wall is ${cw.edge}: ${fmt(cw.r.ovh,1)} %` : '') + '. '); }
+    ps.push(`Hottest segment: ${lab(worst)} (${ENGINE.dirName(worst.az)}, ${fmt(worst.len,1)} m): ${fmt(worst.r.ovh,1)} %; best daylight: ${lab(best)}: ${fmt(best.r.DF,1)} %.`);
     const dov = agg0dev.ovh - agg0.ovh, ddf = agg0dev.DF - agg0.DF;
-    ps.push(`和不开凹口的矩形相比（都不装遮阳），整栋过热 ${dov>=0?'上升':'下降'} ${fmt(Math.abs(dov),1)} 个百分点，采光 ${ddf>=0?'上升':'下降'} ${fmt(Math.abs(ddf),2)} 个百分点；立面总长（各层合计）从 ${fmt(d.results.floors.reduce((a,f)=>{const r=f.rect||[0,0,P.L,P.W]; return a+2*((r[2]-r[0])+(r[3]-r[1]));},0),1)} m 变为 ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m。`);
+    ps.push(`Compared with the plain rectangle (both without devices), whole-building overheating ${dov>=0?'rises':'falls'} ${fmt(Math.abs(dov),1)} points, daylight ${ddf>=0?'rises':'falls'} ${fmt(Math.abs(ddf),2)} points; total facade length (all floors) goes from ${fmt(d.results.floors.reduce((a,f)=>{const r=f.rect||[0,0,P.L,P.W]; return a+2*((r[2]-r[0])+(r[3]-r[1]));},0),1)} m to ${fmt(rows.reduce((a,x)=>a+x.len,0),1)} m. `);
     if(P.devType!=='none'){ const nU = rows.reduce((a,x)=>a+(x.dev?x.dev.units:0),0); const worstD = rows.slice().sort((a,b)=>b.r.ovh-a.r.ovh)[0];
-      const facSay = FAC.map(k=> (k==='court' ? '庭院' : $('facLab'+k).textContent) + ' ' + (P.fac[k].on ? P.fac[k].tilt+'°' : '不装')).join('、');
-      ps.push(`装上${$('devType').selectedOptions[0].textContent.replace(/^#\d+ /,'')}（${facSay}；共 ${nU} 个单元）后，整栋过热从 ${fmt(agg0dev.ovh,1)} % 到 ${fmt(agg.ovh,1)} %，采光从 ${fmt(agg0dev.DF,1)} % 到 ${fmt(agg.DF,1)} %，视野通透 ${fmt(totalView*100,0)} %；仍最热的是 ${worstD.edge}（${fmt(worstD.r.ovh,1)} %）。`); }
+      const facSay = FAC.map(k=> (k==='court' ? 'Courtyard' : $('facLab'+k).textContent) + ' ' + (P.fac[k].on ? P.fac[k].tilt+'°' : 'no device')).join(', ');
+      ps.push(`With ${$('devType').selectedOptions[0].textContent.replace(/^#\d+ /,'')} (${facSay}; ${nU} units), whole-building overheating goes from ${fmt(agg0dev.ovh,1)} % to ${fmt(agg.ovh,1)} %, daylight from ${fmt(agg0dev.DF,1)} % to ${fmt(agg.DF,1)} %, view openness ${fmt(totalView*100,0)} %; still hottest: ${worstD.edge} (${fmt(worstD.r.ovh,1)} %).`); }
     const sun = window.__sun;
     if(sun){ const order = rows.map((x,i)=>[lab(x), sun.perSegment[i]]).filter(a=>a[1]!=null).sort((a,b)=>b[1]-a[1]); const lo = order[order.length-1], hi = order[0];
       const onBase = pt => Math.abs(pt[1])<1e-6 || Math.abs(pt[0]-P.L)<1e-6 || Math.abs(pt[1]-P.W)<1e-6 || Math.abs(pt[0])<1e-6;
       const inner = pieces.filter(x=>x.p && x.q && !(onBase(x.p) && onBase(x.q))).map(x=>[x.edge, sun.perSegment[rows.indexOf(x)]]).filter(a=>a[1]!=null);
-      ps.push(`Ladybug 直射日照（${{summer:'夏季',winter:'冬季',annual:'全年'}[sun.period]||sun.period}）：最多的是 ${hi[0]}（${fmt(hi[1],0)} h），最少的是 ${lo[0]}（${fmt(lo[1],0)} h）${inner.length?`；凹口内的 ${inner.map(a=>a[0]+' '+fmt(a[1],0)+' h').join('、')} 被凹口两侧的楼板遮住了一部分`:''}。`); }
+      ps.push(`Ladybug direct sun (${{summer:'Summer',winter:'Winter',annual:'Annual'}[sun.period]||sun.period}): most on ${hi[0]} (${fmt(hi[1],0)} h), least on ${lo[0]} (${fmt(lo[1],0)} h)${inner.length?`; inside the notch, ${inner.map(a=>a[0]+' '+fmt(a[1],0)+' h').join(', ')} are partly shaded by the slabs on both sides`:''}. `); }
     const PG = window.__grid;
     if(PG && PG.cells.length){ const hot = PG.cells.filter(c=>c.inStrip).slice().sort((a,b)=>b.Hx-a.Hx)[0]; const cool = PG.cells.filter(c=>c.inStrip).slice().sort((a,b)=>a.Hx-b.Hx)[0];
       const near = (x=>x? (lab(x)) : '—');
-      let t = `平面热力图（F${window.__gridFloor}，格 ${fmt(PG.gx,1)} m，房间带进深 ${fmt(PG.depth,1)} m）：过热暴露最高的一块在 ${hot&&hot.top?near(hot.top)+' 边后 '+fmt(hot.topD,1)+' m':'—'}（${fmt(hot?hot.Hx:0,1)} kWh/m²），最低的在 ${cool&&cool.top?near(cool.top)+' 边后 '+fmt(cool.topD,1)+' m':'—'}（${fmt(cool?cool.Hx:0,1)} kWh/m²）`;
-      if(PG.deep>0.5) t += `；有 ${fmt(100*PG.deep/PG.area,0)} % 的楼板离所有外墙都超过 ${fmt(PG.depth,1)} m，不在任何房间带里，立面对它没有影响，这块面积要靠人工照明`;
-      t += '。'; ps.push(t); }
+      let t = `Plan heatmap (F${window.__gridFloor}, cell ${fmt(PG.gx,1)} m, room band depth ${fmt(PG.depth,1)} m): highest overheating exposure at ${hot&&hot.top?near(hot.top)+' edge, '+fmt(hot.topD,1)+' m in':'—'} (${fmt(hot?hot.Hx:0,1)} kWh/m²), lowest at ${cool&&cool.top?near(cool.top)+' edge, '+fmt(cool.topD,1)+' m in':'—'} (${fmt(cool?cool.Hx:0,1)} kWh/m²)`;
+      if(PG.deep>0.5) t += `;  ${fmt(100*PG.deep/PG.area,0)} % of the slab is more than ${fmt(PG.depth,1)} m from every outer wall, outside any room band: the facade cannot help it and it needs artificial light`;
+      t += '. '; ps.push(t); }
     const expo = window.__expo;
-    if(expo){ const rows0 = window.__rows0, rowsFree = calcSegs(d.results.segments, d.results.winH, false, null), aFree = aggregate(rowsFree), a0 = window.__agg0dev;   // 都不装遮阳：自由墙面 vs 算进自遮挡
+    if(expo){ const rows0 = window.__rows0, rowsFree = calcSegs(d.results.segments, d.results.winH, false, null), aFree = aggregate(rowsFree), a0 = window.__agg0dev;
       const shaded = rows0.map((x,i)=>({x, e:expo[i], i, drop:rowsFree[i].r.ovh - x.r.ovh})).filter(o=>o.e!=null && o.e<0.9);
       const covered = shaded.filter(o=>o.e<=0.001 && /^court/.test(o.x.loop||''));
       const telling = shaded.filter(o=>o.drop>0.05).sort((a,b)=>b.drop-a.drop).slice(0,3);
-      if(shaded.length){ let t = `体量自遮挡：${shaded.length} 段墙被自己的体量挡住了一部分太阳`;
-        if(telling.length) t += `，对过热影响最大的是 ${telling.map(o=>`${lab(o.x)}（受晒 ${fmt(o.e*100,0)} %，过热 ${fmt(rowsFree[o.i].r.ovh,1)} % → ${fmt(o.x.r.ovh,1)} %）`).join('、')}`;
-        else t += `，但这些段本来就不热，过热几乎没变`;
-        if(covered.length) t += `；庭院四壁受晒 0 %，因为庭院只开在第 1 组，上面的楼层把它盖住了，直射完全进不来`;
-        t += `。不装遮阳时，算进自遮挡整栋过热从 ${fmt(aFree.ovh,1)} % 到 ${fmt(a0.ovh,1)} %。`; ps.push(t); }
-      else ps.push(`体量自遮挡：所有墙段受晒都在 90 % 以上，这个体量基本不遮自己。`); }
-    else ps.push(`<span class="cap">体量自遮挡待 Ladybug 第二次日照算完后才计入（表里「受晒」列）。</span>`);
-    ps.push(`<span class="cap">模板句，数字全部来自引擎与 Ladybug；以后由模型改写成设计语言。</span>`);
+      if(shaded.length){ let t = `Self-shading: ${shaded.length} segments lose part of their sun to the building massing itself`;
+        if(telling.length) t += `; the biggest effect on overheating is ${telling.map(o=>`${lab(o.x)} (exposure ${fmt(o.e*100,0)} %, overheating ${fmt(rowsFree[o.i].r.ovh,1)} % → ${fmt(o.x.r.ovh,1)} %)`).join(', ')}`;
+        else t += `, but these segments were not hot anyway, overheating barely changes`;
+        if(covered.length) t += `; the courtyard walls have 0 % exposure because the courtyard is only open in group 1 and the floors above cover it, no direct sun gets in`;
+        t += `. Without devices, counting self-shading moves whole-building overheating from ${fmt(aFree.ovh,1)} % to ${fmt(a0.ovh,1)} %.`; ps.push(t); }
+      else ps.push(`Self-shading: every segment keeps over 90 % exposure; this massing barely shades itself.`); }
+    else ps.push(`<span class="cap">Self-shading will be counted after Ladybug finishes the second sun run (the Exposure column).</span>`);
+    ps.push(`<span class="cap">Template sentences; every number comes from the engine and Ladybug; later a model will rewrite them in design language.</span>`);
     $('interp').innerHTML = ps.map(p=>`<p>${p}</p>`).join('');
   }
 
   // ---------- wiring ----------
-  $('tilt').addEventListener('input', ()=>{ FAC.forEach(k=> $('fTilt'+k).value = $('tilt').value); });   // 默认折角 = 总闸，各面跟随（在下面的通用监听之前跑）
+  $('tilt').addEventListener('input', ()=>{ FAC.forEach(k=> $('fTilt'+k).value = $('tilt').value); });
   ids.forEach(id=> $(id).addEventListener('input', ()=>{ read(); schedulePost(); }));
   FAC.forEach(k=>{ $('fTilt'+k).addEventListener('input', ()=>{ read(); schedulePost(); }); $('fOn'+k).addEventListener('change', ()=>{ read(); schedulePost(); }); });
   $('runSun').addEventListener('change', ()=>{ read(); schedulePost(); });
@@ -827,124 +828,124 @@
   const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   (function groupsState(){ const saved = store.get('mv.ui.groups') || {}; document.querySelectorAll('details.grp').forEach(d=>{ if(typeof saved[d.id]==='boolean') d.open = saved[d.id]; d.addEventListener('toggle', ()=>{ const o = store.get('mv.ui.groups')||{}; o[d.id]=d.open; store.set('mv.ui.groups', o); }); }); })();
 
-  // ---------- views (2026-10-03 第四刀): 设计 / 对比 / 读图 ----------
+
   function setView(v){ document.body.dataset.view = v; document.querySelectorAll('.viewtabs button').forEach(b=> b.classList.toggle('on', b.dataset.view===v)); store.set('mv.ui.view', v); if(v==='compare'){ renderSnapList(); renderCompare(); } if(v==='read' && typeof loadInbox==='function') loadInbox(true); }
   document.querySelectorAll('.viewtabs button').forEach(b=> b.addEventListener('click', ()=>setView(b.dataset.view)));
 
   // ---------- snapshots ----------
   let SNAPS = store.get('mv.snaps') || []; let SNAPSEL = store.get('mv.snapSel') || [];
   const saveSnaps = ()=>{ store.set('mv.snaps', SNAPS); store.set('mv.snapSel', SNAPSEL); };
-  const devName = t => ({none:'无装置', pivot:'#0 中轴转动板', bifoldV:'#1 竖轴折板', bifoldH:'#2 横轴折板', umbrella:'#3 伞式六角'})[t] || t;
+  const devName = t => ({none:'none', pivot:'#0 pivot panel', bifoldV:'#1 vertical fold', bifoldH:'#2 horizontal fold', umbrella:'#3 hex umbrella'})[t] || t;
   function snapshot(name){
-    if(!(STATE && STATE.results && STATE.results.at && window.__rows)){ alert('还没有结果，等 Rhino 写回后再存。'); return null; }
+    if(!(STATE && STATE.results && STATE.results.at && window.__rows)){ alert('No results yet; wait for Rhino to write back before saving.'); return null; }
     const d = STATE, rows = window.__rows, rows0 = window.__rows0, agg = window.__agg, agg0dev = window.__agg0dev, agg0 = window.__agg0, sun = window.__sun, expo = window.__expo;
     const sh = d.shading || {}, fac = sh.facades || {};
-    const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), name: (name||'').trim() || ('方案 ' + (SNAPS.length+1)), at: (dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)(new Date()),
+    const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), name: (name||'').trim() || ('Scheme ' + (SNAPS.length+1)), at: (dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)(new Date()),
       state: {building:d.building, ops:d.ops, windows:d.windows, run:d.run, shading:d.shading},
-      summary: { dev: devName(sh.type), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'庭':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
+      summary: { dev: devName(sh.type), tilts: sh.type==='none' ? '' : FAC.map(k=> (k==='court'?'court':k) + (fac[k] ? (fac[k].on===false ? '—' : fac[k].tilt) : sh.tilt)).join(' '),
         floors: d.results.floors.length, groups: ((d.results.groups||{}).list||[]).length || 1,
-        ops: (d.ops||[]).map(o=> o.type==='notch' ? `凹口 ${o.edge} 深 ${fmt(o.depth,1)}` : `庭院 ${fmt(o.width,1)}×${fmt(o.depth,1)}`).join('、') || '无操作',
+        ops: (d.ops||[]).map(o=> o.type==='notch' ? `Notch ${o.edge} depth ${fmt(o.depth,1)}` : `Courtyard ${fmt(o.width,1)}×${fmt(o.depth,1)}`).join(', ') || 'none',
         period: (d.run||{}).period, clim: (d.run||{}).clim, size: `${d.building.L}×${d.building.W} m` },
       metrics: { ovh0: agg0dev.ovh, ovh: agg.ovh, df0: agg0dev.DF, df: agg.DF, view: window.__view*100, expo: window.__expoAvg!=null ? window.__expoAvg*100 : null, sun: window.__sunAvg,
         area: d.results.floors.reduce((a,f)=>a+f.area,0), len: rows.reduce((a,x)=>a+x.len,0), units: rows.reduce((a,x)=>a+(x.dev?x.dev.units:0),0), net: agg.net, ovhBase: agg0.ovh },
       segs: rows.map((x,i)=>({key:'F'+x.floor+' '+x.edge, az:x.az, len:x.len, ovh0:rows0[i].r.ovh, ovh:x.r.ovh, df0:rows0[i].r.DF, df:x.r.DF, view:x.dev?x.dev.view*100:100, expo: expo&&expo[i]!=null?expo[i]*100:null, sun: sun?sun.perSegment[i]:null})),
       plan: { viewBox: $('plan').getAttribute('viewBox'), html: $('plan').innerHTML, floor: $('planFloor').value, mode: $('planMode').value } };
     SNAPS.push(s); if(SNAPSEL.length<4) SNAPSEL.push(s.id); saveSnaps(); return s; }
-  $('snapSave').addEventListener('click', ()=>{ const s = snapshot($('snapName').value); if(s){ $('snapName').value=''; setConn(true, `已存「${s.name}」（共 ${SNAPS.length} 个方案）`); renderSnapList(); if(document.body.dataset.view==='compare') renderCompare(); } });
-  function renderSnapList(){ const el = $('snapList'); $('snapSum').textContent = SNAPS.length ? `${SNAPS.length} 个 · 选了 ${SNAPSEL.length}` : '';
-    if(!SNAPS.length){ el.innerHTML = '<span class="cap">还没有方案。回到「设计」调好后点「存为方案」。</span>'; return; }
+  $('snapSave').addEventListener('click', ()=>{ const s = snapshot($('snapName').value); if(s){ $('snapName').value=''; setConn(true, `saved “${s.name}” ( ${SNAPS.length}  schemes)`); renderSnapList(); if(document.body.dataset.view==='compare') renderCompare(); } });
+  function renderSnapList(){ const el = $('snapList'); $('snapSum').textContent = SNAPS.length ? `${SNAPS.length}  · selected ${SNAPSEL.length}` : '';
+    if(!SNAPS.length){ el.innerHTML = '<span class="cap">No schemes yet. Go back to Design, tune, then click Save scheme.</span>'; return; }
     el.innerHTML = ''; SNAPS.forEach(s=>{ const row = document.createElement('div'); row.className = 'snap';
-      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = SNAPSEL.includes(s.id); cb.title = '并排看'; cb.onchange = ()=>{ if(cb.checked){ if(SNAPSEL.length>=4){ cb.checked=false; return; } SNAPSEL.push(s.id); } else SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; nm.title = `${s.summary.dev}｜${s.summary.ops}｜${s.at}（点击改名）`;
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = SNAPSEL.includes(s.id); cb.title = 'compare'; cb.onchange = ()=>{ if(cb.checked){ if(SNAPSEL.length>=4){ cb.checked=false; return; } SNAPSEL.push(s.id); } else SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; nm.title = `${s.summary.dev}|${s.summary.ops}|${s.at} (click to rename)`;
       nm.onclick = ()=>{ const inp = document.createElement('input'); inp.className = 'rename'; inp.value = s.name; const done = ()=>{ const v = inp.value.trim(); if(v) s.name = v; saveSnaps(); renderSnapList(); renderCompare(); }; inp.onblur = done; inp.onkeydown = e=>{ if(e.key==='Enter') inp.blur(); if(e.key==='Escape'){ inp.onblur=null; renderSnapList(); } }; row.replaceChild(inp, nm); inp.focus(); inp.select(); };
       const tm = document.createElement('small'); tm.textContent = s.at.slice(5);
-      const del = document.createElement('button'); del.type='button'; del.textContent = '删'; del.title = '再点一次确认';
-      del.onclick = ()=>{ if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent = '确认删'; setTimeout(()=>{ del.classList.remove('arm'); del.textContent = '删'; }, 3000); return; }
+      const del = document.createElement('button'); del.type='button'; del.textContent = 'Del'; del.title = 'click again to confirm';
+      del.onclick = ()=>{ if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent = 'Confirm'; setTimeout(()=>{ del.classList.remove('arm'); del.textContent = 'Del'; }, 3000); return; }
         SNAPS = SNAPS.filter(x=>x.id!==s.id); SNAPSEL = SNAPSEL.filter(x=>x!==s.id); saveSnaps(); renderSnapList(); renderCompare(); };
       row.append(cb, nm, tm, del); el.appendChild(row); }); }
   $('snapExport').addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify({kind:'massing_snapshots', version:1, snaps:SNAPS}, null, 1)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'massing_snapshots.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); });
   $('snapImportBtn').addEventListener('click', ()=> $('snapImport').click());
-  $('snapImport').addEventListener('change', async e=>{ const f = e.target.files[0]; if(!f) return; try{ const j = JSON.parse(await f.text()); const arr = Array.isArray(j) ? j : (j.snaps||[]); let n = 0; arr.forEach(s=>{ if(s && s.metrics && s.segs){ if(SNAPS.some(x=>x.id===s.id)) s.id = s.id + '_' + Date.now().toString(36); SNAPS.push(s); n++; } }); saveSnaps(); renderSnapList(); renderCompare(); setConn(true, `导入了 ${n} 个方案`); }catch(err){ alert('导入失败：'+err.message); } e.target.value = ''; });
+  $('snapImport').addEventListener('change', async e=>{ const f = e.target.files[0]; if(!f) return; try{ const j = JSON.parse(await f.text()); const arr = Array.isArray(j) ? j : (j.snaps||[]); let n = 0; arr.forEach(s=>{ if(s && s.metrics && s.segs){ if(SNAPS.some(x=>x.id===s.id)) s.id = s.id + '_' + Date.now().toString(36); SNAPS.push(s); n++; } }); saveSnaps(); renderSnapList(); renderCompare(); setConn(true, `imported ${n}  schemes`); }catch(err){ alert('import failed: '+err.message); } e.target.value = ''; });
 
   // ---------- compare view ----------
-  const MET = [ {k:'ovh0', label:'整栋过热 · 无板', unit:' %', dec:1, good:'down'}, {k:'ovh', label:'整栋过热 · 有板', unit:' %', dec:1, good:'down'},
-    {k:'df0', label:'整栋采光 · 无板', unit:' %', dec:2, good:'up'}, {k:'df', label:'整栋采光 · 有板', unit:' %', dec:2, good:'up'},
-    {k:'view', label:'视野通透', unit:' %', dec:0, good:'up'}, {k:'expo', label:'受晒（自遮挡后）', unit:' %', dec:0, good:null}, {k:'sun', label:'日照 h（分析期）', unit:' h', dec:0, good:null},
-    {k:'area', label:'楼板总面积', unit:' m²', dec:0, good:null}, {k:'len', label:'立面总长（各层合计）', unit:' m', dec:1, good:null}, {k:'units', label:'装置单元数', unit:'', dec:0, good:null}, {k:'net', label:'冬季净得热', unit:' kWh/a', dec:0, good:'up'} ];
+  const MET = [ {k:'ovh0', label:'Overheating · bare', unit:' %', dec:1, good:'down'}, {k:'ovh', label:'Overheating · with device', unit:' %', dec:1, good:'down'},
+    {k:'df0', label:'Daylight · bare', unit:' %', dec:2, good:'up'}, {k:'df', label:'Daylight · with device', unit:' %', dec:2, good:'up'},
+    {k:'view', label:'View openness', unit:' %', dec:0, good:'up'}, {k:'expo', label:'Exposure (after self-shading)', unit:' %', dec:0, good:null}, {k:'sun', label:'Sun h (period)', unit:' h', dec:0, good:null},
+    {k:'area', label:'Total floor area', unit:' m²', dec:0, good:null}, {k:'len', label:'Total facade length (all floors)', unit:' m', dec:1, good:null}, {k:'units', label:'Device units', unit:'', dec:0, good:null}, {k:'net', label:'Winter net gain', unit:' kWh/a', dec:0, good:'up'} ];
   const dcell = (v, ref, m) => { if(v==null || ref==null) return ''; const dv = v-ref; if(Math.abs(dv) < Math.pow(10,-m.dec)/2) return `<small class="d-0">±0</small>`; const cls = m.good ? ((m.good==='down') === (dv<0) ? 'd-good' : 'd-bad') : 'd-0'; return `<small class="${cls}">${dv>0?'+':'−'}${fmt(Math.abs(dv), m.dec)}</small>`; };
   function renderCompare(){ const body = $('cmpBody'), sel = SNAPSEL.map(id=>SNAPS.find(s=>s.id===id)).filter(Boolean);
-    $('cmpSum').textContent = sel.length ? `${sel.length} 个方案，差值相对第一个（${sel[0].name}）` : '';
-    if(!sel.length){ body.innerHTML = '<p class="cap">在左边的方案列表里勾选 2–4 个。</p>'; return; }
+    $('cmpSum').textContent = sel.length ? `${sel.length}  schemes; differences relative to the first (${sel[0].name})` : '';
+    if(!sel.length){ body.innerHTML = '<p class="cap">Tick 2–4 schemes in the list on the left.</p>'; return; }
     const ref = sel[0];
     let h = '<table class="cmp"><thead><tr><th></th>' + sel.map(s=>`<th class="nm">${s.name}</th>`).join('') + '</tr>'
-      + '<tr><th>装置 · 折角</th>' + sel.map(s=>`<th>${s.summary.dev}${s.summary.tilts?'<br><span style="font-weight:400">'+s.summary.tilts+'</span>':''}</th>`).join('') + '</tr>'
-      + '<tr><th>体量 · 操作</th>' + sel.map(s=>`<th style="font-weight:400;white-space:normal;max-width:220px">${s.summary.size} · ${s.summary.floors} 层 · ${s.summary.groups} 组<br>${s.summary.ops}</th>`).join('') + '</tr></thead><tbody>';
+      + '<tr><th>Device · fold</th>' + sel.map(s=>`<th>${s.summary.dev}${s.summary.tilts?'<br><span style="font-weight:400">'+s.summary.tilts+'</span>':''}</th>`).join('') + '</tr>'
+      + '<tr><th>Massing · operations</th>' + sel.map(s=>`<th style="font-weight:400;white-space:normal;max-width:220px">${s.summary.size} · ${s.summary.floors} floors · ${s.summary.groups} groups<br>${s.summary.ops}</th>`).join('') + '</tr></thead><tbody>';
     MET.forEach(m=>{ h += `<tr><td>${m.label}</td>` + sel.map((s,i)=>{ const v = s.metrics[m.k]; return `<td>${v==null?'—':fmt(v,m.dec)+m.unit}${i?dcell(v, ref.metrics[m.k], m):''}</td>`; }).join('') + '</tr>'; });
     h += '</tbody></table>';
     // plans
-    h += '<div class="cmpPlans">' + sel.map(s=>`<figure><svg viewBox="${s.plan.viewBox}">${s.plan.html}</svg><figcaption>${s.name} · F${s.plan.floor} ${({hot:'过热暴露',df:'采光',none:'立面段'})[s.plan.mode]||''}</figcaption></figure>`).join('') + '</div>';
+    h += '<div class="cmpPlans">' + sel.map(s=>`<figure><svg viewBox="${s.plan.viewBox}">${s.plan.html}</svg><figcaption>${s.name} · F${s.plan.floor} ${({hot:'Overheating exposure',df:'Daylight',none:'Facade segments'})[s.plan.mode]||''}</figcaption></figure>`).join('') + '</div>';
     // segment differences vs first
     const keys = [...new Set(sel.flatMap(s=>s.segs.map(x=>x.key)))];
     const rowsD = keys.map(k=>{ const vals = sel.map(s=>s.segs.find(x=>x.key===k)||null); const r0 = vals[0]; const dmax = Math.max(0, ...vals.slice(1).map(v=> v&&r0 ? Math.abs(v.ovh-r0.ovh) : 99)); const ddf = Math.max(0, ...vals.slice(1).map(v=> v&&r0 ? Math.abs(v.df-r0.df) : 99)); return {k, vals, dmax, ddf}; })
       .filter(r=> sel.length>1 && (r.dmax>=0.5 || r.ddf>=0.2)).sort((a,b)=>b.dmax-a.dmax).slice(0,30);
-    if(sel.length>1){ h += `<div class="cap" style="margin-top:8px;font-weight:600;color:var(--ink)">立面段差异（有板；只列过热差 ≥ 0.5 或采光差 ≥ 0.2 的段，最多 30 行）</div>`;
-      if(!rowsD.length) h += '<p class="cap">各段都没有明显差别。</p>';
-      else h += '<table class="cmp"><thead><tr><th>段</th>' + sel.map(s=>`<th>${s.name}<br><span style="font-weight:400">过热 · 采光 · 视野</span></th>`).join('') + '</tr></thead><tbody>'
-        + rowsD.map(r=> `<tr><td>${r.k}</td>` + r.vals.map((v,i)=> v ? `<td>${fmt(v.ovh,1)} % · ${fmt(v.df,1)} % · ${fmt(v.view,0)} %${i&&r.vals[0]?dcell(v.ovh, r.vals[0].ovh, MET[1]):''}</td>` : '<td class="cap">（无此段）</td>').join('') + '</tr>').join('') + '</tbody></table>'; }
+    if(sel.length>1){ h += `<div class="cap" style="margin-top:8px;font-weight:600;color:var(--ink)">Segment differences (with device; only segments with overheating diff ≥ 0.5 or daylight diff ≥ 0.2 , at most 30 rows)</div>`;
+      if(!rowsD.length) h += '<p class="cap">No segment differs noticeably.</p>';
+      else h += '<table class="cmp"><thead><tr><th>Seg</th>' + sel.map(s=>`<th>${s.name}<br><span style="font-weight:400">overheating · daylight · view</span></th>`).join('') + '</tr></thead><tbody>'
+        + rowsD.map(r=> `<tr><td>${r.k}</td>` + r.vals.map((v,i)=> v ? `<td>${fmt(v.ovh,1)} % · ${fmt(v.df,1)} % · ${fmt(v.view,0)} %${i&&r.vals[0]?dcell(v.ovh, r.vals[0].ovh, MET[1]):''}</td>` : '<td class="cap"> (no such segment)</td>').join('') + '</tr>').join('') + '</tbody></table>'; }
     // sentences
-    if(sel.length>1){ h += '<div style="margin-top:8px">' + sel.slice(1).map(s=>{ const a = ref.metrics, b = s.metrics; const say = (lbl, va, vb, unit, dec, good)=>{ const dv = vb-va; if(Math.abs(dv) < Math.pow(10,-dec)/2) return `${lbl}持平`; const dir = dv>0?'高':'低'; return `${lbl}${dir} ${fmt(Math.abs(dv),dec)}${unit}`; };
+    if(sel.length>1){ h += '<div style="margin-top:8px">' + sel.slice(1).map(s=>{ const a = ref.metrics, b = s.metrics; const say = (lbl, va, vb, unit, dec, good)=>{ const dv = vb-va; if(Math.abs(dv) < Math.pow(10,-dec)/2) return `${lbl}same`; const dir = dv>0?'higher':'lower'; return `${lbl}${dir} ${fmt(Math.abs(dv),dec)}${unit}`; };
         const segTop = s.segs.map(x=>{ const r0 = ref.segs.find(y=>y.key===x.key); return r0 ? {k:x.key, d:x.ovh-r0.ovh} : null; }).filter(Boolean).sort((p,q)=>Math.abs(q.d)-Math.abs(p.d))[0];
-        return `<p>「${s.name}」比「${ref.name}」：${say('过热（有板）', a.ovh, b.ovh, ' 个百分点', 1)}，${say('采光（有板）', a.df, b.df, ' 个百分点', 2)}，${say('视野', a.view, b.view, ' %', 0)}，${say('立面总长', a.len, b.len, ' m', 1)}，${say('楼板面积', a.area, b.area, ' m²', 0)}${segTop && Math.abs(segTop.d)>=0.5 ? `；段里差别最大的是 ${segTop.k}（过热 ${segTop.d>0?'+':'−'}${fmt(Math.abs(segTop.d),1)}）` : ''}。</p>`; }).join('') + '</div>'; }
+        return `<p>“${s.name}” vs “${ref.name}”: ${say('overheating (with device)', a.ovh, b.ovh, ' points', 1)}, ${say('daylight (with device)', a.df, b.df, ' points', 2)}, ${say('View', a.view, b.view, ' %', 0)}, ${say('facade length', a.len, b.len, ' m', 1)}, ${say('floor area', a.area, b.area, ' m²', 0)}${segTop && Math.abs(segTop.d)>=0.5 ? `; the largest segment difference is ${segTop.k} (overheating ${segTop.d>0?'+':'−'}${fmt(Math.abs(segTop.d),1)})` : ''}. </p>`; }).join('') + '</div>'; }
     body.innerHTML = h; }
 
   // ---------- device sweep: five snapshots on the current design ----------
   function waitFor(cond, ms){ return new Promise(res=>{ const t0 = Date.now(); const h = setInterval(()=>{ if(cond()){ clearInterval(h); res(true); } else if(Date.now()-t0 > ms){ clearInterval(h); res(false); } }, 500); }); }
-  $('sweepBtn').addEventListener('click', async ()=>{ if(!(STATE && STATE.results && STATE.results.at)){ alert('还没有结果。'); return; }
+  $('sweepBtn').addEventListener('click', async ()=>{ if(!(STATE && STATE.results && STATE.results.at)){ alert('No results yet.'); return; }
     const withSun = $('sweepSun').checked, orig = $('devType').value, origSun = $('runSun').checked, types = ['none','pivot','bifoldV','bifoldH','umbrella'], btn = $('sweepBtn'); btn.disabled = true; let n = 0;
-    $('runSun').checked = withSun;   // 不要日照时暂停 Ladybug，五个方案几秒一个
-    for(const t of types){ $('sweepStatus').textContent = `正在跑：${devName(t)}（${types.indexOf(t)+1}/5）…`; $('devType').value = t; read();
+    $('runSun').checked = withSun;
+    for(const t of types){ $('sweepStatus').textContent = `running: ${devName(t)} (${types.indexOf(t)+1}/5)…`; $('devType').value = t; read();
       const before = STATE.results.at, beforeSun = STATE.results.sun ? STATE.results.sun.at : ''; await post();
       const ok = await waitFor(()=> STATE && STATE.results && STATE.results.at > before && (!withSun || (STATE.results.sun && STATE.results.sun.at > beforeSun && STATE.results.sun.at > STATE.results.at)), withSun ? 90000 : 40000);
-      if(!ok){ $('sweepStatus').textContent = `${devName(t)} 等 Rhino 超时，跳过`; continue; }
-      await new Promise(r=>setTimeout(r, 400)); render(STATE); if(snapshot('装置 · ' + devName(t))) n++; renderSnapList(); renderCompare(); }
-    $('devType').value = orig; $('runSun').checked = origSun; read(); await post(); btn.disabled = false; $('sweepStatus').textContent = `跑完，存了 ${n} 个方案；装置已恢复为 ${devName(orig)}。`; });
+      if(!ok){ $('sweepStatus').textContent = `${devName(t)} wait Rhino timed out, skipped`; continue; }
+      await new Promise(r=>setTimeout(r, 400)); render(STATE); if(snapshot('device · ' + devName(t))) n++; renderSnapList(); renderCompare(); }
+    $('devType').value = orig; $('runSun').checked = origSun; read(); await post(); btn.disabled = false; $('sweepStatus').textContent = `done, saved ${n}  schemes; device restored to ${devName(orig)}. `; });
 
-  // ---------- read tab (第四刀步 3)：收件夹 + 参数卡 ----------
+
   let INBOX = [], READMODE = 'claude', inboxSig = '';
   const readFiles = [];
   const TYPES4 = ['pivot','bifoldV','bifoldH','umbrella'];
-  const Q8 = ['1 挡哪个方向的太阳','2 元素的方向','3 单元尺寸（宽 / 深 / 厚）','4 单元密度与排布','5 透不透（穿孔率）','6 动不动（怎么动）','7 在玻璃哪一侧','8 盖住窗的哪部分'];
+  const Q8 = ['1 Which sun direction it blocks','2 Element direction','3 Unit size (width / depth / thickness)','4 Unit density & layout','5 Transparency (perforation)','6 Movement (how it moves)','7 Which side of the glass','8 Which part of the window it covers'];
   const esc = t => String(t==null?'':t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   $('readFiles').addEventListener('change', async e=>{ readFiles.length = 0; $('readPreview').innerHTML = '';
     for(const f of [...e.target.files].slice(0,6)){ const dataUrl = await new Promise(res=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.readAsDataURL(f); }); readFiles.push({name:f.name, dataUrl}); const img = document.createElement('img'); img.src = dataUrl; $('readPreview').appendChild(img); } });
-  $('readSend').addEventListener('click', async ()=>{ if(!readFiles.length){ $('readStatus').textContent = '先选图。'; return; } const btn = $('readSend'); btn.disabled = true;
-    $('readStatus').textContent = READMODE==='api' ? '已发送，模型在读（10–40 s）…' : '正在存入收件夹…';
+  $('readSend').addEventListener('click', async ()=>{ if(!readFiles.length){ $('readStatus').textContent = 'Choose images first.'; return; } const btn = $('readSend'); btn.disabled = true;
+    $('readStatus').textContent = READMODE==='api' ? 'sent, the model is reading (10–40 s)…' : 'saving to inbox…';
     try{ const r = await fetch('/inbox', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:$('readNote').value, images:readFiles})}); const j = await r.json(); if(!r.ok) throw new Error(j.error||r.status);
-      $('readStatus').textContent = j.error ? j.error : (j.card ? '读好了，看下面的卡。' : '已存入收件夹。现在在聊天里对 Claude 说「读图」，卡出来会自动显示在下面。');
+      $('readStatus').textContent = j.error ? j.error : (j.card ? 'done, see the card below.' : 'saved to the inbox. Now tell Claude “read image” in the chat; the card will appear below.');
       readFiles.length = 0; $('readPreview').innerHTML = ''; $('readFiles').value = ''; $('readNote').value = ''; await loadInbox(true);
-    }catch(err){ $('readStatus').textContent = '发送失败：' + err.message; } btn.disabled = false; });
+    }catch(err){ $('readStatus').textContent = 'send failed: ' + err.message; } btn.disabled = false; });
   async function loadInbox(force){ try{ const r = await fetch('/inbox', {cache:'reload'}); const j = await r.json(); READMODE = j.mode || 'claude'; INBOX = j.items || [];
-      const mt = READMODE==='api' ? '直接调模型' : '交给 Claude（没有 api_key.txt）'; $('readMode').textContent = mt; $('readModeAside').textContent = mt;
+      const mt = READMODE==='api' ? 'call the model directly' : 'hand to Claude (no api_key.txt)'; $('readMode').textContent = mt; $('readModeAside').textContent = mt;
       const sig = INBOX.map(x=> x.id + ':' + x.status + ':' + (x.card ? x.card.at : '')).join('|'); if(force || sig !== inboxSig){ inboxSig = sig; renderInbox(); } }catch(e){} }
-  function renderInbox(){ const el = $('inboxList'); if(!INBOX.length){ el.innerHTML = '<p class="cap" style="margin-top:10px">收件夹是空的。</p>'; return; }
-    el.innerHTML = INBOX.slice().reverse().map(it=>{ const c = it.card, sh = (c && c.shading) || {}; const stName = {pending:'等读', read:'已有卡', applied:'已应用', library:'已标记入库', claude:'待 Claude 加条目'}[it.status] || it.status;
-      let h = `<div class="inboxItem" data-id="${esc(it.id)}"><div class="head"><span class="st ${esc(it.status)}">${stName}</span><b>${esc(it.note || '（无描述）')}</b><small class="cap">${esc(it.at.slice(0,16).replace('T',' '))} · ${esc(it.id)}</small></div>`;
+  function renderInbox(){ const el = $('inboxList'); if(!INBOX.length){ el.innerHTML = '<p class="cap" style="margin-top:10px">The inbox is empty.</p>'; return; }
+    el.innerHTML = INBOX.slice().reverse().map(it=>{ const c = it.card, sh = (c && c.shading) || {}; const stName = {pending:'unread', read:'card ready', applied:'applied', library:'marked for library', claude:'pending Claude add entry'}[it.status] || it.status;
+      let h = `<div class="inboxItem" data-id="${esc(it.id)}"><div class="head"><span class="st ${esc(it.status)}">${stName}</span><b>${esc(it.note || ' (no description)')}</b><small class="cap">${esc(it.at.slice(0,16).replace('T',' '))} · ${esc(it.id)}</small></div>`;
       h += `<div class="thumbs">${it.images.map(u=>`<a href="${u}" target="_blank"><img src="${u}"></a>`).join('')}</div>`;
-      if(!c){ h += READMODE==='api' ? `<div class="cap">${it.error ? esc(it.error) : '还没有卡。'} <button type="button" class="act" data-act="reread" style="width:auto;padding:2px 8px;font-size:12px">调模型读</button></div>`
-                                 : `<div class="cap">等 Claude 读：在聊天里说「读图」。卡写进收件夹后这里会自动显示。</div>`; }
+      if(!c){ h += READMODE==='api' ? `<div class="cap">${it.error ? esc(it.error) : 'No card yet.'} <button type="button" class="act" data-act="reread" style="width:auto;padding:2px 8px;font-size:12px">Read with the model</button></div>`
+                                 : `<div class="cap">wait Claude to read: say “read image” in the chat. The card shows here once it is in the inbox.</div>`; }
       else if(c.error){ h += `<div class="bad">${esc(c.error)}</div>`; }
       else { const ans = c.answers || {}; const keys = Q8.filter(k=>k in ans).length ? Q8 : Object.keys(ans);
-        h += `<div class="cardForm"><span class="sub">参数卡（每格都能改）· 来源 ${esc(c.by||'')}${c.confidence!=null?` · 把握 ${Math.round(c.confidence*100)} %`:''}</span>
-          <span class="lab">怎么动</span><textarea rows="2" data-k="summary">${esc(c.summary)}</textarea>`;
+        h += `<div class="cardForm"><span class="sub">Parameter card (every field editable) · source ${esc(c.by||'')}${c.confidence!=null?` · confidence ${Math.round(c.confidence*100)} %`:''}</span>
+          <span class="lab">How it moves</span><textarea rows="2" data-k="summary">${esc(c.summary)}</textarea>`;
         keys.forEach(k=>{ h += `<span class="lab">${esc(k)}</span><input data-q="${esc(k)}" value="${esc(ans[k])}">`; });
-        h += `<span class="lab">最接近的条目</span><select data-k="closest">${['pivot','bifoldV','bifoldH','umbrella','none'].map(t=>`<option value="${t}" ${c.closest===t?'selected':''}>${t==='none'?'都不像（要加新条目）':devName(t)}</option>`).join('')}</select>
-          <span class="lab">不同之处</span><textarea rows="2" data-k="differences">${esc((c.differences||[]).join('\n'))}</textarea>
-          <span class="lab">依据</span><textarea rows="2" data-k="evidence">${esc((c.evidence||[]).join('\n'))}</textarea>
-          <span class="lab">提醒</span><input data-k="notes" value="${esc(c.notes)}">
-          <span class="sub">进工具的参数（和装置卡同名）</span>
-          <div class="nums">${[['unitW','单元宽 m'],['tilt','代表折角 °'],['standoff','离墙 m'],['thick','板厚 m'],['skin','表皮厚 mm'],['holeD','孔径 mm'],['perfMin','穿孔率下限 0–0.9'],['perfMax','穿孔率上限 0–0.9']].map(([k,l])=>`<label>${l}<input type="number" step="any" data-s="${k}" value="${sh[k]!=null?sh[k]:''}"></label>`).join('')}
-            <label>折角范围<input data-s="tiltRange" value="${esc((sh.tiltRange||[]).join('–'))}"></label></div></div>`;
-        h += `<div class="acts"><button type="button" class="act" data-act="save">保存修改</button><button type="button" class="act primary" data-act="apply">应用到设计</button><button type="button" class="act" data-act="library">存入机构库</button><button type="button" class="act" data-act="claude">交给 Claude 加条目</button>${READMODE==='api'?'<button type="button" class="act" data-act="reread">重新读</button>':''}</div>`; }
+        h += `<span class="lab">Closest entry</span><select data-k="closest">${['pivot','bifoldV','bifoldH','umbrella','none'].map(t=>`<option value="${t}" ${c.closest===t?'selected':''}>${t==='none'?'none (needs a new entry)':devName(t)}</option>`).join('')}</select>
+          <span class="lab">Differences</span><textarea rows="2" data-k="differences">${esc((c.differences||[]).join('\n'))}</textarea>
+          <span class="lab">Evidence</span><textarea rows="2" data-k="evidence">${esc((c.evidence||[]).join('\n'))}</textarea>
+          <span class="lab">Notes</span><input data-k="notes" value="${esc(c.notes)}">
+          <span class="sub">Tool parameters (same names as the device card)</span>
+          <div class="nums">${[['unitW','Unit width m'],['tilt','Typical fold °'],['standoff','Standoff m'],['thick','Thickness m'],['skin','Skin thickness mm'],['holeD','Hole size mm'],['perfMin','Perforation min 0–0.9'],['perfMax','Perforation max 0–0.9']].map(([k,l])=>`<label>${l}<input type="number" step="any" data-s="${k}" value="${sh[k]!=null?sh[k]:''}"></label>`).join('')}
+            <label>Fold range<input data-s="tiltRange" value="${esc((sh.tiltRange||[]).join('–'))}"></label></div></div>`;
+        h += `<div class="acts"><button type="button" class="act" data-act="save">Save edits</button><button type="button" class="act primary" data-act="apply">Apply to design</button><button type="button" class="act" data-act="library">Add to library</button><button type="button" class="act" data-act="claude">hand to Claude add entry</button>${READMODE==='api'?'<button type="button" class="act" data-act="reread">Read again</button>':''}</div>`; }
       return h + '</div>'; }).join('');
     el.querySelectorAll('button.act').forEach(b=> b.addEventListener('click', ()=> inboxAct(b.closest('.inboxItem').dataset.id, b.dataset.act, b.closest('.inboxItem')))); }
   function collectCard(it, box){ const c = Object.assign({}, it.card||{}); const g = sel => box.querySelector(sel);
@@ -955,16 +956,16 @@
     c.shading.type = TYPES4.includes(c.closest) ? c.closest : (c.shading.type||'bifoldV'); c.newEntryNeeded = c.closest==='none'; c.editedAt = new Date().toISOString(); return c; }
   async function inboxAct(id, act, box){ const it = INBOX.find(x=>x.id===id); if(!it) return;
     try{
-      if(act==='reread'){ box.querySelector('.cap').textContent = '模型在读…'; const r = await fetch(`/inbox/${id}/read`, {method:'POST'}); const j = await r.json(); if(!r.ok) throw new Error(j.error||r.status); await loadInbox(true); return; }
+      if(act==='reread'){ box.querySelector('.cap').textContent = 'model reading…'; const r = await fetch(`/inbox/${id}/read`, {method:'POST'}); const j = await r.json(); if(!r.ok) throw new Error(j.error||r.status); await loadInbox(true); return; }
       const card = collectCard(it, box);
       await fetch(`/inbox/${id}/card`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(card)});
-      if(act==='apply'){ const sh = card.shading||{}; const t = TYPES4.includes(card.closest) ? card.closest : null; if(!t){ setConn(true, '这张卡没有对应的条目，先在「最接近的条目」里选一个。'); return; }
+      if(act==='apply'){ const sh = card.shading||{}; const t = TYPES4.includes(card.closest) ? card.closest : null; if(!t){ setConn(true, 'This card has no matching entry; pick one under Closest entry first.'); return; }
         $('devType').value = t; const setv = (id2, v)=>{ if(v!=null && !isNaN(v)) $(id2).value = v; }; setv('unitW', sh.unitW); setv('tilt', sh.tilt); setv('standoff', sh.standoff); setv('thick', sh.thick); setv('skin', sh.skin); setv('holeD', sh.holeD); setv('perfMin', sh.perfMin!=null ? Math.round(sh.perfMin*100) : null); setv('perfMax', sh.perfMax!=null ? Math.round(sh.perfMax*100) : null);
         if(sh.tilt!=null) FAC.forEach(k=> $('fTilt'+k).value = sh.tilt); read(); await post();
-        await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'applied'})}); await loadInbox(true); setView('design'); setConn(true, `已按「${devName(t)}」应用，等 Rhino 重算`); return; }
-      if(act==='library' || act==='claude'){ await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: act})}); await loadInbox(true); setConn(true, act==='library' ? '已标记入库：在聊天里让 Claude 整理进 MECHANISMS.md' : '已标记：在聊天里让 Claude 加新条目'); return; }
-      setConn(true, '卡已保存'); await loadInbox(true);
-    }catch(err){ setConn(false, '读图操作失败：' + err.message); } }
+        await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'applied'})}); await loadInbox(true); setView('design'); setConn(true, `applied as “${devName(t)}”, waiting for Rhino to recompute`); return; }
+      if(act==='library' || act==='claude'){ await fetch(`/inbox/${id}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: act})}); await loadInbox(true); setConn(true, act==='library' ? 'marked for the library: in the chat, ask Claude to write it into MECHANISMS.md' : 'marked: in the chat, ask Claude to add a new entry'); return; }
+      setConn(true, 'card saved'); await loadInbox(true);
+    }catch(err){ setConn(false, 'read-image action failed: ' + err.message); } }
   setInterval(()=>{ if(document.body.dataset.view==='read') loadInbox(false); }, 3000);
 
   // first load: take sliders from the file (state is the single source of truth), then start polling
@@ -990,8 +991,8 @@
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
       if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }
-      setConn(true, '已连接本地服务');
-    }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
+      setConn(true, 'connected to local service');
+    }catch(e){ setConn(false, 'no local service (double-click rhino/start_server.bat)'); }
     setInterval(poll, 1000);
     setView(store.get('mv.ui.view') || 'design');
   }
