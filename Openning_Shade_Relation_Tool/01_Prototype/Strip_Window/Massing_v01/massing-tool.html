@@ -353,6 +353,7 @@
 
 <script src="/shared/wwr-climate.js"></script>
 <script src="/shared/wwr-engine.js"></script>
+<script>if(typeof window.WWR==='undefined'){ document.write('<script src="../../../../Passivehouse_Tool/01_Prototypes/_shared/wwr-climate.js"><\/script><script src="../../../../Passivehouse_Tool/01_Prototypes/_shared/wwr-engine.js"><\/script>'); }</script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -480,6 +481,7 @@
     };
   }
   async function post(){
+    if(DEMO){ setConn(false, DEMO_MSG); return; }
     try{
       const r = await fetch('/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
       const d = await r.json(); if(!r.ok) throw new Error(d.error||r.status);
@@ -490,6 +492,7 @@
   function setConn(on, text){ $('conn').classList.toggle('on', on); $('connText').textContent = text; }
 
   async function poll(){
+    if(DEMO) return;
     try{
       const r = await fetch('/state'); if(!r.ok) throw new Error(r.status);
       const d = await r.json(); STATE = d;
@@ -968,10 +971,13 @@
   setInterval(()=>{ if(document.body.dataset.view==='read') loadInbox(false); }, 3000);
 
   // first load: take sliders from the file (state is the single source of truth), then start polling
+  let DEMO = false;   // 2026-10-02 演示模式（GitHub Pages）：没有本地服务时读仓库里存的快照 rhino/state.json，只看不改
+  const DEMO_MSG = '演示模式：显示的是仓库里存的一份快照，滑块不会重算。要实时联动请按 README 在本机启动 Rhino + 本地服务。';
+  async function loadState(){ try{ const r = await fetch('/state', {cache:'no-store'}); if(!r.ok) throw new Error(r.status); return await r.json(); }catch(e){ const r2 = await fetch('rhino/state.json', {cache:'no-store'}); if(!r2.ok) throw new Error('no state'); DEMO = true; return await r2.json(); } }
   async function init(){
     read();
     try{
-      const r = await fetch('/state'); const d = await r.json(); STATE = d;
+      const d = await loadState(); STATE = d;
       suppressPost = true;
       const b = d.building, w = d.windows;
       $('L').value=b.L; $('W').value=b.W; $('floors').value=b.floors; $('H').value=b.H; $('slab').value=b.slab||0.35; $('az0').value=b.az0; $('wwr').value=Math.round(w.wwr*100); $('sill').value=w.sill;
@@ -990,7 +996,7 @@
         FAC.forEach(k=>{ const f = sh.facades && sh.facades[k]; $('fOn'+k).checked = f ? f.on !== false : k!=='court'; $('fTilt'+k).value = f && f.tilt != null ? f.tilt : sh.tilt; }); }
       read(); suppressPost = false;
       if(d.results && d.results.at){ lastResultsAt = d.results.at; lastSunAt = d.results.sun ? d.results.sun.at : ''; render(d); }
-      setConn(true, '已连接本地服务');
+      setConn(!DEMO, DEMO ? DEMO_MSG : '已连接本地服务');
     }catch(e){ setConn(false, '未连接本地服务（双击 rhino/start_server.bat）'); }
     setInterval(poll, 1000);
     setView(store.get('mv.ui.view') || 'design');

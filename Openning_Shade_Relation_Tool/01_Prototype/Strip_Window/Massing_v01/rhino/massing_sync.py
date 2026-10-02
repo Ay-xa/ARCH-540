@@ -19,6 +19,22 @@ import Rhino
 import Rhino.Geometry as rg
 import scriptcontext as sc
 
+
+def resolve_state_path(p):
+    """2026-10-02 让 gh 文件搬到别的电脑也能用：path 面板留空或写相对名（如 state.json）时，
+    按 massing.gh 自己所在的文件夹找；写了存在的绝对路径就照用。"""
+    p = (p or "").strip() if isinstance(p, str) else ""
+    if p and os.path.isabs(p) and os.path.isfile(p):
+        return p
+    try:
+        base = os.path.dirname(ghenv.Component.OnPingDocument().FilePath)
+    except Exception:
+        base = ""
+    return os.path.join(base, p or "state.json") if base else p
+
+
+path = resolve_state_path(path)
+
 TOL = 0.005          # m；手柄位置差小于这个值视为没动
 OFF = 0.02           # 窗条面往外偏移，避免和楼板面重叠闪烁
 WALL = 1.0           # m；庭院离外墙、凹口离对面墙至少留这么厚

@@ -131,7 +131,7 @@
   },
   "results": {
     "seq": 331,
-    "at": "2026-10-02T03:01:58.029",
+    "at": "2026-10-02T03:20:23.581",
     "floorsSame": false,
     "nSeg": 200,
     "floors": [
@@ -7938,7 +7938,7 @@
     }
   },
   "updated_by": "gh",
-  "updated_at": "2026-10-02T03:02:03.309",
+  "updated_at": "2026-10-02T03:20:23.583",
   "shading": {
     "type": "umbrella",
     "unitW": 3.5,

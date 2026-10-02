@@ -561,6 +561,13 @@ Records are appended after each session. Most recent entry is at the bottom.
 - 又一次发现 Trigger 定时器自己停了（02:10–02:58 之间，没有我的操作；Rhino 自动保存前后）。改 `massing_watch.py`：每次跑完用 `ScheduleSolution(500)` 给自己排下一次，0.45 s 内有排程就不重复；Trigger 停了也照跑。验证：把 Trigger 锁住、touch state.json，watch_key 照样跟上。massing.gh 已保存。
 - 剖面图例按字符估宽（CJK 11.2 px、其他 6.3 px）并靠左夹住，英文长句不再被裁。对比句「higher / lower / same」前补空格。
 
+**README、相对路径、Pages 演示模式（2026-10-02）**
+- 路径：三个 GH 脚本加 `resolve_state_path()`——path 面板留空或写相对名就按 massing.gh 所在文件夹找 state.json；面板改成 `state.json`，三个组件重载、gh 已保存。context_gen.py 的兜底路径改为按打开的 3dm 所在文件夹。仓库里不再有写死的 C:\ 路径。
+- Pages 演示模式：页面先试 `/state`，没有本地服务就读 `rhino/state.json` 快照并标 DEMO（不 POST、不轮询，状态栏说明）；共享引擎 `/shared/*.js` 加载不到时用相对路径 `../../../../Passivehouse_Tool/01_Prototypes/_shared/` 兜底。用 `python -m http.server` 在仓库根模拟 Pages 验证通过（平面、表、剖面、解读都出来）；正式页自测 19/19。
+- README.md（仓库根）按课程五条写：Pages 链接置顶（英文页 + 中文页）、目的（用户原文）、怎么用（组成 / 要求 / 六步 / 排错）、来源（phichina 第 4 条 + 工具自己的假设分开写）、例子（demo.gif + 伞式 vs 旋转板数字表）、技能与边界。
+- 机器上没有 gh CLI：设 public 和开 Pages 要用户在 GitHub 网页设置里点（Settings → General → Danger Zone → Change visibility；Settings → Pages → Source: Deploy from a branch, main, /(root)）。
+- 下一步：等 Pages 链接生效后点开核对；用户在自己电脑上按 README 走一遍。
+
 **Next session: suggested starting point**
 - 候选（用户定）：第五刀的「Rhino 直接拖边 / 拖角」、父子楼层、动态调节规则；或第四刀搁置的步 5（折角扫描 / 月×钟点 / 目标达标）、加体块；或第六刀交付（一键启动、导出、可信度说明）。
 - 读图：用户在页面上传后说「读图」→ 按 02_Rules/inbox/README.md 写 card.json。（server `/vision` 代理 + api_key.txt + 参数卡 + 应用 / 入库 / 交给 Claude）→ 步 4 错位、分裂 → 步 5 折角扫描 / 月×钟点 / 目标达标。

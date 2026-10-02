@@ -8,6 +8,20 @@ import Rhino.Geometry as rg
 SYNC_GUID = "59ab856d-c7e5-44ce-99c9-578fe8373b83"     # massing sync 组件的 InstanceGuid
 
 
+def resolve_state_path(p):
+    """2026-10-02 让 gh 文件搬到别的电脑也能用：path 面板留空或写相对名（如 state.json）时，
+    按 massing.gh 自己所在的文件夹找；写了存在的绝对路径就照用。"""
+    p = (p or "").strip() if isinstance(p, str) else ""
+    if p and os.path.isabs(p) and os.path.isfile(p):
+        return p
+    try:
+        base = os.path.dirname(ghenv.Component.OnPingDocument().FilePath)
+    except Exception:
+        base = ""
+    return os.path.join(base, p or "state.json") if base else p
+
+
+
 def key(path):
     try:
         st = os.stat(path); k = [st.st_mtime_ns, st.st_size]
@@ -41,6 +55,7 @@ def keep_alive(ghdoc):
 
 
 def main(path):
+    path = resolve_state_path(path)
     ghdoc = ghenv.Component.OnPingDocument()
     if ghdoc:
         keep_alive(ghdoc)

@@ -21,7 +21,7 @@ doc = globals().get("__rhino_doc__") or Rhino.RhinoDoc.ActiveDoc
 rnd = random.Random(SEED)
 
 # 主建筑中心：从 state.json 读 L、W（建筑占 0..L × 0..W）
-here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else r"C:\Github_Repository\ARCH-540\Openning_Shade_Relation_Tool\01_Prototype\Strip_Window\Massing_v01\rhino"
+here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else (os.path.dirname(doc.Path) if doc and doc.Path else os.getcwd())   # 没有 __file__ 时按打开的 massing.3dm 所在文件夹找
 try:
     st = json.load(open(os.path.join(here, "state.json"), encoding="utf-8"))
     L, W = float(st["building"]["L"]), float(st["building"]["W"])
