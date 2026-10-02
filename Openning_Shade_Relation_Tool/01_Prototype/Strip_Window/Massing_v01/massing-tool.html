@@ -189,6 +189,7 @@
 
       <div class="h3">凹口 <span class="badge" id="fromRhino" hidden>来自 Rhino</span></div>
       <div class="tabs" id="notchTabs"></div>
+      <div class="cap bad" id="notchWarn" hidden></div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="edge">在哪条边</label></div>
           <select id="edge"><option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
@@ -203,6 +204,7 @@
 
       <div class="h3">庭院 <span class="badge" id="fromRhinoC" hidden>来自 Rhino</span></div>
       <div class="tabs" id="courtTabs"></div>
+      <div class="cap bad" id="courtWarn" hidden></div>
       <div class="ctl"><div class="row"><label for="applyC">作用在</label></div><select id="applyC"><option value="all" selected>全部楼层</option></select></div>
       <div class="two">
         <div class="ctl"><div class="row"><label for="cu">中心 沿 L</label><output id="cuOut"></output></div><input id="cu" type="range" min="0" max="1" step="0.01" value="0.6"></div>
@@ -377,6 +379,29 @@
     const a = document.createElement('button'); a.type='button'; a.textContent = '+'; a.className = 'add'; a.title = '新增'; a.onclick = onAdd; el.appendChild(a);
     if(items.length && onDel){ const d = document.createElement('button'); d.type='button'; d.textContent = '删'; d.className = 'del'; d.title = '删掉当前这条'; d.onclick = ()=>onDel(sel); el.appendChild(d); } }
   function groupRanges(){ const N = P.floors; let used = 0; return LIST.groups.map((g,i)=>{ const n = i===LIST.groups.length-1 ? Math.max(0, N-used) : Math.max(0, Math.min(g.n, N-used)); const r = {from:used+1, to:used+n, n}; used += n; return r; }); }
+  // ---- 2026-10-02：页面先按 massing_sync 同一套规则算"哪个凹口 / 庭院会被忽略"，不用等 Rhino 的警告 ----
+  const WALLm = 1.0;
+  function floorRectOf(fl){ const rs = groupRanges(); let gi = rs.findIndex(r=>fl>=r.from && fl<=r.to); if(gi<0) gi = rs.length-1; const g = LIST.groups[gi]||{}; const sb = g.setback||{}, sh = g.shift||{};
+    let x0 = +sb.D||0, y0 = +sb.A||0, x1 = P.L-(+sb.B||0), y1 = P.W-(+sb.C||0);
+    if(x1-x0 < 2*WALLm || y1-y0 < 2*WALLm){ const cx=(x0+x1)/2, cy=(y0+y1)/2; x0=Math.min(x0,cx-WALLm); x1=Math.max(x1,cx+WALLm); y0=Math.min(y0,cy-WALLm); y1=Math.max(y1,cy+WALLm); }
+    return {rect:[x0+(+sh.x||0), y0+(+sh.y||0), x1+(+sh.x||0), y1+(+sh.y||0)], gi}; }
+  function notchRectOf(rect, n){ if(!n || n.depth<=0.01 || n.width<=0.01) return null; const [x0,y0,x1,y1] = rect; const ac = n.edge==='A'||n.edge==='C'; const E = ac ? x1-x0 : y1-y0; const d = Math.min(n.depth, Math.max(0, (ac ? y1-y0 : x1-x0)-WALLm)), w = n.width, pos = n.pos;
+    if(n.edge==='A') return [Math.max(x0, x0+pos*E-w/2), y0, Math.min(x1, x0+pos*E+w/2), y0+d];
+    if(n.edge==='C') return [Math.max(x0, x1-pos*E-w/2), y1-d, Math.min(x1, x1-pos*E+w/2), y1];
+    if(n.edge==='B') return [x1-d, Math.max(y0, y0+pos*E-w/2), x1, Math.min(y1, y0+pos*E+w/2)];
+    return [x0, Math.max(y0, y1-pos*E-w/2), x0+d, Math.min(y1, y1-pos*E+w/2)]; }
+  function courtRectOf(rect, c){ const [x0,y0,x1,y1] = rect, Lr = x1-x0, Wr = y1-y0; const w = Math.min(c.width, Math.max(0, Lr-2*WALLm)), d = Math.min(c.depth, Math.max(0, Wr-2*WALLm)); if(w<0.5 || d<0.5) return null;
+    const cx = Math.min(Math.max(x0+c.pos_u*Lr, x0+WALLm+w/2), x1-WALLm-w/2), cy = Math.min(Math.max(y0+c.pos_v*Wr, y0+WALLm+d/2), y1-WALLm-d/2); return [cx-w/2, cy-d/2, cx+w/2, cy+d/2]; }
+  const rectsClash = (r, others) => others.some(o => !(r[2] <= o[0]-WALLm || r[0] >= o[2]+WALLm || r[3] <= o[1]-WALLm || r[1] >= o[3]+WALLm));
+  const appliesTo = (a, gi) => !a || a==='all' || a==='g'+(gi+1);
+  function opClashes(){   // 先加的凹口优先；庭院碰到凹口或前一个庭院就被忽略（和 massing_sync.outer_loop / floor_outline 一致）
+    const out = {n:{}, c:{}}; const say = (m, i, t) => (m[i] = m[i] || []).push(t);
+    for(let fl=1; fl<=P.floors; fl++){ const {rect, gi} = floorRectOf(fl); const acc = [];
+      LIST.notches.forEach((n,i)=>{ if(!appliesTo(n.apply, gi)) return; const r = notchRectOf(rect, n); if(!r) return; const hit = acc.find(a=>rectsClash(r,[a.r])); if(hit){ say(out.n, i, `F${fl} 和 #${hit.i+1} 重叠`); return; } acc.push({r,i}); });
+      const cacc = [];
+      LIST.courts.forEach((c,i)=>{ if(!appliesTo(c.apply, gi)) return; const r = courtRectOf(rect, c); if(!r){ say(out.c, i, `F${fl} 放不下`); return; } if(rectsClash(r, acc.map(a=>a.r))){ say(out.c, i, `F${fl} 碰到凹口`); return; } if(rectsClash(r, cacc)){ say(out.c, i, `F${fl} 和前一个庭院挨太近`); return; } cacc.push(r); }); }
+    return out; }
+  const squeeze = arr => arr.length<=3 ? arr.join('、') : arr.slice(0,2).join('、') + ` … 共 ${arr.length} 层`;
   function applyOptions(sel){ const keep = sel.value; const rs = groupRanges(); sel.innerHTML = '<option value="all">全部楼层</option>' + rs.map((r,i)=>`<option value="g${i+1}">第 ${i+1} 组（${r.n ? `F${r.from}–F${r.to}` : '空'}）</option>`).join(''); sel.value = [...sel.options].some(o=>o.value===keep) ? keep : 'all'; }
   function loadGroup(i){ const g = LIST.groups[i]; if(!g) return; $('gn').value = g.n; ['A','B','C','D'].forEach(k=> $('sb'+k).value = g.setback[k]||0); $('gsx').value = (g.shift||{}).x||0; $('gsy').value = (g.shift||{}).y||0; }
   function loadSplit(i){ const sp = LIST.splits[i]; if(!sp) return; $('axis').value = sp.axis; applyOptions($('applyS')); $('applyS').value = sp.apply; $('spos').value = sp.pos; $('sgap').value = sp.gap; }
@@ -386,7 +411,13 @@
   function addItem(kind){ read();
     if(kind==='g'){ LIST.groups.push({n:1, setback:{A:0,B:0,C:0,D:0}, shift:{x:0,y:0}}); gSel = LIST.groups.length-1; loadGroup(gSel); }
     else if(kind==='s'){ const src = LIST.splits[sSel]; LIST.splits.push(src ? Object.assign({}, src, {pos:Math.min(0.9, src.pos+0.3)}) : {axis:'x', apply:'all', pos:0.5, gap:4}); sSel = LIST.splits.length-1; loadSplit(sSel); }
-    else if(kind==='n'){ const src = LIST.notches[nSel]; LIST.notches.push(src ? Object.assign({}, src, {pos:Math.min(0.95, src.pos+0.35)}) : {edge:'A', apply:'all', pos:0.4, width:6, depth:4}); nSel = LIST.notches.length-1; loadNotch(nSel); }
+    else if(kind==='n'){ const src = LIST.notches[nSel]; const base = src ? Object.assign({}, src) : {edge:'A', apply:'all', pos:0.4, width:6, depth:4};
+      // 2026-10-02：试几个位置，挑第一个在所有楼层都不和已有凹口重叠的；都重叠就还是复制当前这个（标签会标 ⚠）
+      const cands = [[base.edge, Math.min(0.95, base.pos+0.35)], [base.edge, Math.max(0.05, base.pos-0.35)]]; ['A','B','C','D'].forEach(e=> [0.5,0.25,0.75].forEach(ps=> cands.push([e, ps])));
+      const courtsBad = () => Object.values(opClashes().c).reduce((a,v)=>a+v.length,0), before = courtsBad();
+      const depths = [base.depth].concat(base.depth > 3 ? [3] : []);   // 深的放不下就退一步试 3 m 深
+      let placed = null; for(const dp of depths) for(const [e, ps] of cands){ if(placed) break; const cand = Object.assign({}, base, {edge:e, pos:ps, depth:dp}); LIST.notches.push(cand); const cl = opClashes(); const bad = cl.n[LIST.notches.length-1] || Object.values(cl.c).reduce((a,v)=>a+v.length,0) > before; LIST.notches.pop(); if(!bad){ placed = cand; break; } }   // 也不能把已有的庭院挤掉
+      LIST.notches.push(placed || Object.assign({}, base, {pos:Math.min(0.95, base.pos+0.35)})); nSel = LIST.notches.length-1; loadNotch(nSel); }
     else { const src = LIST.courts[cSel]; LIST.courts.push(src ? Object.assign({}, src, {pos_u:Math.min(0.95, src.pos_u+0.35)}) : {apply:'all', pos_u:0.5, pos_v:0.5, width:6, depth:6}); cSel = LIST.courts.length-1; loadCourt(cSel); }
     read(); schedulePost(); }
   function delItem(kind, i){
@@ -408,8 +439,11 @@
     const rs = groupRanges(), lastG = gSel===LIST.groups.length-1;
     $('gn').disabled = lastG; $('gnLabel').textContent = lastG ? '本组层数（其余楼层）' : '本组层数'; if(lastG && rs[gSel]) $('gnOut').innerHTML = `<b>${rs[gSel].n}</b> 层`;
     tabs($('grpTabs'), LIST.groups, gSel, (g,i)=>`组 ${i+1}${rs[i].n ? ` F${rs[i].from}–F${rs[i].to}` : '（空）'}`, i=>pick('g',i), ()=>addItem('g'), LIST.groups.length>1 ? i=>delItem('g',i) : null);
-    tabs($('notchTabs'), LIST.notches, nSel, (n,i)=>`#${i+1} ${n.edge} 深 ${fmt(n.depth,1)}`, i=>pick('n',i), ()=>addItem('n'), i=>delItem('n',i));
-    tabs($('courtTabs'), LIST.courts, cSel, (c,i)=>`#${i+1} ${fmt(c.width,1)}×${fmt(c.depth,1)}`, i=>pick('c',i), ()=>addItem('c'), i=>delItem('c',i));
+    const CL = opClashes();
+    tabs($('notchTabs'), LIST.notches, nSel, (n,i)=>`#${i+1} ${n.edge} 深 ${fmt(n.depth,1)}${CL.n[i]?' ⚠':''}`, i=>pick('n',i), ()=>addItem('n'), i=>delItem('n',i));
+    tabs($('courtTabs'), LIST.courts, cSel, (c,i)=>`#${i+1} ${fmt(c.width,1)}×${fmt(c.depth,1)}${CL.c[i]?' ⚠':''}`, i=>pick('c',i), ()=>addItem('c'), i=>delItem('c',i));
+    const nw = Object.keys(CL.n).map(i=>`#${+i+1}：${squeeze(CL.n[i])}`); $('notchWarn').hidden = !nw.length; $('notchWarn').textContent = nw.length ? `⚠ ${nw.join('；')} → 这些楼层上 Rhino 忽略了它（两个凹口之间至少留 1 m 墙）。换条边、挪位置或改小就会出现。` : '';
+    const cw = Object.keys(CL.c).map(i=>`#${+i+1}：${squeeze(CL.c[i])}`); $('courtWarn').hidden = !cw.length; $('courtWarn').textContent = cw.length ? `⚠ ${cw.join('；')} → 这些楼层上 Rhino 忽略了它（庭院离凹口、外墙和其他庭院至少 1 m）。` : '';
     tabs($('splitTabs'), LIST.splits, sSel, (sp,i)=>`#${i+1} ${sp.axis==='x'?'横切':'竖切'} 缝 ${fmt(sp.gap,1)}`, i=>pick('s',i), ()=>addItem('s'), i=>delItem('s',i));
     applyOptions($('applyN')); applyOptions($('applyC')); applyOptions($('applyS'));
     const hasN = LIST.notches.length>0, hasC = LIST.courts.length>0, hasS = LIST.splits.length>0;

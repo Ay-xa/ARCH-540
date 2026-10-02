@@ -71,9 +71,21 @@
       "apply": "all",
       "floor": 1,
       "propagate": "up",
-      "at": "2026-10-02T00:47:18.114",
+      "at": "2026-10-02T00:59:28.481",
       "edge": "B",
       "pos": 0.48,
+      "width": 6.0,
+      "depth": 5.5
+    },
+    {
+      "id": "notch02",
+      "type": "notch",
+      "apply": "g3",
+      "floor": 1,
+      "propagate": "up",
+      "at": "2026-10-02T00:59:28.481",
+      "edge": "A",
+      "pos": 0.83,
       "width": 6.0,
       "depth": 5.5
     },
@@ -83,7 +95,7 @@
       "apply": "all",
       "floor": 1,
       "propagate": "up",
-      "at": "2026-10-02T00:47:18.114",
+      "at": "2026-10-02T00:59:28.481",
       "pos_u": 0.4,
       "pos_v": 0.5,
       "width": 10.0,
@@ -95,7 +107,7 @@
     "sill": 0.75
   },
   "run": {
-    "seq": 256,
+    "seq": 270,
     "period": "summer",
     "clim": "apNow",
     "sun": true
@@ -104,17 +116,22 @@
     "notch01": {
       "pos": 0.48,
       "depth": 5.5,
-      "at": "2026-10-02T00:47:18.114"
+      "at": "2026-10-02T00:59:28.481"
     },
     "court01": {
       "pos_u": 0.4,
       "pos_v": 0.5,
-      "at": "2026-10-02T00:47:18.114"
+      "at": "2026-10-02T00:59:28.481"
+    },
+    "notch02": {
+      "pos": 0.83,
+      "depth": 5.5,
+      "at": "2026-10-02T00:59:28.481"
     }
   },
   "results": {
-    "seq": 256,
-    "at": "2026-10-02T00:47:18.690",
+    "seq": 270,
+    "at": "2026-10-02T00:59:33.308",
     "floorsSame": false,
     "nSeg": 84,
     "floors": [
@@ -2979,7 +2996,9 @@
       }
     ],
     "winH": 1.749,
-    "warnings": [],
+    "warnings": [
+      "F4: notch notch02 too close to an earlier notch, ignored"
+    ],
     "shading": {
       "type": "umbrella",
       "units": 145,
@@ -3253,7 +3272,7 @@
         780.4,
         519.3
       ],
-      "at": "2026-10-02T00:47:22.363",
+      "at": "2026-10-02T00:58:54.069",
       "massOnly": [
         2.2,
         285.0,
@@ -3515,7 +3534,7 @@
     }
   },
   "updated_by": "gh",
-  "updated_at": "2026-10-02T00:47:22.363",
+  "updated_at": "2026-10-02T00:59:33.310",
   "shading": {
     "type": "umbrella",
     "unitW": 3.7,
