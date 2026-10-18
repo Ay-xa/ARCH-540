@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>社区中心体块推演工具 v01（平面）</title>
+<title>社区中心体块推演工具 v01</title>
 <style>
   :root{
     --bg:#f6f4ef; --panel:#ffffff; --ink:#1f2a2e; --muted:#6b7378; --line:#dcd8cf;
@@ -70,12 +70,29 @@
   .edge.ns{cursor:ns-resize}.edge.ew{cursor:ew-resize}
   .corner{cursor:nwse-resize}.corner.alt{cursor:nesw-resize}
   text{font-family:inherit;pointer-events:none}
+  .panel-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .panel-row .card{margin:0}
+  .panel-row h3{font-size:13px;margin:0 0 6px;color:var(--accent)}
+  .chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+  .chip{border:1px solid var(--line);color:var(--ink);background:#fff}
+  .chip.on{border-color:var(--accent);background:#eef4f8;color:var(--accent);font-weight:600}
+  .fields{display:grid;grid-template-columns:repeat(3,auto 64px);gap:4px 6px;align-items:center;font-size:12px}
+  .fields input,.lvrow input{width:64px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px}
+  .lvrow{display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:3px}
+  .lvrow .lvname{min-width:64px;cursor:pointer;text-decoration:underline dotted}
+  .lvrow.on .lvname{color:var(--accent);font-weight:600}
+  #view3d{position:relative;height:380px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:4px}
+  #view3d canvas{display:block}
+  #view3d-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .mass-cut{cursor:pointer}
+  svg#section{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px}
+  .fields .chk{grid-column:1 / -1;display:flex;gap:6px;align-items:center}
 </style>
 </head>
 <body>
 <header>
-  <h1>社区中心体块推演工具 · 第一版（平面视图）</h1>
-  <span class="sub">ARCH 540 作业二 · 规则见 <code>_shared/Rules/</code> · 颜色表示冬季最低阶段 · 北在上</span>
+  <h1>社区中心体块推演工具 · 第一版（三维 + 平面）</h1>
+  <span class="sub">ARCH 540 作业二 · 规则见 <code>_shared/Rules/</code> · 三维调体块，平面看功能分区 · 颜色表示冬季最低阶段 · 北在上</span>
 </header>
 
 <div class="layout">
@@ -88,9 +105,14 @@
   </aside>
 
   <section id="center">
+    <div class="panel-row">
+      <div class="card" id="mass-panel"></div>
+      <div class="card" id="level-panel"></div>
+    </div>
+    <div id="view3d"><div id="view3d-msg" class="hint">三维视图加载中（需要联网加载 three.js）……</div></div>
+    <p class="hint">三维视图：左键拖动旋转，右键拖动平移，滚轮缩放；点击体块可以选中。阶段 2 只看不改，体块尺寸在上面的属性栏里输入。蓝色箭头指北；橙色框是平面所看的标高。</p>
     <div class="controls">
-      <label>宽（东西）<input id="in-w" type="number" min="1" max="90" step="1"> m</label>
-      <label>深（南北）<input id="in-d" type="number" min="1" max="52" step="1"> m</label>
+      <label>平面标高 <select id="plan-level"></select></label>
       <span id="massing-readout" class="readout"></span>
     </div>
     <div class="controls">
@@ -109,8 +131,19 @@
       <span><span class="swatch" style="background:var(--band-middle)"></span>中间带（服务）</span>
       <span><span class="swatch" style="background:var(--band-north)"></span>北带（漫射）</span>
       <span><span class="swatch" style="background:#fff"></span>空白 = 走廊与未分配空间</span>
+      <span><span class="swatch" style="background:#eee;border:1.5px dashed #888"></span>体块轮廓 / 灰斜线 = 净高不足</span>
+      <span><span class="swatch" style="background:#dceaf5;border:1px solid #7aa7c7"></span>挑空（这一层不设楼板）</span>
     </div>
-    <p class="hint">操作：拖边或角改大小，拖内部移动，吸附 1 m；点击房间看右侧说明。场地范围 90 × 52 m。</p>
+    <p class="hint">平面显示所选标高的截面：只画在这个标高处存在的体块（底标高 ≤ 标高 &lt; 顶标高）。粗黑线 = 外墙；红色虚线 = 体块贴着但接触宽度不足 5 m，不连通；灰色斜线 = 净高不足 3.0 m，不算可用楼面；细虚线 = 各个体块的轮廓。平面里不能改体块，只能点选房间或体块。场地范围 90 × 52 m。</p>
+    <h2>剖面</h2>
+    <div class="controls">
+      <label>方向 <select id="sec-dir"><option value="ew">东西向（沿 y 切）</option><option value="ns">南北向（沿 x 切）</option></select></label>
+      <label>位置 <input id="sec-pos" type="number" step="1" style="width:64px"> m</label>
+      <span class="hint">默认切过选中体块的中线。深灰 = 楼板和屋顶（厚 0.4 m）；彩色 = 功能区；浅蓝斜线 = 挑空；虚线 = 标高。</span>
+    </div>
+    <svg id="section" xmlns="http://www.w3.org/2000/svg"></svg>
+    <h2>空间（所选标高）</h2>
+    <div id="space-list"></div>
   </section>
 
   <aside id="right">
@@ -384,7 +417,9 @@ const ASSUMPTIONS = {
   depthToFacades:  { status:STATUS.userDecided, note:"深度只量到南、北立面，不量到东、西山墙（2026-10-17）" },
   facadeContact:   { status:STATUS.userDecided, note:"偏好南带或北带的房间，贴着对应立面才算完全适配（2026-10-17）；没贴着时按空隙线性打折：系数 = 1 − 空隙 ÷ 带深度", discountStatus:STATUS.assumed },
   simplicityRule:  { status:STATUS.assumed, note:"前三项都相同时，贴边更多（与外墙或已放房间的边对齐）的位置更好；仍相同时取最西、最南的位置" },
-  judgeOrder:      ["带适配", "渐变适配", "形状", "简洁"],
+  judgeOrder:      ["楼层适配", "带适配", "渐变适配", "形状", "简洁"],
+  floorPrefFirst:  { status:STATUS.userDecided, note:"“楼层适配”（最好首层 / 最好二层）排在带适配之前（用户 2026-10-18 确认）" },
+  manualVoidShared:{ status:STATUS.userDecided, note:"手动挑空的空间可以放多个功能（用户 2026-10-18 确认）" },
 };
 
 // 未生成的三种原因（STAGE_RULES.md 第 6 节，用户决定）
@@ -392,6 +427,7 @@ const UNPLACED_REASONS = {
   U1:"面积不够",
   U2:"没有合适的区域",
   U3:"面积被分割",
+  U4:"净高不够",
 };
 
 /* =====================================================================
@@ -427,6 +463,8 @@ const state = {
   masses: [ newMass(12, 5, ASSUMPTIONS.defaultMassing.w, ASSUMPTIONS.defaultMassing.d) ],
   levels: [ { id:"L01", name:"Level 01", elevation:0 } ],
   selectedMass: "M1",
+  viewLevel: "L01",   // 平面所看的标高
+  section: { dir:"ew", pos:null },   // 剖面：方向和位置（null = 切过选中体块的中线）
   bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
   overrides: {},   // fnId -> { areaM2, date }
   stages: {},      // roomId -> 指派的阶段（默认 tempered）
@@ -436,12 +474,212 @@ const state = {
 const middlePct = () => 100 - state.bands.south - state.bands.north;
 // 当前编辑的体块（阶段 1 只有一个）
 const activeMass = () => state.masses.find(m => m.id === state.selectedMass) || state.masses[0];
+const sortedLevels = () => [...state.levels].sort((a,b) => a.elevation - b.elevation);
+const viewLevel = () => state.levels.find(l => l.id === state.viewLevel) || sortedLevels()[0];
+// 体块在某个标高处是否存在：底标高 ≤ 标高 < 顶标高
+const massCutAt = (m, elev) => m.base <= elev + EPS && m.top > elev + EPS;
 const effectiveArea = fn => state.overrides[fn.id] ? state.overrides[fn.id].areaM2 : fn.areaM2;
 const areaStatusOf = fn => state.overrides[fn.id] ? `${STATUS.userSet}（${state.overrides[fn.id].date}）` : fn.areaStatus;
 
 /* =====================================================================
+   ③ⁿ 空间识别（阶段 3–4，Architecture_Massing_Level_Space_Program.md 第 2.2–2.4 节）
+   体块 + 标高 → 每个标高处的“层段空间”。体块各自独立，不合并；只在这里判断它们是否连成一个空间。
+   - 格子：1 m × 1 m（体块都吸附 1 m），场地 90 × 52。
+   - 连通：同一标高处，两个体块的接触宽度 ≥ 5 m 才算连成一个空间（用户设定）。
+   - 净高：从标高往上，体块连续覆盖到的高度，最多到下一个标高；减去楼板加结构厚度 0.4 m（屋顶也按这个厚度，我的假设）。
+   - 净高 < 3.0 m 的格子不算可用楼面（用户设定）。
+   - 外墙：空间的边，外面没有任何体块的为外墙；外面是另一个不连通空间的为“不连通的接触”，不算外墙；外面是挑空的不算墙。
+   - 挑空（阶段 4）：用户手动标成挑空的体块，在它最低的一层之上不切楼板（上面各层的格子是挑空）；
+     大功能需要的净高超过一层时，在排布时占用几个层段（见 ④）。
+   ===================================================================== */
+const GW = SITE.w, GD = SITE.d;
+const cellIdx = (i, j) => j * GW + i;
+function pointInPoly(x, y, pts){
+  let inside = false;
+  for (let a = 0, b = pts.length - 1; a < pts.length; b = a++){
+    const [xa, ya] = pts[a], [xb, yb] = pts[b];
+    if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) inside = !inside;
+  }
+  return inside;
+}
+const massCovers = (m, i, j) => { const b = m._bb; return i + 0.5 > b.x0 && i + 0.5 < b.x1 && j + 0.5 > b.y0 && j + 0.5 < b.y1 && pointInPoly(i + 0.5, j + 0.5, m.points); };
+function massCells(m){
+  const b = m._bb, out = [];
+  for (let j = Math.max(0, Math.floor(b.y0)); j < Math.min(GD, Math.ceil(b.y1)); j++)
+    for (let i = Math.max(0, Math.floor(b.x0)); i < Math.min(GW, Math.ceil(b.x1)); i++)
+      if (pointInPoly(i + 0.5, j + 0.5, m.points)) out.push(cellIdx(i, j));
+  return out;
+}
+// 接触宽度：两个体块在平面上重叠或贴着的那一块矩形，取它较长的边（用户确认）。目前体块都是矩形，用外接矩形算；以后有 L 形体块时要改。
+function contactWidth(a, b){
+  const A = a._bb, B = b._bb;
+  const ox = Math.min(A.x1, B.x1) - Math.max(A.x0, B.x0), oy = Math.min(A.y1, B.y1) - Math.max(A.y0, B.y0);
+  if (ox < -EPS || oy < -EPS) return 0;
+  return Math.max(0, ox, oy);
+}
+// 把单位长度的边合并成线段：items = [[pos, a]]（a 是 1 m 的起点）→ [{pos, a0, a1}]
+function mergeRuns(items){
+  const by = new Map();
+  for (const [pos, a] of items){ if (!by.has(pos)) by.set(pos, []); by.get(pos).push(a); }
+  const out = [];
+  for (const [pos, list] of [...by.entries()].sort((p, q) => p[0] - q[0])){
+    list.sort((p, q) => p - q);
+    let a0 = list[0], a1 = list[0] + 1;
+    for (const a of list.slice(1)){ if (a === a1) a1++; else { out.push({ pos, a0, a1 }); a0 = a; a1 = a + 1; } }
+    out.push({ pos, a0, a1 });
+  }
+  return out;
+}
+// 一组格子的前缀和：快速判断一个矩形是否完全落在这组格子里
+function prefixOf(mask){
+  const P = new Int32Array((GW + 1) * (GD + 1)), W1 = GW + 1;
+  for (let j = 0; j < GD; j++) for (let i = 0; i < GW; i++)
+    P[(j + 1) * W1 + (i + 1)] = (mask[cellIdx(i, j)] ? 1 : 0) + P[j * W1 + (i + 1)] + P[(j + 1) * W1 + i] - P[j * W1 + i];
+  return P;
+}
+// 矩形覆盖到的格子范围（部分覆盖也算）
+const rectCells = r => ({ ix0:Math.floor(r.x0 + EPS), iy0:Math.floor(r.y0 + EPS), ix1:Math.ceil(r.x1 - EPS), iy1:Math.ceil(r.y1 - EPS) });
+function insideP(r, P){
+  const { ix0, iy0, ix1, iy1 } = rectCells(r);
+  if (ix0 < 0 || iy0 < 0 || ix1 > GW || iy1 > GD || ix1 <= ix0 || iy1 <= iy0) return false;
+  const W1 = GW + 1;
+  return P[iy1 * W1 + ix1] - P[iy0 * W1 + ix1] - P[iy1 * W1 + ix0] + P[iy0 * W1 + ix0] === (ix1 - ix0) * (iy1 - iy0);
+}
+const insideSpace = (r, sp) => insideP(r, sp.P);
+// 空间的面积、外接框、净高范围、外墙（挑空后要重算）
+function refreshSpace(sp){
+  const { usable, info } = sp, owner = info.owner, c = sp.comp;
+  let area = 0, cmin = Infinity, cmax = -Infinity, x0 = GW, y0 = GD, x1 = 0, y1 = 0;
+  const ext = { south:[], north:[], west:[], east:[] }, part = { south:[], north:[], west:[], east:[] };
+  const side = (ni, nj) => {
+    if (ni < 0 || nj < 0 || ni >= GW || nj >= GD) return "ext";
+    const o = owner[cellIdx(ni, nj)];
+    return o === -1 ? "ext" : o === -2 ? null : o !== c ? "part" : null;   // −2 = 挑空，不算墙
+  };
+  for (let idx = 0; idx < GW * GD; idx++){
+    if (!usable[idx]) continue;
+    const i = idx % GW, j = (idx - i) / GW;
+    area++; cmin = Math.min(cmin, info.clear[idx]); cmax = Math.max(cmax, info.clear[idx]);
+    x0 = Math.min(x0, i); y0 = Math.min(y0, j); x1 = Math.max(x1, i + 1); y1 = Math.max(y1, j + 1);
+    const put = (kind, dir, pos, a) => { if (kind) (kind === "ext" ? ext : part)[dir].push([pos, a]); };
+    put(side(i, j - 1), "south", j, i);
+    put(side(i, j + 1), "north", j + 1, i);
+    put(side(i - 1, j), "west", i, j);
+    put(side(i + 1, j), "east", i + 1, j);
+  }
+  sp.area = area; sp.clearMin = cmin; sp.clearMax = cmax;
+  sp.bbox = { x0, y0, x1, y1, w:Math.max(0, x1 - x0), d:Math.max(0, y1 - y0), area:Math.max(0, x1 - x0) * Math.max(0, y1 - y0) };
+  sp.walls = {}; sp.partitions = {};
+  for (const k of ["south","north","west","east"]){ sp.walls[k] = mergeRuns(ext[k]); sp.partitions[k] = mergeRuns(part[k]); }
+  sp.P = prefixOf(usable);
+}
+function analyzeSpaces(){
+  const S = ASSUMPTIONS, lvls = sortedLevels(), spaces = [], warnings = [], levelInfo = [];
+  for (const m of state.masses){ m._bb = bboxOf(m.points); m._first = lvls.findIndex(l => massCutAt(m, l.elevation)); }
+  const cellsOf = new Map(state.masses.map(m => [m.id, massCells(m)]));
+  // 底标高不在任何标高上的体块：它和上面第一个标高之间没有楼面
+  for (const m of state.masses){
+    if (lvls.some(l => Math.abs(l.elevation - m.base) < EPS)) continue;
+    const above = lvls.find(l => l.elevation > m.base + EPS && l.elevation < m.top - EPS);
+    warnings.push(`${m.id} 的底标高 ${fmt(m.base,1)} m 不在任何标高上：` + (above ? `${fmt(m.base,1)}–${fmt(above.elevation,1)} m 这一段没有楼面，从 ${above.name} 起才算空间。` : `它整个不在任何标高的截面里，不形成空间。`));
+  }
+  lvls.forEach((lv, li) => {
+    const e = lv.elevation, next = li + 1 < lvls.length ? lvls[li + 1].elevation : null;
+    // 手动挑空的体块：在它最低的一层之上，不再作为楼面参与（格子标成挑空）
+    const voidHere = state.masses.filter(m => m.void && massCutAt(m, e) && m._first < li);
+    const present = state.masses.filter(m => massCutAt(m, e) && !voidHere.includes(m));
+    const info = { levelId:lv.id, levelIdx:li, elevation:e, owner:null, clear:null, reach:null, contacts:[], present:present.map(m => m.id) };
+    levelInfo.push(info);
+    const owner = new Int16Array(GW * GD).fill(-1);
+    for (const m of voidHere) for (const idx of cellsOf.get(m.id)) owner[idx] = -2;
+    info.owner = owner;
+    if (!present.length) return;
+    // 连通：接触宽度 ≥ 5 m（用户设定）
+    const parent = present.map((_, k) => k);
+    const find = k => parent[k] === k ? k : (parent[k] = find(parent[k]));
+    for (let a = 0; a < present.length; a++) for (let b = a + 1; b < present.length; b++){
+      const w = contactWidth(present[a], present[b]);
+      if (w <= EPS) continue;
+      const connected = w >= S.minContactWidth.value - EPS;
+      info.contacts.push({ a:present[a].id, b:present[b].id, width:w, connected });
+      if (connected) parent[find(a)] = find(b);
+    }
+    // 格子归属：按体块列表顺序先到先得（重叠但不连通时，重叠部分归列表里靠前的体块）；挑空优先
+    present.forEach((m, k) => { const c = find(k); for (const idx of cellsOf.get(m.id)) if (owner[idx] === -1) owner[idx] = c; });
+    // 净高：从标高往上，体块连续覆盖到的高度（上下叠放的体块接着算）= reach；最多到下一个标高；减去楼板加结构厚度
+    // 手动挑空的体块在它最低的一层不受中间标高限制
+    const clear = new Float32Array(GW * GD).fill(NaN), reach = new Float32Array(GW * GD).fill(NaN);
+    const voidBase = state.masses.filter(m => m.void && m._first === li);
+    for (let idx = 0; idx < GW * GD; idx++){
+      if (owner[idx] < 0) continue;
+      const i = idx % GW, j = (idx - i) / GW;
+      let z = e, grew = true;
+      while (grew){
+        grew = false;
+        for (const m of state.masses) if (m.base <= z + EPS && m.top > z + EPS && massCovers(m, i, j)){ z = m.top; grew = true; }
+      }
+      reach[idx] = z;
+      const uncapped = voidBase.some(m => massCovers(m, i, j));
+      clear[idx] = (next != null && !uncapped ? Math.min(z, next) : z) - e - S.slabThickness.value;
+    }
+    info.clear = clear; info.reach = reach;
+    // 空间 = 每个连通组里净高够用的格子
+    const comps = [...new Set(present.map((_, k) => find(k)))].sort((p, q) => p - q);
+    comps.forEach((c, n) => {
+      const masses = present.filter((_, k) => find(k) === c).map(m => m.id);
+      const usable = new Uint8Array(GW * GD);
+      let low = 0;
+      for (let idx = 0; idx < GW * GD; idx++){
+        if (owner[idx] !== c) continue;
+        if (clear[idx] < S.minUsableClear.value - EPS){ low++; continue; }
+        usable[idx] = 1;
+      }
+      if (low) warnings.push(`${lv.name}：体块 ${masses.join("、")} 有 ${fmt(low)} m² 净高不足 ${S.minUsableClear.value} m，不算可用楼面；可以做挑空，或调整标高。`);
+      const sp = { id:`${lv.id}-S${n + 1}`, levelId:lv.id, levelName:lv.name, levelIdx:li, elevation:e, masses, usable, comp:c, info, lowArea:low, voidArea:0 };
+      refreshSpace(sp);
+      if (sp.area) spaces.push(sp);
+    });
+  });
+  return { spaces, warnings, levelInfo };
+}
+// 某个空间往上占用 n 个层段时，每个格子的净高（n = 1 就是这一层自己的净高）
+function columnClear(sp, n){
+  if (n === 1) return sp.info.clear;
+  const lvls = sortedLevels(), capE = sp.levelIdx + n < lvls.length ? lvls[sp.levelIdx + n].elevation : Infinity;
+  const out = new Float32Array(GW * GD).fill(NaN), reach = sp.info.reach, t = ASSUMPTIONS.slabThickness.value;
+  for (let idx = 0; idx < GW * GD; idx++) if (sp.usable[idx]) out[idx] = Math.min(reach[idx], capE) - sp.elevation - t;
+  return out;
+}
+// 房间的净高：它覆盖的格子里最低的净高
+function roomClear(r, col){
+  const { ix0, iy0, ix1, iy1 } = rectCells(r);
+  let m = Infinity;
+  for (let j = iy0; j < iy1; j++) for (let i = ix0; i < ix1; i++) m = Math.min(m, col[cellIdx(i, j)]);
+  return m;
+}
+// 立面：房间朝南（北）一侧、与房间东西范围重叠的外墙，到房间的距离；没有就是无穷大
+function facadeGap(sp, r, dir){
+  let g = Infinity;
+  if (dir === "south") for (const w of sp.walls.south){ if (overlapLen(r.x0, r.x1, w.a0, w.a1) > EPS && w.pos <= r.y0 + EPS) g = Math.min(g, r.y0 - w.pos); }
+  if (dir === "north") for (const w of sp.walls.north){ if (overlapLen(r.x0, r.x1, w.a0, w.a1) > EPS && w.pos >= r.y1 - EPS) g = Math.min(g, w.pos - r.y1); }
+  return Math.max(0, g);
+}
+// 房间中心到南、北外墙中较近的一个（深度只量到南、北立面，用户决定 2026-10-17）
+function facadeDepth(sp, r){
+  const cy = (r.y0 + r.y1) / 2;
+  let s = Infinity, n = Infinity;
+  for (const w of sp.walls.south) if (overlapLen(r.x0, r.x1, w.a0, w.a1) > EPS && w.pos <= cy + EPS) s = Math.min(s, cy - w.pos);
+  for (const w of sp.walls.north) if (overlapLen(r.x0, r.x1, w.a0, w.a1) > EPS && w.pos >= cy - EPS) n = Math.min(n, w.pos - cy);
+  const d = Math.min(s, n);
+  return isFinite(d) ? d : Math.min(cy - sp.bbox.y0, sp.bbox.y1 - cy);
+}
+
+/* =====================================================================
    ④ 自动摆放（PLACEMENT_CRITERIA.md）
-   大件优先、就近最优；硬约束 → 带适配 > 渐变适配 > 形状 > 简洁；同样输入同样结果。
+   大件优先、就近最优；硬约束 → 楼层适配 > 带适配 > 渐变适配 > 形状 > 简洁；同样输入同样结果。
+   阶段 3：在每个层段空间里划功能区；一个功能区只能在一个空间里（用户决定）。
+   阶段 4：硬约束加上最小净高、“必须首层”；软评判最前面加“楼层适配”（最好首层 / 最好二层）。
+   净高一层不够的功能，往上占用几个层段，合成一个挑高空间，整个给这个功能（用户决定）；被占用的上层格子成为挑空，不设楼板。
    ===================================================================== */
 function bandRanges(bbox){
   const s = bbox.y0 + bbox.d * state.bands.south / 100;
@@ -450,7 +688,6 @@ function bandRanges(bbox){
 }
 const overlapLen = (a0,a1,b0,b1) => Math.max(0, Math.min(a1,b1) - Math.max(a0,b0));
 function overlaps(r, q){ return r.x0 < q.x1 - EPS && r.x1 > q.x0 + EPS && r.y0 < q.y1 - EPS && r.y1 > q.y0 + EPS; }
-function inside(r, b){ return r.x0 >= b.x0 - EPS && r.y0 >= b.y0 - EPS && r.x1 <= b.x1 + EPS && r.y1 <= b.y1 + EPS; }
 
 // 面积固定，长宽在允许范围内变化；一边取整米，另一边由面积算出。
 function candidateShapes(fn, area, bbox){
@@ -477,20 +714,27 @@ function candidateCoords(lo, hi, size, intervals){
   for (const [a,b] of intervals){ add(b); add(a - size); }
   return [...set].sort((a,b) => a-b);
 }
-function scoreRect(r, fn, bbox, placed){
+// 楼层适配（阶段 4，软评判）：最好首层 / 最好二层的功能，在对应楼层为 1，否则为 0；没有要求的为 1
+function floorFitOf(fn, sp){
+  const q = fn.floorReq && fn.floorReq.value;
+  if (q === "preferGround") return sp.levelIdx === 0 ? 1 : 0;
+  if (q === "preferSecond") return sp.levelIdx === 1 ? 1 : 0;
+  return 1;
+}
+function scoreRect(r, fn, sp, placed){
+  const bbox = sp.bbox;
   const area = (r.x1-r.x0)*(r.y1-r.y0);
   const br = bandRanges(bbox);
   const frac = {};
   for (const k of ["south","middle","north"]) frac[k] = overlapLen(r.y0, r.y1, br[k][0], br[k][1]) * (r.x1-r.x0) / area;
   // 带适配：南带、北带偏好的房间要贴着对应立面才算完全适配（用户决定 2026-10-17）；没贴着时按空隙线性打折（假设）
   let gap = 0, bandDepth = 0, facadeFactor = 1;
-  if (fn.bandPref === "south"){ gap = r.y0 - bbox.y0; bandDepth = br.south[1] - br.south[0]; }
-  if (fn.bandPref === "north"){ gap = bbox.y1 - r.y1; bandDepth = br.north[1] - br.north[0]; }
+  if (fn.bandPref === "south"){ gap = facadeGap(sp, r, "south"); bandDepth = br.south[1] - br.south[0]; }
+  if (fn.bandPref === "north"){ gap = facadeGap(sp, r, "north"); bandDepth = br.north[1] - br.north[0]; }
   if (fn.bandPref !== "middle") facadeFactor = gap <= EPS ? 1 : (bandDepth > EPS ? clamp(1 - gap / bandDepth, 0, 1) : 0);
   const bandFit = frac[fn.bandPref] * facadeFactor;
   // 渐变适配：深度只量到南、北立面（用户决定 2026-10-17）
-  const cy = (r.y0+r.y1)/2;
-  const dist = Math.min(cy-bbox.y0, bbox.y1-cy);
+  const dist = facadeDepth(sp, r);
   const maxDepth = bbox.d/2;
   const target = STAGE_INDEX[fn.minStage.winter]/4 * maxDepth;
   const gradFit = maxDepth > 0 ? clamp(1 - Math.abs(dist-target)/maxDepth, 0, 1) : 1;
@@ -505,31 +749,91 @@ function scoreRect(r, fn, bbox, placed){
     placed.some(q => Math.abs((side==="s"?q.y1:q.y0) - y) < 1e-4 && overlapLen(r.x0,r.x1,q.x0,q.x1) > EPS);
   if (touchX(r.x0,"w")) flush++; if (touchX(r.x1,"e")) flush++;
   if (touchY(r.y0,"s")) flush++; if (touchY(r.y1,"n")) flush++;
-  return { bandFit, frac, gap, bandDepth, facadeFactor, gradFit, dist, target, maxDepth, shapeOk, ratio, flush };
+  const floorFit = floorFitOf(fn, sp);
+  return { floorFit, bandFit, frac, gap, bandDepth, facadeFactor, gradFit, dist, target, maxDepth, shapeOk, ratio, flush };
+}
+const JUDGE_KEYS = ["floorFit","bandFit","gradFit","shapeOk","flush"];
+// 比较两组评分：1 = a 更好，−1 = b 更好，0 = 一样
+function compareScores(a, b){
+  for (const k of JUDGE_KEYS){ if (a[k] > b[k] + EPS) return 1; if (a[k] < b[k] - EPS) return -1; }
+  return 0;
 }
 function better(a, b, ra, rb){
-  const keys = ["bandFit","gradFit","shapeOk","flush"];
-  for (const k of keys){ if (a[k] > b[k] + EPS) return true; if (a[k] < b[k] - EPS) return false; }
+  const c = compareScores(a, b); if (c) return c > 0;
   if (ra.x0 !== rb.x0) return ra.x0 < rb.x0;
   if (ra.y0 !== rb.y0) return ra.y0 < rb.y0;
   return (ra.x1-ra.x0) < (rb.x1-rb.x0);
 }
-function searchBest(fn, area, bbox, placed){
+function searchBest(fn, area, sp, placed, P){
+  const bbox = sp.bbox;
   const shapes = candidateShapes(fn, area, bbox);
   let best = null;
   const xi = placed.map(q=>[q.x0,q.x1]), yi = placed.map(q=>[q.y0,q.y1]);
+  const southYs = [...new Set(sp.walls.south.map(w => w.pos))].sort((a,b) => a-b);
   for (const sh of shapes){
     const xs = candidateCoords(bbox.x0, bbox.x1, sh.w, xi);
-    const ys = fn.entry ? [bbox.y0] : candidateCoords(bbox.y0, bbox.y1, sh.h, yi);   // 门厅贴南立面
+    const ys = fn.entry ? southYs : candidateCoords(bbox.y0, bbox.y1, sh.h, yi);   // 门厅贴南立面（外墙）
     for (const y of ys) for (const x of xs){
       const r = { x0:x, y0:y, x1:x+sh.w, y1:y+sh.h };
-      if (!inside(r, bbox)) continue;
+      if (!insideP(r, P)) continue;
+      if (fn.entry && facadeGap(sp, r, "south") > EPS) continue;
       if (placed.some(q => overlaps(r, q))) continue;
-      const sc = scoreRect(r, fn, bbox, placed);
+      const sc = scoreRect(r, fn, sp, placed);
       if (!best || better(sc, best.score, r, best.rect)) best = { rect:r, score:sc, shape:sh };
     }
   }
   return best;
+}
+// 某个功能在某个空间、占用 n 个层段时可以用的格子：可用、净高够、往上经过的层没有被别的房间占用
+function candidateMask(fn, sp, n, occ){
+  const lvls = sortedLevels(), req = fn.minClearHeight ? fn.minClearHeight.value : 0;
+  const col = columnClear(sp, n), mask = new Uint8Array(GW * GD);
+  const ups = [];
+  for (let k = 1; k < n; k++) ups.push({ occ:occ.get(lvls[sp.levelIdx + k].id), e:lvls[sp.levelIdx + k].elevation });
+  let any = 0;
+  for (let idx = 0; idx < GW * GD; idx++){
+    if (!sp.usable[idx] || col[idx] < req - EPS) continue;
+    if (n > 1 && !(sp.info.reach[idx] > ups[ups.length - 1].e + EPS)) continue;
+    if (ups.some(u => u.occ[idx])) continue;
+    mask[idx] = 1; any++;
+  }
+  return { mask, col, any };
+}
+// 在所有可用空间里找最好的位置；评分相同时取标高较低、编号靠前的空间（空间已按标高排序）
+// 门厅（入口）和“必须首层”的功能只放在最低一层；净高一层不够时往上多占层段，取最少的层数
+function searchBestAll(fn, area, spaces, rooms, occ){
+  const nL = sortedLevels().length;
+  let best = null;
+  for (const sp of spaces){
+    if (!sp.area) continue;
+    if ((fn.entry || (fn.floorReq && fn.floorReq.value === "mustGround")) && sp.levelIdx !== 0) continue;
+    const placed = rooms.filter(q => q.spaceId === sp.id);
+    for (let n = 1; sp.levelIdx + n <= nL; n++){
+      if (n > 1 && !fn.minClearHeight) break;
+      const c = candidateMask(fn, sp, n, occ);
+      if (c.any < area - EPS){ if (fn.minClearHeight) continue; else break; }
+      const b = searchBest(fn, area, sp, placed, prefixOf(c.mask));
+      if (b){
+        b.space = sp; b.n = n; b.col = c.col;
+        if (!best || compareScores(b.score, best.score) > 0) best = b;
+        break;   // 这个空间里取最少的层数
+      }
+    }
+  }
+  return best;
+}
+// 这个功能能不能在某处达到要求的净高（不管有没有被占用）：用来区分“净高不够”和“面积被分割”
+function maxReachableClear(fn, spaces){
+  let best = -Infinity, where = null;
+  for (const sp of spaces){
+    if ((fn.entry || (fn.floorReq && fn.floorReq.value === "mustGround")) && sp.levelIdx !== 0) continue;
+    for (let idx = 0; idx < GW * GD; idx++){
+      if (!sp.usable[idx]) continue;
+      const v = sp.info.reach[idx] - sp.elevation - ASSUMPTIONS.slabThickness.value;
+      if (v > best){ best = v; where = sp; }
+    }
+  }
+  return { best, where };
 }
 // 放置顺序：门厅 → 体育馆 → 健身 → 其余必有功能按面积从大到小 → 其余非必有功能按面积从大到小 → 咖啡
 function placementOrder(){
@@ -546,47 +850,88 @@ function placementOrder(){
   return items;
 }
 function generateLayout(){
-  const bbox = bboxOf(activeMass().points);
+  const { spaces, warnings, levelInfo } = analyzeSpaces();
+  const lvls = sortedLevels();
+  const usableStart = spaces.reduce((s, sp) => s + sp.area, 0);
+  const occ = new Map(lvls.map(l => [l.id, new Uint8Array(GW * GD)]));
+  const markOcc = (levelId, r) => { const o = occ.get(levelId), { ix0, iy0, ix1, iy1 } = rectCells(r);
+    for (let j = iy0; j < iy1; j++) for (let i = ix0; i < ix1; i++) o[cellIdx(i, j)] = 1; };
   const rooms = [], unplaced = [];
   const items = placementOrder();
+  const place = (base, b, extra) => {
+    const sp = b.space, spans = lvls.slice(sp.levelIdx, sp.levelIdx + b.n).map(l => l.id);
+    const r = { ...base, ...b.rect, ...extra, score:b.score, shape:b.shape, spaceId:sp.id, levelId:sp.levelId, elevation:sp.elevation, space:sp, spans };
+    r.clear = roomClear(r, b.col);
+    r.topBoundary = sp.elevation + r.clear + ASSUMPTIONS.slabThickness.value;
+    markOcc(sp.levelId, r);
+    // 挑空：往上占用的层，房间范围内的格子不再是楼面
+    for (const lid of spans.slice(1)){
+      markOcc(lid, r);
+      const { ix0, iy0, ix1, iy1 } = rectCells(r);
+      const ups = spaces.filter(s => s.levelId === lid);
+      for (const up of ups){
+        for (let j = iy0; j < iy1; j++) for (let i = ix0; i < ix1; i++){ const idx = cellIdx(i, j); if (up.usable[idx]){ up.usable[idx] = 0; up.voidArea++; } }
+      }
+      const owner = levelInfo.find(x => x.levelId === lid).owner;
+      for (let j = iy0; j < iy1; j++) for (let i = ix0; i < ix1; i++) owner[cellIdx(i, j)] = -2;
+      ups.forEach(refreshSpace);   // 同一层的空间都重算外墙（挑空边不算墙）
+    }
+    return r;
+  };
   let order = 0;
   // 总面积本来就不够时，被挤出去的功能一律标“面积不够”，细节里再说总面积的缺口和这个功能自己的问题（用户 2026-10-18 决定）
   const netAll = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
-  const shortTotal = netAll > bbox.area + EPS;
+  const shortTotal = netAll > usableStart + EPS;
   const addUnplaced = (base, reason, detail, detailShort) => {
     if (shortTotal){
       const own = reason === "U1" ? detail : `这个功能自己的问题：${detailShort || detail}`;
-      unplaced.push({ ...base, reason:"U1", detail:`总面积不够：体块 ${fmt(bbox.area)} m²，所有功能净面积合计 ${fmt(netAll)} m²，缺 ${fmt(netAll-bbox.area)} m²。` + own });
+      unplaced.push({ ...base, reason:"U1", detail:`总面积不够：所有标高的可用空间合计 ${fmt(usableStart)} m²，所有功能净面积合计 ${fmt(netAll)} m²，缺 ${fmt(netAll-usableStart)} m²。` + own });
     } else unplaced.push({ ...base, reason, detail });
   };
   for (const it of items){
     order++;
     const fn = it.fn, area = effectiveArea(fn);
     const used = rooms.reduce((s,r)=>s+r.area,0);
-    const free = bbox.area - used;
+    const free = spaces.reduce((s, sp) => s + sp.area, 0) - used;
     const base = { id:it.id, fnId:fn.id, label:it.label, fn, area, order };
     if (area > free + EPS){
-      addUnplaced(base, "U1", `整个体块剩余 ${fmt(free)} m²，这个功能需要 ${fmt(area)} m²，缺 ${fmt(area-free)} m²`);
+      addUnplaced(base, "U1", `所有可用空间剩余 ${fmt(free)} m²，这个功能需要 ${fmt(area)} m²，缺 ${fmt(area-free)} m²`);
       continue;
+    }
+    // 必须首层：最低一层要有空间
+    if (fn.floorReq && fn.floorReq.value === "mustGround" && !spaces.some(sp => sp.levelIdx === 0 && sp.area)){
+      addUnplaced(base, "U2", `这个功能必须在首层（${fn.floorReq.note}），但最低的标高 ${lvls[0].name} 处没有可用空间`);
+      continue;
+    }
+    // 净高：哪里都达不到要求（连往上多占几层也不够）
+    if (fn.minClearHeight){
+      const mx = maxReachableClear(fn, spaces);
+      if (mx.best < fn.minClearHeight.value - EPS){
+        const need = fn.minClearHeight.value - mx.best;
+        const where = mx.where ? `（${mx.where.id}，体块 ${mx.where.masses.join("、")}）` : "";
+        const det = `这个功能要求净高至少 ${fn.minClearHeight.value} m（${fn.minClearHeight.status}，${fn.minClearHeight.note}）；${fn.floorReq && fn.floorReq.value === "mustGround" ? "首层" : "所有"}可用空间往上最多只能做到 ${mx.where ? fmt(mx.best,1) : 0} m${where}，差 ${fmt(need,1)} m。可以把体块顶面拉高至少 ${fmt(need,1)} m，让它跨两个标高形成挑空`;
+        addUnplaced(base, "U4", det);
+        continue;
+      }
     }
     // 超过最大单间面积的功能必须拆分（用户 2026-10-18 决定：设最大单间面积，超过就拆）
     const maxU = (fn.splittable && fn.maxUnitAreaM2) ? fn.maxUnitAreaM2.value : null;
     const kMin = maxU ? Math.max(1, Math.ceil(area / maxU - EPS)) : 1;
     const forced = kMin > 1;
     if (!forced){
-      const shapes = candidateShapes(fn, area, bbox);
-      if (shapes.length === 0){
+      if (!spaces.some(sp => sp.area && candidateShapes(fn, area, sp.bbox).length)){
+        const big = spaces.filter(sp => sp.area).reduce((a, sp) => !a || Math.min(sp.bbox.w, sp.bbox.d) > Math.min(a.bbox.w, a.bbox.d) ? sp : a, null);
         let which;
-        if (fn.minShortSide && Math.min(bbox.w,bbox.d) < fn.minShortSide.value)
-          which = `无柱矩形短边至少约 ${fn.minShortSide.value} m（${fn.minShortSide.status}），体块最短边只有 ${fmt(Math.min(bbox.w,bbox.d))} m`;
+        if (fn.minShortSide && (!big || Math.min(big.bbox.w, big.bbox.d) < fn.minShortSide.value))
+          which = `无柱矩形短边至少约 ${fn.minShortSide.value} m（${fn.minShortSide.status}），所有空间的外接框最短边最多只有 ${big ? fmt(Math.min(big.bbox.w, big.bbox.d)) : 0} m`;
         else
-          which = `按允许的长宽比 1:${fn.aspect.min}–1:${fn.aspect.max}（${fn.aspect.status}），没有一种形状能放进 ${bbox.w} × ${bbox.d} m 的体块`;
+          which = `按允许的长宽比 1:${fn.aspect.min}–1:${fn.aspect.max}（${fn.aspect.status}），没有一种形状能放进任何一个空间`;
         addUnplaced(base, "U2", `面积够，但形状约束不满足：${which}`, `形状约束也不满足：${which}`);
         continue;
       }
-      const best = searchBest(fn, area, bbox, rooms);
+      const best = searchBestAll(fn, area, spaces, rooms, occ);
       if (best){
-        rooms.push({ ...base, ...best.rect, area, score:best.score, shape:best.shape, split:null });
+        rooms.push(place(base, best, { area, split:null }));
         continue;
       }
     }
@@ -597,24 +942,27 @@ function generateLayout(){
         const parts = [];
         let ok = true;
         for (let p=1;p<=k;p++){
-          const b = searchBest(fn, area/k, bbox, rooms.concat(parts));
+          const b = searchBestAll(fn, area/k, spaces, rooms.concat(parts), occ);
           if (!b){ ok=false; break; }
-          parts.push({ ...base, id:`${it.id}_p${p}`, label:`${it.label}（${p}/${k}）`, ...b.rect, area:area/k, score:b.score, shape:b.shape,
-                       split:{part:p, of:k, why: forced ? "max" : "fit"} });
+          parts.push(place({ ...base, id:`${it.id}_p${p}`, label:`${it.label}（${p}/${k}）` }, b, { area:area/k, split:{part:p, of:k, why: forced ? "max" : "fit"} }));
         }
         if (ok){ rooms.push(...parts); done = true; break; }
       }
     }
     if (!done){
       const tail = (fn.splittable ? `${forced ? `；它超过最大单间面积 ${maxU} m²（${fn.maxUnitAreaM2.status}），必须拆成至少 ${kMin} 间` : ""}；拆分到最小单间 ${fn.minUnitAreaM2.value} m²（${fn.minUnitAreaM2.status}）也放不下` : "；这个功能不可拆分");
+      const req = [fn.minClearHeight ? `净高至少 ${fn.minClearHeight.value} m` : "", fn.floorReq && fn.floorReq.value === "mustGround" ? "必须首层" : ""].filter(Boolean).join("、");
       addUnplaced(base, "U3",
-        `总面积够（剩余 ${fmt(free)} m²），但没有一块连续的空地能放下 ${fmt(area)} m² 的房间` + tail,
-        `剩余 ${fmt(free)} m² 的空地被切碎，没有一块连续的空地能放下 ${fmt(area)} m² 的房间` + tail);
+        `总面积够（剩余 ${fmt(free)} m²），但没有一个空间里有一块连续的空地能放下 ${fmt(area)} m² 的房间${req ? `（还要满足${req}）` : ""}（功能区不跨空间）` + tail,
+        `剩余 ${fmt(free)} m² 的空地分散在各个空间里或被切碎，没有一块连续的空地能放下 ${fmt(area)} m² 的房间${req ? `（还要满足${req}）` : ""}` + tail);
     }
   }
+  // 楼板（阶段 4，由空间推出）：每个标高处，有楼面（可用或净高不足的格子）的地方才有楼板；挑空处没有
+  const slabs = levelInfo.map(info => ({ levelId:info.levelId, elevation:info.elevation, mask:Uint8Array.from(info.owner, o => o >= 0 ? 1 : 0) }));
   const net = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
   const groupGross = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count*groupFactorOf(f),0);
-  state.layout = { bbox, rooms, unplaced, net, groupGross, gross: groupGross * ASSUMPTIONS.buildingFactor.value };
+  const usableArea = spaces.reduce((s, sp) => s + sp.area, 0);
+  state.layout = { spaces, warnings, levelInfo, slabs, usableArea, usableStart, rooms, unplaced, net, groupGross, gross: groupGross * ASSUMPTIONS.buildingFactor.value };
 }
 
 /* =====================================================================
@@ -624,35 +972,85 @@ const svg = document.getElementById("plan");
 const NS = "http://www.w3.org/2000/svg";
 const el = (tag, attrs={}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text!=null) e.textContent = text; return e; };
 
+// 把一组格子（判断函数）合并成矩形块：先按行合并成段，再把上下相同的段合并
+function cellBlocks(test){
+  const rows = [];
+  for (let j = 0; j < GD; j++){
+    const runs = []; let a = -1;
+    for (let i = 0; i <= GW; i++){
+      const on = i < GW && test(cellIdx(i, j));
+      if (on && a < 0) a = i;
+      if (!on && a >= 0){ runs.push([a, i]); a = -1; }
+    }
+    rows.push(runs);
+  }
+  const blocks = [], open = new Map();
+  for (let j = 0; j <= GD; j++){
+    const runs = j < GD ? rows[j] : [];
+    const keys = new Set(runs.map(r => r.join(",")));
+    for (const [k, b] of [...open]) if (!keys.has(k)){ blocks.push(b); open.delete(k); }
+    for (const r of runs){ const k = r.join(","); if (open.has(k)) open.get(k).y1 = j + 1; else open.set(k, { x0:r[0], x1:r[1], y0:j, y1:j + 1 }); }
+  }
+  return blocks;
+}
 function renderPlan(){
-  const L = state.layout, b = L.bbox;
+  const L = state.layout, lv = viewLevel();
   svg.innerHTML = "";
+  const defs = el("defs");
+  const pat = el("pattern",{id:"hatch-low",width:6,height:6,patternUnits:"userSpaceOnUse",patternTransform:"rotate(45)"});
+  pat.appendChild(el("rect",{width:6,height:6,fill:"#eeeeee"})); pat.appendChild(el("line",{x1:0,y1:0,x2:0,y2:6,stroke:"#aaa","stroke-width":2}));
+  const pv = el("pattern",{id:"hatch-void",width:8,height:8,patternUnits:"userSpaceOnUse",patternTransform:"rotate(-45)"});
+  pv.appendChild(el("rect",{width:8,height:8,fill:"#dceaf5"})); pv.appendChild(el("line",{x1:0,y1:0,x2:0,y2:8,stroke:"#7aa7c7","stroke-width":1.5}));
+  defs.appendChild(pat); defs.appendChild(pv); svg.appendChild(defs);
   // 场地网格
   const g = el("g");
   for (let x=0;x<=SITE.w;x++) g.appendChild(el("line",{x1:toSX(x),y1:toSY(0),x2:toSX(x),y2:toSY(SITE.d),stroke:x%10?"#f0ede6":"#ddd8cc","stroke-width":x%10?0.5:1}));
   for (let y=0;y<=SITE.d;y++) g.appendChild(el("line",{x1:toSX(0),y1:toSY(y),x2:toSX(SITE.w),y2:toSY(y),stroke:y%10?"#f0ede6":"#ddd8cc","stroke-width":y%10?0.5:1}));
   svg.appendChild(g);
   svg.appendChild(el("rect",{x:0,y:0,width:SITE.w*PX,height:SITE.d*PX,fill:"none",stroke:"#bbb","stroke-dasharray":"4 4"}));
-  svg.appendChild(el("text",{x:0,y:-8,"font-size":11,fill:"#888"},`场地 ${SITE.w} × ${SITE.d} m`));
+  svg.appendChild(el("text",{x:0,y:-8,"font-size":11,fill:"#888"},`场地 ${SITE.w} × ${SITE.d} m · ${lv.name}（标高 ${fmt(lv.elevation,1)} m）的截面`));
   svg.appendChild(el("text",{x:SITE.w*PX-30,y:-8,"font-size":12,fill:"#333","font-weight":"600"},"北 ↑"));
 
-  // 三带（淡色背景）
-  const br = bandRanges(b);
-  const bandFill = { south:"var(--band-south)", middle:"var(--band-middle)", north:"var(--band-north)" };
-  for (const k of ["south","middle","north"]){
-    const [y0,y1] = br[k];
-    svg.appendChild(el("rect",{x:toSX(b.x0),y:toSY(y1),width:b.w*PX,height:(y1-y0)*PX,fill:bandFill[k]}));
-    const pct = k==="south"?state.bands.south:k==="north"?state.bands.north:middlePct();
-    if (y1-y0 > 0.01) svg.appendChild(el("text",{x:toSX(b.x1)+6,y:toSY((y0+y1)/2)+4,"font-size":10,fill:"#777"},`${BANDS[k].zh.slice(0,2)} ${pct}% · ${fmt(y1-y0,1)} m`));
+  const info = L.levelInfo.find(x => x.levelId === lv.id);
+  const spaces = L.spaces.filter(s => s.levelId === lv.id);
+  const cut = state.masses.filter(m => massCutAt(m, lv.elevation));
+  if (!cut.length){
+    svg.appendChild(el("text",{x:SITE.w*PX/2,y:SITE.d*PX/2,"text-anchor":"middle","font-size":13,fill:"#888"},`${lv.name} 处没有体块`));
+    return;
   }
-  // 可拖动的体块内部（在房间下面）
-  const inner = el("rect",{x:toSX(b.x0),y:toSY(b.y1),width:b.w*PX,height:b.d*PX,fill:"transparent",style:"cursor:move"});
-  inner.dataset.handle = "move"; svg.appendChild(inner);
-
+  // 体块（最下层，可点选）
+  for (const m of cut){
+    const poly = el("polygon",{points:m.points.map(p=>`${toSX(p[0])},${toSY(p[1])}`).join(" "),class:"mass-cut",fill:"transparent"});
+    poly.dataset.mass = m.id; svg.appendChild(poly);
+  }
+  // 每个空间：三带按空间的外接框划分，只画在空间的可用格子上
+  const bandFill = { south:"var(--band-south)", middle:"var(--band-middle)", north:"var(--band-north)" };
+  for (const sp of spaces){
+    const br = bandRanges(sp.bbox);
+    for (const bl of cellBlocks(idx => sp.usable[idx] === 1)){
+      for (const k of ["south","middle","north"]){
+        const y0 = Math.max(bl.y0, br[k][0]), y1 = Math.min(bl.y1, br[k][1]);
+        if (y1 - y0 > EPS) svg.appendChild(el("rect",{x:toSX(bl.x0),y:toSY(y1),width:(bl.x1-bl.x0)*PX,height:(y1-y0)*PX,fill:bandFill[k],"pointer-events":"none"}));
+      }
+    }
+  }
+  // 挑空：下层的高功能往上占用、或手动标成挑空的体块，这一层没有楼面
+  const lvIdx = sortedLevels().findIndex(l => l.id === lv.id);
+  if (info && info.owner){
+    for (const bl of cellBlocks(idx => info.owner[idx] === -2))
+      svg.appendChild(el("rect",{x:toSX(bl.x0),y:toSY(bl.y1),width:(bl.x1-bl.x0)*PX,height:(bl.y1-bl.y0)*PX,fill:"url(#hatch-void)","pointer-events":"none"}));
+  }
+  for (const r of L.rooms.filter(q => q.spans.length > 1 && q.spans.slice(1).includes(lv.id)))
+    svg.appendChild(el("text",{x:toSX((r.x0+r.x1)/2),y:toSY((r.y0+r.y1)/2),"text-anchor":"middle","font-size":12,fill:"#2b5d7a","font-weight":"600","pointer-events":"none"},`挑空 · ${r.label}（从 ${r.space.levelName} 起）`));
+  // 净高不足的部分：斜线
+  if (info && info.owner){
+    for (const bl of cellBlocks(idx => info.owner[idx] >= 0 && info.clear[idx] < ASSUMPTIONS.minUsableClear.value - EPS))
+      svg.appendChild(el("rect",{x:toSX(bl.x0),y:toSY(bl.y1),width:(bl.x1-bl.x0)*PX,height:(bl.y1-bl.y0)*PX,fill:"url(#hatch-low)",opacity:0.8,"pointer-events":"none"}));
+  }
   // 房间
-  for (const r of L.rooms){
+  for (const r of L.rooms.filter(q => q.levelId === lv.id)){
     const grp = el("g",{class:"room"+(state.selected===r.id?" selected":"")});
-    grp.dataset.room = r.id; grp.dataset.handle = "move";
+    grp.dataset.room = r.id;
     const w = (r.x1-r.x0)*PX, h = (r.y1-r.y0)*PX;
     grp.appendChild(el("rect",{x:toSX(r.x0),y:toSY(r.y1),width:w,height:h,fill:STAGE_COLORS[r.fn.minStage.winter],stroke:"#4a4a4a","stroke-width":1.2}));
     const cx = toSX((r.x0+r.x1)/2), cy = toSY((r.y0+r.y1)/2);
@@ -660,61 +1058,36 @@ function renderPlan(){
     grp.appendChild(el("text",{x:cx,y:cy-(small?0:4),"text-anchor":"middle","font-size":small?9:11,"font-weight":"600",fill:"#222"},r.label));
     if (!small) grp.appendChild(el("text",{x:cx,y:cy+10,"text-anchor":"middle","font-size":9,fill:"#333"},`${fmt(r.area)} m² · 带 ${fmt(r.score.bandFit*100)}%`));
     svg.appendChild(grp);
+    if (r.fn.entry) svg.appendChild(el("text",{x:cx,y:toSY(r.y0)+14,"text-anchor":"middle","font-size":10,fill:"#8a5a00"},"南立面 · 入口（默认）"));
+    if (r.spans.length > 1 && !small) grp.appendChild(el("text",{x:cx,y:cy+22,"text-anchor":"middle","font-size":9,fill:"#2b5d7a"},`挑空 ${r.spans.length} 层 · 净高 ${fmt(r.clear,1)} m`));
   }
-  // 体块轮廓与把手
-  svg.appendChild(el("polygon",{points:activeMass().points.map(p=>`${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"none",stroke:"#1f2a2e","stroke-width":2.5,"pointer-events":"none"}));
-  svg.appendChild(el("text",{x:toSX(b.x0),y:toSY(b.y1)-6,"font-size":11,fill:"#1f2a2e"},`体块 ${b.w} × ${b.d} m · ${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft²`));
-  svg.appendChild(el("text",{x:toSX((b.x0+b.x1)/2),y:toSY(b.y0)+14,"text-anchor":"middle","font-size":10,fill:"#8a5a00"},"南立面 · 入口（默认）"));
-  const X0=toSX(b.x0),X1=toSX(b.x1),Y0=toSY(b.y1),Y1=toSY(b.y0);  // 屏幕坐标：Y0 上（北），Y1 下（南）
-  const edge = (h,cls,a)=>{const e=el("line",{...a,class:"edge "+cls});e.dataset.handle=h;svg.appendChild(e);};
-  edge("n","ns",{x1:X0,y1:Y0,x2:X1,y2:Y0}); edge("s","ns",{x1:X0,y1:Y1,x2:X1,y2:Y1});
-  edge("w","ew",{x1:X0,y1:Y0,x2:X0,y2:Y1}); edge("e","ew",{x1:X1,y1:Y0,x2:X1,y2:Y1});
-  const corner=(h,cls,x,y)=>{const c=el("rect",{x:x-5,y:y-5,width:10,height:10,class:"handle corner "+cls});c.dataset.handle=h;svg.appendChild(c);};
-  corner("nw","alt",X0,Y0); corner("ne","",X1,Y0); corner("sw","",X0,Y1); corner("se","alt",X1,Y1);
+  // 体块轮廓（细虚线，保持各自的几何身份；选中的为蓝色）
+  for (const m of cut){
+    const on = m.id === activeMass().id, mb = bboxOf(m.points);
+    svg.appendChild(el("polygon",{points:m.points.map(p=>`${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"none",stroke:on?"var(--accent)":"#888","stroke-width":on?2:1,"stroke-dasharray":"5 4","pointer-events":"none"}));
+    svg.appendChild(el("text",{x:toSX(mb.x1)-4,y:toSY(mb.y1)+12,"text-anchor":"end","font-size":10,fill:on?"var(--accent)":"#888"},`${m.id} · 底 ${fmt(m.base,1)} / 顶 ${fmt(m.top,1)} m`));
+  }
+  // 外墙（粗线）和不连通的接触（红色虚线）
+  const line = (x0, y0, x1, y1, attrs) => svg.appendChild(el("line",{x1:toSX(x0),y1:toSY(y0),x2:toSX(x1),y2:toSY(y1),"pointer-events":"none",...attrs}));
+  for (const sp of spaces){
+    const wall = { stroke:"#1f2a2e","stroke-width":2.5,"stroke-linecap":"square" };
+    for (const w of sp.walls.south.concat(sp.walls.north)) line(w.a0, w.pos, w.a1, w.pos, wall);
+    for (const w of sp.walls.west.concat(sp.walls.east)) line(w.pos, w.a0, w.pos, w.a1, wall);
+    const part = { stroke:"var(--bad)","stroke-width":2,"stroke-dasharray":"4 3" };
+    for (const w of sp.partitions.south.concat(sp.partitions.north)) line(w.a0, w.pos, w.a1, w.pos, part);
+    for (const w of sp.partitions.west.concat(sp.partitions.east)) line(w.pos, w.a0, w.pos, w.a1, part);
+    svg.appendChild(el("text",{x:toSX(sp.bbox.x0)+3,y:toSY(sp.bbox.y1)-5,"font-size":11,"font-weight":"600",fill:"#1f2a2e"},
+      `${sp.id} · ${fmt(sp.area)} m² · 净高 ${sp.clearMin===sp.clearMax?fmt(sp.clearMin,1):`${fmt(sp.clearMin,1)}–${fmt(sp.clearMax,1)}`} m · 体块 ${sp.masses.join("+")}`));
+  }
 }
 
-// 拖动：边、角改大小，内部移动；吸附 1 m；不出场地
-let drag = null;
-function pointerToModel(ev){
-  const pt = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse());
-  return { x: pt.x / PX, y: SITE.d - pt.y / PX };
-}
-svg.addEventListener("pointerdown", ev => {
-  const t = ev.target.closest("[data-handle]"); if (!t) return;
-  const b = bboxOf(activeMass().points);
-  drag = { handle:t.dataset.handle, room:t.closest("[data-room]")?.dataset.room || null, start:pointerToModel(ev), b0:{...b}, moved:false };
-  svg.setPointerCapture(ev.pointerId); ev.preventDefault();
+// 平面只能点选（阶段 2，用户决定：三维调体块，平面调功能分区；拖动功能区是阶段 7）
+svg.addEventListener("click", ev => {
+  const room = ev.target.closest("[data-room]");
+  if (room){ state.selected = room.dataset.room; renderPlan(); renderSidebar(); return; }
+  const m = ev.target.closest("[data-mass]");
+  if (m){ state.selectedMass = m.dataset.mass; state.section.pos = null; regenerate(); }
 });
-svg.addEventListener("pointermove", ev => {
-  if (!drag) return;
-  const p = pointerToModel(ev);
-  const dx = snap(p.x - drag.start.x), dy = snap(p.y - drag.start.y);
-  if (dx===0 && dy===0 && !drag.moved) return;
-  drag.moved = drag.moved || dx!==0 || dy!==0;
-  const b = drag.b0; let x0=b.x0, x1=b.x1, y0=b.y0, y1=b.y1;
-  const h = drag.handle;
-  if (h==="move"){
-    const w=b.w, d=b.d;
-    x0 = clamp(b.x0+dx, 0, SITE.w-w); y0 = clamp(b.y0+dy, 0, SITE.d-d); x1=x0+w; y1=y0+d;
-  } else {
-    if (h.includes("e")) x1 = clamp(b.x1+dx, b.x0+1, SITE.w);
-    if (h.includes("w")) x0 = clamp(b.x0+dx, 0, b.x1-1);
-    if (h.includes("n")) y1 = clamp(b.y1+dy, b.y0+1, SITE.d);
-    if (h.includes("s")) y0 = clamp(b.y0+dy, 0, b.y1-1);
-  }
-  const cur = bboxOf(activeMass().points);
-  if (cur.x0!==x0||cur.x1!==x1||cur.y0!==y0||cur.y1!==y1){
-    activeMass().points = rectPoints(x0,y0,x1-x0,y1-y0);
-    regenerate();
-  }
-});
-const endDrag = ev => {
-  if (!drag) return;
-  if (!drag.moved && drag.room){ state.selected = drag.room; renderPlan(); renderSidebar(); }
-  drag = null;
-};
-svg.addEventListener("pointerup", endDrag);
-svg.addEventListener("pointercancel", endDrag);
 
 /* =====================================================================
    ⑥ 界面：左栏（功能清单、面积检查、未生成）
@@ -724,18 +1097,18 @@ function statusBadge(s){
   return `<span class="badge ${cls}">${s}</span>`;
 }
 function renderLeft(){
-  const L = state.layout, b = L.bbox;
-  // 面积检查
+  const L = state.layout, U = L.usableArea;
+  // 面积检查（阶段 3：对照所有标高的可用空间）
   let html = `<div class="kv" style="margin-bottom:6px">
-    <div>体块面积</div><div>${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft²</div>
+    <div>可用空间合计（${L.spaces.length} 个空间）</div><div>${fmt(U)} m² · ${fmt(ft2(U))} ft²</div>
     <div>功能净面积合计</div><div>${fmt(L.net)} m² · ${fmt(ft2(L.net))} ft²</div>
     <div>× 组团系数（1.1–1.3）</div><div>${fmt(L.groupGross)} m² · ${fmt(ft2(L.groupGross))} ft²</div>
     <div>× 建筑系数 ${ASSUMPTIONS.buildingFactor.value} = 总建筑面积</div><div>${fmt(L.gross)} m² · ${fmt(ft2(L.gross))} ft² ${statusBadge(ASSUMPTIONS.buildingFactor.status)}</div>
   </div>
-  <p class="hint">系数来自 Marpole 2021。工具目前只有一层。</p>`;
-  if (L.net > b.area + EPS) html += `<div class="banner bad">面积不够：功能净面积合计比体块多 ${fmt(L.net-b.area)} m²（${fmt(ft2(L.net-b.area))} ft²）。体块不会自动加大，请调整体块或面积。工具目前只有一层；Marpole 本身是两层加屋顶托儿。</div>`;
-  else if (L.gross > b.area + EPS) html += `<div class="banner warn">净面积放得下，但按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-b.area)} m²，走廊会偏紧。第一版不检查走廊的宽度和连通。</div>`;
-  else html += `<div class="banner ok">面积够：净面积和按 Marpole 系数放大后的总建筑面积都在体块以内。</div>`;
+  <p class="hint">系数来自 Marpole 2021。可用空间 = 所有标高处、净高不低于 ${ASSUMPTIONS.minUsableClear.value} m 的楼面。</p>`;
+  if (L.net > U + EPS) html += `<div class="banner bad">面积不够：功能净面积合计比可用空间多 ${fmt(L.net-U)} m²（${fmt(ft2(L.net-U))} ft²）。体块不会自动加大，请调整体块、加标高，或改面积。</div>`;
+  else if (L.gross > U + EPS) html += `<div class="banner warn">净面积放得下，但按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-U)} m²，走廊会偏紧。第一版不检查走廊的宽度和连通。</div>`;
+  else html += `<div class="banner ok">面积够：净面积和按 Marpole 系数放大后的总建筑面积都在可用空间以内。</div>`;
   document.getElementById("area-summary").innerHTML = html;
 
   // 功能卡
@@ -784,7 +1157,7 @@ function renderSidebar(){
   const box = document.getElementById("sidebar");
   const r = state.layout.rooms.find(x => x.id === state.selected);
   if (!r){ box.innerHTML = `<p class="hint">点击平面上的任意房间，这里会解释它为什么放在这里。</p>`; return; }
-  const fn = r.fn, sc = r.score, b = state.layout.bbox;
+  const fn = r.fn, sc = r.score, sp = r.space;
   const assigned = state.stages[r.id] || ASSUMPTIONS.defaultStage.value;
   const w = r.x1-r.x0, h = r.y1-r.y0;
   const chk = stageCheck(assigned, fn.minStage.winter);
@@ -814,7 +1187,7 @@ function renderSidebar(){
     const why2 = sc.gap > EPS ? `离${fn.bandPref==="south"?"南":"北"}立面空 ${fmt(sc.gap,1)} m，没贴着立面` : "";
     issues.push(`<b>带适配 ${fmt(sc.bandFit*100)}%：</b>${[why,why2].filter(Boolean).join("；")}。要提高它，可以调整${pref.zh.slice(0,2)}的深度滑块，或改体块的长宽比；房间形状只能在长宽比 1:${fn.aspect.min}–1:${fn.aspect.max} 内变化。`);
   }
-  if (fn.entry && Math.abs(r.y0 - b.y0) > EPS) issues.push(`<b>入口：</b>门厅没有贴在南立面。`);
+  if (fn.entry && facadeGap(sp, r, "south") > EPS) issues.push(`<b>入口：</b>门厅没有贴在南立面。`);
   if (!issues.length) issues.push("没有发现不满足的地方。");
 
   box.innerHTML = `
@@ -830,15 +1203,19 @@ function renderSidebar(){
         <div>组团</div><div>${GROUPS[fn.group] ? `${GROUPS[fn.group].zh}，组团系数 ${groupFactorOf(fn)} ${statusBadge(fn.groupStatus || STATUS.verified)}${fn.groupNote?`（${fn.groupNote}）`:""}` : "—"}</div>
         ${r.split?`<div>拆分</div><div>第 ${r.split.part} 间，共 ${r.split.of} 间（${r.split.why==="max"?`超过最大单间面积 ${fn.maxUnitAreaM2.value} m² ${statusBadge(fn.maxUnitAreaM2.status)}，所以拆；每间 ${fmt(r.area)} m²`:"放不下整间，所以拆"}）</div>`:""}
         <div>放置顺序</div><div>第 ${r.order} 位</div>
+        <div>所在空间</div><div>${sp.id}（${sp.levelName}，标高 ${fmt(sp.elevation,1)} m）· 由体块 ${sp.masses.join("、")} 组成 · 可用 ${fmt(sp.area)} m²</div>
+        <div>净高</div><div>这个房间 ${fmt(r.clear,1)} m${fn.minClearHeight ? `；功能要求至少 ${fn.minClearHeight.value} m ${statusBadge(fn.minClearHeight.status)}，${r.clear >= fn.minClearHeight.value - EPS ? "满足" : "<b>不满足</b>"}（硬约束）` : "；功能没有净高要求（原文未写）"}</div>
+        <div>竖向</div><div>${r.spans.length > 1 ? `<b>挑空</b>：从 ${sp.levelName} 一直到 ${fmt(r.topBoundary,1)} m，占用 ${r.spans.length} 个层段（${r.spans.map(id => state.levels.find(l => l.id === id)?.name).join("、")}），中间不设楼板；整个空间只给这一个功能（用户决定）。一层的净高不够，所以往上多占层段，取最少的层数。` : "一个层段"}</div>
       </div></div>
 
     <div class="sec"><h3>为什么放在这里</h3>
       <p class="hint">评判顺序：${ASSUMPTIONS.judgeOrder.join(" > ")}（不设数值权重）</p>
       <ul>
+        <li><b>楼层适配：</b>${fn.floorReq ? `${fn.floorReq.zh} ${statusBadge(fn.floorReq.status)}（${fn.floorReq.note}），现在在 ${sp.levelName}：${fn.floorReq.value === "mustGround" ? "硬约束，满足" : sc.floorFit ? "符合" : "不符合"}。` : "没有楼层要求（原文未写）。"}${statusBadge(ASSUMPTIONS.floorPrefFirst.status)} 楼层偏好排在带适配之前（用户 2026-10-18 确认）。</li>
         <li><b>带适配：</b>偏好 ${pref.zh} ${statusBadge(fn.bandPrefStatus)}${fn.bandPrefNote?`（${fn.bandPrefNote}）`:""}，<b>${fmt(sc.bandFit*100)}%</b>。带内面积比例：南 ${fmt(sc.frac.south*100)}% · 中 ${fmt(sc.frac.middle*100)}% · 北 ${fmt(sc.frac.north*100)}%。${fn.bandPref!=="middle" ? (sc.gap<=EPS ? `贴着${fn.bandPref==="south"?"南":"北"}立面，算完全适配。` : `离${fn.bandPref==="south"?"南":"北"}立面空 ${fmt(sc.gap,1)} m，按空隙打折（系数 ${fmt(sc.facadeFactor,2)}）。`) + ` ${statusBadge(ASSUMPTIONS.facadeContact.status)}` : "服务空间没有对应的立面，不打折。"}</li>
         <li><b>渐变位置：</b>冬季最低阶段 <b>${fn.minStage.winter}</b>，房间中心离较近的南/北立面 ${fmt(sc.dist,1)} m，目标约 ${fmt(sc.target,1)} m（最大 ${fmt(sc.maxDepth,1)} m），${depthWord}；渐变适配 ${fmt(sc.gradFit*100)}%。${statusBadge(ASSUMPTIONS.gradientMapping.status)} ${ASSUMPTIONS.gradientMapping.note}；${ASSUMPTIONS.depthToFacades.note} ${statusBadge(ASSUMPTIONS.depthToFacades.status)}</li>
         <li><b>形状：</b>${fmt(w,1)} × ${fmt(h,1)} m，长宽比 1:${fmt(sc.ratio,2)}，允许 1:${fn.aspect.min}–1:${fn.aspect.max} ${statusBadge(fn.aspect.status)}，${sc.shapeOk?"在范围内":"超出范围"}。${fn.minShortSide?`短边至少 ${fn.minShortSide.value} m ${statusBadge(fn.minShortSide.status)}：${Math.min(w,h)>=fn.minShortSide.value-EPS?"满足":"不满足"}；无柱矩形、不可拆分。`:""}</li>
-        <li><b>入口：</b>${fn.entry ? (Math.abs(r.y0-b.y0)<EPS ? "紧贴南立面（默认入口），满足硬约束。" : "没有贴在南立面。") : "不适用（只有门厅要求贴入口）。"}</li>
+        <li><b>入口：</b>${fn.entry ? (facadeGap(sp, r, "south")<=EPS ? "紧贴南面外墙（默认入口），满足硬约束。" : "没有贴在南面外墙。") : "不适用（只有门厅要求贴入口）。"}</li>
         <li><b>简洁：</b>贴边 ${sc.flush} 条（与外墙或已放房间的边对齐）。${statusBadge(ASSUMPTIONS.simplicityRule.status)}</li>
       </ul></div>
 
@@ -865,31 +1242,191 @@ function renderSidebar(){
    ⑧ 控件联动与启动
    ===================================================================== */
 function syncControls(){
-  const b = state.layout.bbox;
-  document.getElementById("in-w").value = b.w;
-  document.getElementById("in-d").value = b.d;
-  document.getElementById("massing-readout").textContent = `${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft² · 单层 · 吸附 ${ASSUMPTIONS.snapM.value} m`;
+  const lv = viewLevel();
+  const cut = state.masses.filter(m => massCutAt(m, lv.elevation)).map(m => m.id);
+  const nsp = state.layout.spaces.filter(sp => sp.levelId === lv.id).length;
+  document.getElementById("massing-readout").textContent = `${lv.name}（标高 ${fmt(lv.elevation,1)} m）· 截到体块 ${cut.length ? cut.join("、") : "无"} · ${nsp} 个空间`;
+  document.getElementById("plan-level").innerHTML = sortedLevels().map(l => `<option value="${l.id}" ${l.id===lv.id?"selected":""}>${l.name}（${fmt(l.elevation,1)} m）</option>`).join("");
   document.getElementById("sl-south").value = state.bands.south;
   document.getElementById("sl-north").value = state.bands.north;
-  document.getElementById("rd-south").textContent = `${state.bands.south}% · ${fmt(b.d*state.bands.south/100,1)} m`;
-  document.getElementById("rd-middle").textContent = `${middlePct()}% · ${fmt(b.d*middlePct()/100,1)} m`;
-  document.getElementById("rd-north").textContent = `${state.bands.north}% · ${fmt(b.d*state.bands.north/100,1)} m`;
+  document.getElementById("rd-south").textContent = `${state.bands.south}%`;
+  document.getElementById("rd-middle").textContent = `${middlePct()}%`;
+  document.getElementById("rd-north").textContent = `${state.bands.north}%`;
 }
+
+// 体块属性栏（阶段 2）：选中体块，数字输入位置、宽、深、底标高、顶标高
+const snapH = v => Math.round(v * 10) / 10;   // 标高取 0.1 m
+function renderMassPanel(){
+  const m = activeMass(), b = bboxOf(m.points);
+  const f = (key, label, val, step) => `<label for="mf-${key}">${label}</label><input id="mf-${key}" data-mf="${key}" type="number" step="${step}" value="${val}">`;
+  document.getElementById("mass-panel").innerHTML = `
+    <h3>体块</h3>
+    <div class="chips">${state.masses.map(x => `<button class="chip ${x.id===m.id?"on":""}" data-pick="${x.id}">${x.id}</button>`).join("")}
+      <button data-addmass>＋ 添加体块</button>
+      ${state.masses.length>1?`<button class="link" data-delmass>删除 ${m.id}</button>`:""}</div>
+    <div class="fields">
+      ${f("x","西边 X",b.x0,1)}${f("w","宽（东西）",b.w,1)}${f("base","底标高",m.base,0.1)}
+      ${f("y","南边 Y",b.y0,1)}${f("d","深（南北）",b.d,1)}${f("top","顶标高",m.top,0.1)}
+      <label class="chk"><input type="checkbox" data-void ${m.void?"checked":""}> 挑空：在这个体块最低的一层之上不切楼板（例如中庭、挑空门厅）；挑空的空间可以放多个功能</label>
+    </div>
+    <p class="hint" style="margin:6px 0 0">单位米；位置和尺寸吸附 1 m，标高取 0.1 m。高 ${fmt(m.top-m.base,1)} m。体块各自独立；接触宽度 ≥ ${ASSUMPTIONS.minContactWidth.value} m 的体块在空间上连成一个空间。</p>`;
+  document.querySelectorAll("[data-pick]").forEach(btn => btn.onclick = () => { state.selectedMass = btn.dataset.pick; state.section.pos = null; regenerate(); });
+  document.querySelector("[data-addmass]").onclick = () => {
+    const nm = newMass(0, 0, 20, 15, 0, ASSUMPTIONS.storeyHeight.value);
+    state.masses.push(nm); state.selectedMass = nm.id; regenerate();
+  };
+  document.querySelector("[data-void]").onchange = e => { m.void = e.target.checked; regenerate(); };
+  const del = document.querySelector("[data-delmass]");
+  if (del) del.onclick = () => { state.masses = state.masses.filter(x => x.id !== m.id); state.selectedMass = state.masses[0].id; regenerate(); };
+  document.querySelectorAll("[data-mf]").forEach(inp => inp.onchange = () => {
+    const raw = parseFloat(inp.value); if (!isFinite(raw)) { renderMassPanel(); return; }   // 非数字：保持原值
+    const k = inp.dataset.mf; let x0 = b.x0, y0 = b.y0, w = b.w, d = b.d;
+    if (k === "w") w = clamp(snap(raw), 1, SITE.w);
+    if (k === "d") d = clamp(snap(raw), 1, SITE.d);
+    if (k === "x") x0 = snap(raw);
+    if (k === "y") y0 = snap(raw);
+    x0 = clamp(x0, 0, SITE.w - w); y0 = clamp(y0, 0, SITE.d - d);
+    m.points = rectPoints(x0, y0, w, d);
+    if (k === "base") m.base = clamp(snapH(raw), 0, snapH(m.top - 0.1));
+    if (k === "top")  m.top  = Math.max(snapH(raw), snapH(m.base + 0.1));
+    regenerate();
+  });
+}
+
+// 标高面板（阶段 2）：与 Revit 一致，每个标高可单独改标高值；默认层高只在添加新标高时用
+function renderLevelPanel(){
+  const S = ASSUMPTIONS, lvls = sortedLevels();
+  document.getElementById("level-panel").innerHTML = `
+    <h3>标高</h3>
+    ${lvls.slice().reverse().map(l => `<div class="lvrow ${l.id===viewLevel().id?"on":""}">
+      <span class="lvname" data-view="${l.id}" title="在平面里看这个标高">${l.name}</span>
+      <input type="number" step="0.1" value="${l.elevation}" data-elev="${l.id}"> m
+      ${lvls.length>1?`<button class="link" data-dellv="${l.id}">删除</button>`:""}</div>`).join("")}
+    <div style="margin-top:4px"><button data-addlv>＋ 添加标高（+${S.storeyHeight.value} m）</button></div>
+    <p class="hint" style="margin:6px 0 0">点标高名称在平面里看这一层。默认层高 ${S.storeyHeight.value} m ${statusBadge(S.storeyHeight.status)}；楼板加结构 ${S.slabThickness.value} m、最小可用净高 ${S.minUsableClear.value} m、连通接触宽度 ${S.minContactWidth.value} m，阶段 3 起参与计算。标高只是参照，不代表那里有楼板。</p>`;
+  document.querySelectorAll("[data-view]").forEach(x => x.onclick = () => { state.viewLevel = x.dataset.view; regenerate(); });
+  document.querySelectorAll("[data-elev]").forEach(inp => inp.onchange = () => {
+    const raw = parseFloat(inp.value); const l = state.levels.find(z => z.id === inp.dataset.elev);
+    if (!isFinite(raw) || !l) { renderLevelPanel(); return; }
+    l.elevation = snapH(raw); regenerate();
+  });
+  document.querySelectorAll("[data-dellv]").forEach(btn => btn.onclick = () => {
+    state.levels = state.levels.filter(z => z.id !== btn.dataset.dellv);
+    if (!state.levels.some(z => z.id === state.viewLevel)) state.viewLevel = sortedLevels()[0].id;
+    regenerate();
+  });
+  document.querySelector("[data-addlv]").onclick = () => {
+    const top = lvls[lvls.length-1];
+    let n = state.levels.length + 1; while (state.levels.some(z => z.id === `L${String(n).padStart(2,"0")}`)) n++;
+    const id = `L${String(n).padStart(2,"0")}`;
+    state.levels.push({ id, name:`Level ${String(n).padStart(2,"0")}`, elevation: snapH(top.elevation + S.storeyHeight.value) });
+    regenerate();
+  };
+}
+document.getElementById("plan-level").onchange = e => { state.viewLevel = e.target.value; regenerate(); };
+
+// 剖面（阶段 4）：沿一条线切开，画体块轮廓、楼板（由空间推出）、屋顶、功能区和挑空
+const secSvg = document.getElementById("section");
+function renderSection(){
+  const L = state.layout, lvls = sortedLevels(), t = ASSUMPTIONS.slabThickness.value;
+  const dir = state.section.dir, ew = dir === "ew";
+  const am = activeMass(), ab = bboxOf(am.points);
+  if (state.section.pos == null) state.section.pos = Math.floor(ew ? (ab.y0 + ab.y1) / 2 : (ab.x0 + ab.x1) / 2);
+  const pos = clamp(Math.floor(state.section.pos), 0, (ew ? GD : GW) - 1);
+  document.getElementById("sec-dir").value = dir; document.getElementById("sec-pos").value = pos;
+  const span = ew ? GW : GD;
+  const zMax = Math.max(lvls[lvls.length - 1].elevation + 4, ...state.masses.map(m => m.top)) + 2, zMin = Math.min(0, lvls[0].elevation) - 1;
+  const SX = 9, SZ = 14, W = span * SX + 90, H = (zMax - zMin) * SZ + 30;
+  secSvg.setAttribute("viewBox", `-60 -10 ${W} ${H}`);
+  secSvg.innerHTML = "";
+  const X = a => a * SX, Z = z => (zMax - z) * SZ;
+  const add = (tag, attrs, text) => { const e = el(tag, attrs, text); secSvg.appendChild(e); return e; };
+  const defs = el("defs"); const pv = el("pattern",{id:"sec-void",width:8,height:8,patternUnits:"userSpaceOnUse",patternTransform:"rotate(-45)"});
+  pv.appendChild(el("rect",{width:8,height:8,fill:"#dceaf5"})); pv.appendChild(el("line",{x1:0,y1:0,x2:0,y2:8,stroke:"#7aa7c7","stroke-width":1.5})); defs.appendChild(pv); secSvg.appendChild(defs);
+  // 沿切线的格子：a 是沿线的坐标（东西向时是 x，南北向时是 y）
+  const idxAt = a => ew ? cellIdx(a, pos) : cellIdx(pos, a);
+  const runs = test => { const out = []; let s0 = -1; for (let a = 0; a <= span; a++){ const on = a < span && test(a); if (on && s0 < 0) s0 = a; if (!on && s0 >= 0){ out.push([s0, a]); s0 = -1; } } return out; };
+  // 地面
+  add("line",{x1:X(0),y1:Z(0),x2:X(span),y2:Z(0),stroke:"#8a7f6a","stroke-width":2});
+  // 标高（虚线）
+  for (const l of lvls){
+    add("line",{x1:X(0),y1:Z(l.elevation),x2:X(span),y2:Z(l.elevation),stroke:"#bbb","stroke-dasharray":"5 4"});
+    add("text",{x:-56,y:Z(l.elevation)+4,"font-size":10,fill:"#777"},`${l.name} ${fmt(l.elevation,1)}`);
+  }
+  // 挑空（这一层没有楼面的格子，画到下一个标高或体块顶）
+  lvls.forEach((l, li) => {
+    const info = L.levelInfo.find(x => x.levelId === l.id); if (!info || !info.owner) return;
+    const nextE = li + 1 < lvls.length ? lvls[li + 1].elevation : null;
+    for (const [a0, a1] of runs(a => info.owner[idxAt(a)] === -2)){
+      const topZ = nextE != null ? nextE - t : Math.max(...state.masses.filter(m => massCutAt(m, l.elevation)).map(m => m.top)) - t;
+      add("rect",{x:X(a0),y:Z(topZ),width:X(a1-a0),height:Math.max(0, Z(l.elevation)-Z(topZ)),fill:"url(#sec-void)",opacity:0.9});
+    }
+  });
+  // 功能区（被切到的）：从底标高到净高
+  for (const r of L.rooms){
+    const [c0, c1, a0, a1] = ew ? [r.y0, r.y1, r.x0, r.x1] : [r.x0, r.x1, r.y0, r.y1];
+    if (!(pos + 0.5 > c0 && pos + 0.5 < c1)) continue;
+    add("rect",{x:X(a0),y:Z(r.elevation + r.clear),width:X(a1-a0),height:Z(r.elevation)-Z(r.elevation + r.clear),fill:STAGE_COLORS[r.fn.minStage.winter],stroke:"#4a4a4a","stroke-width":1});
+    if (X(a1-a0) > 40) add("text",{x:X((a0+a1)/2),y:Z(r.elevation + r.clear/2)+4,"text-anchor":"middle","font-size":10,fill:"#222"},r.label);
+  }
+  // 楼板：每个标高处有楼面的地方（最低一层画成地坪）；厚度画在标高以下
+  for (const sl of L.slabs){
+    for (const [a0, a1] of runs(a => sl.mask[idxAt(a)]))
+      add("rect",{x:X(a0),y:Z(sl.elevation),width:X(a1-a0),height:t*SZ,fill:"#555"});
+  }
+  // 屋顶：每个格子往上，体块最高处（连续覆盖到的顶）
+  const roofs = new Map();
+  for (const m of state.masses){ m._bb = bboxOf(m.points); }
+  for (let a = 0; a < span; a++){
+    const i = ew ? a : pos, j = ew ? pos : a;
+    for (const m of state.masses) if (massCovers(m, i, j)){
+      const covered = state.masses.some(o => o !== m && massCovers(o, i, j) && o.base <= m.top + EPS && o.top > m.top + EPS);
+      if (!covered){ const k = m.top.toFixed(2); if (!roofs.has(k)) roofs.set(k, []); roofs.get(k).push(a); }
+    }
+  }
+  for (const [k, list] of roofs){
+    const top = +k, set = new Set(list);
+    for (const [a0, a1] of runs(a => set.has(a))) add("rect",{x:X(a0),y:Z(top),width:X(a1-a0),height:t*SZ,fill:"#555"});
+  }
+  // 体块轮廓（被切到的）
+  for (const m of state.masses){
+    const b = bboxOf(m.points), [c0, c1, a0, a1] = ew ? [b.y0, b.y1, b.x0, b.x1] : [b.x0, b.x1, b.y0, b.y1];
+    if (!(pos + 0.5 > c0 && pos + 0.5 < c1)) continue;
+    add("rect",{x:X(a0),y:Z(m.top),width:X(a1-a0),height:Z(m.base)-Z(m.top),fill:"none",stroke:m.id===am.id?"#2b5d7a":"#888","stroke-width":m.id===am.id?2:1,"stroke-dasharray":"6 4"});
+    add("text",{x:X(a0)+3,y:Z(m.top)-4,"font-size":10,fill:m.id===am.id?"#2b5d7a":"#888"},m.id);
+  }
+  add("text",{x:X(0),y:H-14,"font-size":10,fill:"#777"},ew ? `东西向剖面，切在 y = ${pos}–${pos+1} m（西 ← → 东）` : `南北向剖面，切在 x = ${pos}–${pos+1} m（南 ← → 北）`);
+}
+document.getElementById("sec-dir").onchange = e => { state.section.dir = e.target.value; state.section.pos = null; renderSection(); };
+document.getElementById("sec-pos").onchange = e => { const v = parseFloat(e.target.value); if (isFinite(v)) state.section.pos = v; renderSection(); };
+
+// 所选标高的空间清单、标高间的接触、所有提示
+function renderSpaceList(){
+  const L = state.layout, lv = viewLevel(), info = L.levelInfo.find(x => x.levelId === lv.id);
+  const sps = L.spaces.filter(s => s.levelId === lv.id);
+  const len = list => list.reduce((s, w) => s + (w.a1 - w.a0), 0);
+  let html = sps.length ? sps.map(sp => {
+    const rooms = L.rooms.filter(r => r.spaceId === sp.id), used = rooms.reduce((s, r) => s + r.area, 0);
+    return `<div class="card"><div class="title"><span class="name">${sp.id}</span><span class="meta">体块 ${sp.masses.join("、")}</span></div>
+      <div class="kv">
+        <div>可用面积</div><div>${fmt(sp.area)} m²${sp.lowArea ? `（另有 ${fmt(sp.lowArea)} m² 净高不足）` : ""}</div>
+        <div>净高</div><div>${sp.clearMin===sp.clearMax ? fmt(sp.clearMin,1) : `${fmt(sp.clearMin,1)}–${fmt(sp.clearMax,1)}`} m</div>
+        <div>外墙长度</div><div>南 ${fmt(len(sp.walls.south))} · 北 ${fmt(len(sp.walls.north))} · 东 ${fmt(len(sp.walls.east))} · 西 ${fmt(len(sp.walls.west))} m</div>
+        <div>功能区</div><div>${rooms.length} 个，${fmt(used)} m²（占 ${fmt(used / sp.area * 100)}%）；其余是走廊和未分配空间</div>
+        ${sp.voidArea ? `<div>挑空</div><div>${fmt(sp.voidArea)} m² 被下层的高功能占用，这里不设楼板</div>` : ""}
+      </div></div>`;
+  }).join("") : `<p class="hint">${lv.name} 处没有可用空间。</p>`;
+  if (info && info.contacts.length) html += `<p class="hint">${lv.name} 的体块接触：` + info.contacts.map(c => `${c.a} 与 ${c.b} 接触宽度 ${fmt(c.width,1)} m → ${c.connected ? "连成一个空间" : `不足 ${ASSUMPTIONS.minContactWidth.value} m，不连通`}`).join("；") + `。</p>`;
+  if (L.warnings.length) html += `<div class="banner warn">${L.warnings.map(w => `<div>${w}</div>`).join("")}</div>`;
+  document.getElementById("space-list").innerHTML = html;
+}
+
 function regenerate(){
   generateLayout();
   if (state.selected && !state.layout.rooms.some(r=>r.id===state.selected)) state.selected = null;
-  syncControls(); renderPlan(); renderLeft(); renderSidebar();
+  syncControls(); renderMassPanel(); renderLevelPanel(); renderPlan(); renderSection(); renderSpaceList(); renderLeft(); renderSidebar();
+  if (window.render3D) window.render3D();
 }
-document.getElementById("in-w").onchange = e => {
-  const raw = parseFloat(e.target.value); if (!isFinite(raw)) { syncControls(); return; }   // 非数字：保持原值
-  const b = bboxOf(activeMass().points); const w = clamp(snap(raw), 1, SITE.w);
-  const x0 = clamp(b.x0, 0, SITE.w - w); activeMass().points = rectPoints(x0, b.y0, w, b.d); regenerate();
-};
-document.getElementById("in-d").onchange = e => {
-  const raw = parseFloat(e.target.value); if (!isFinite(raw)) { syncControls(); return; }   // 非数字：保持原值
-  const b = bboxOf(activeMass().points); const d = clamp(snap(raw), 1, SITE.d);
-  const y0 = clamp(b.y0, 0, SITE.d - d); activeMass().points = rectPoints(b.x0, y0, b.w, d); regenerate();
-};
 document.getElementById("sl-south").oninput = e => {
   state.bands.south = +e.target.value; if (state.bands.south + state.bands.north > 100) state.bands.north = 100 - state.bands.south; regenerate();
 };
@@ -897,6 +1434,108 @@ document.getElementById("sl-north").oninput = e => {
   state.bands.north = +e.target.value; if (state.bands.south + state.bands.north > 100) state.bands.south = 100 - state.bands.north; regenerate();
 };
 regenerate();
+</script>
+
+<!-- 三维视图（阶段 2，只看不改）。three.js 从 jsdelivr 加载，需要联网。坐标：模型 (x 东, y 北, 标高) → three (x, 标高, −y)。 -->
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const host = document.getElementById("view3d");
+document.getElementById("view3d-msg").remove();
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(window.devicePixelRatio);
+host.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(-40, 80, 60); scene.add(sun);
+
+const center = new THREE.Vector3(SITE.w/2, 0, -SITE.d/2);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 2000);
+camera.position.set(SITE.w/2 - 55, 65, 55);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(center); controls.update();
+
+// 场地：地面、10 m 网格、指北箭头（固定不变）
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(SITE.w, SITE.d), new THREE.MeshBasicMaterial({ color:0xf6f4ef }));
+ground.rotation.x = -Math.PI/2; ground.position.set(SITE.w/2, -0.01, -SITE.d/2); scene.add(ground);
+const gridPts = [];
+for (let x=0; x<=SITE.w; x+=10) gridPts.push(x,0,0, x,0,-SITE.d);
+for (let y=0; y<=SITE.d; y+=10) gridPts.push(0,0,-y, SITE.w,0,-y);
+gridPts.push(SITE.w,0,0, SITE.w,0,-SITE.d, 0,0,-SITE.d, SITE.w,0,-SITE.d);
+const gridGeo = new THREE.BufferGeometry(); gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(gridPts, 3));
+scene.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color:0xddd8cc })));
+scene.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(SITE.w+4, 0, -SITE.d+8), 8, 0x2b5d7a, 2.5, 1.6));
+
+const dyn = new THREE.Group(); scene.add(dyn);
+const css = name => new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#cccccc");
+const toV = (x, y, z) => new THREE.Vector3(x, z, -y);
+
+function outline(points, elev, color){
+  const pts = points.map(p => toV(p[0], p[1], elev)); pts.push(pts[0]);
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color }));
+}
+
+function rebuild(){
+  dyn.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  dyn.clear();
+  const lv = viewLevel();
+  // 体块：半透明，选中的体块用蓝色
+  for (const m of state.masses){
+    const shape = new THREE.Shape(m.points.map(p => new THREE.Vector2(p[0], p[1])));
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: m.top - m.base, bevelEnabled:false });
+    geo.rotateX(-Math.PI/2); geo.translate(0, m.base, 0);
+    const on = m.id === activeMass().id;
+    const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: on ? 0x9ec3dc : 0xd9d4c7, transparent:true, opacity: on ? 0.55 : 0.4, depthWrite:false }));
+    mesh.userData.massId = m.id; dyn.add(mesh);
+    dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: on ? 0x2b5d7a : 0x1f2a2e })));
+  }
+  // 标高：场地范围的框，平面所看的标高用橙色
+  for (const l of state.levels){
+    const on = l.id === lv.id;
+    dyn.add(outline([[0,0],[SITE.w,0],[SITE.w,SITE.d],[0,SITE.d]], l.elevation, on ? 0xe08a00 : 0xbbbbbb));
+  }
+  // 功能区：画在各自空间的标高上
+  for (const r of state.layout.rooms){
+    const g = new THREE.PlaneGeometry(r.x1 - r.x0, r.y1 - r.y0); g.rotateX(-Math.PI/2);
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), side:THREE.DoubleSide }));
+    mesh.position.set((r.x0 + r.x1)/2, r.elevation + 0.03, -(r.y0 + r.y1)/2); dyn.add(mesh);
+    dyn.add(outline([[r.x0,r.y0],[r.x1,r.y0],[r.x1,r.y1],[r.x0,r.y1]], r.elevation + 0.05, 0x4a4a4a));
+    if (r.spans.length > 1){   // 挑空的功能：画出它的高度
+      const h = r.clear, box = new THREE.BoxGeometry(r.x1 - r.x0, h, r.y1 - r.y0);
+      box.translate((r.x0 + r.x1)/2, r.elevation + h/2, -(r.y0 + r.y1)/2);
+      dyn.add(new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), transparent:true, opacity:0.35, depthWrite:false })));
+      dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color:0x2b5d7a })));
+    }
+  }
+  draw();
+}
+
+function draw(){ renderer.render(scene, camera); }
+controls.addEventListener("change", draw);
+
+function resize(){
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); draw();
+}
+new ResizeObserver(resize).observe(host);
+
+// 点击体块选中（拖动视角时不算点击）
+const ray = new THREE.Raycaster(), down = { x:0, y:0 };
+renderer.domElement.addEventListener("pointerdown", e => { down.x = e.clientX; down.y = e.clientY; });
+renderer.domElement.addEventListener("pointerup", e => {
+  if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+  const hit = ray.intersectObjects(dyn.children.filter(o => o.userData.massId));
+  if (hit.length){ state.selectedMass = hit[0].object.userData.massId; state.section.pos = null; regenerate(); }
+});
+
+window.render3D = rebuild;
+resize(); rebuild();
 </script>
 </body>
 </html>
