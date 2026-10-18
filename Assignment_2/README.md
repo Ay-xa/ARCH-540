@@ -17,6 +17,9 @@ Assignment 1 的工具（MassShadeLight 及之前的原型）仍留在仓库根�
 | `04_Presentation/` | 对外展示：展板、汇报稿、最终提交稿。 |
 | `04_Presentation/screenshots/` | 过程截图、GIF、渲染图，按日期或版本命名，例如 `2026-10-20_v01_plan.png`。 |
 
+## 规则与功能库
+工具的规则和功能库放在 `02_Prototypes/_shared/Rules/`（`README.md` 说明状态词汇；`STAGE_RULES.md` 阶段与分配规则；`FUNCTION_LIBRARY.md` 功能库）。逻辑草稿：`Tool_Logic_Draft_v2.md`（`Tool_Logic_Draft.md` 是被取代的旧稿）。文献笔记在 `01_Research/`。
+
 ## 几条习惯
 
 - **一版一个文件夹**：改动大就新开 `Version_02`，不要在 `Version_01` 里反复覆盖。小修可以在当前版本里改。

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>社区中心体块推演工具 v01（平面）</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --panel:#ffffff; --ink:#1f2a2e; --muted:#6b7378; --line:#dcd8cf;
+    --accent:#2b5d7a; --warn:#b4541c; --bad:#a3212d; --ok:#2e7d4f;
+    --protected:#d6d2c8; --buffered:#bfd7ea; --tempered:#f2d59b; --controlled:#e08e79;
+    --band-south:rgba(255,205,90,0.20); --band-middle:rgba(60,60,60,0.06); --band-north:rgba(90,140,230,0.14);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  header{padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .sub{color:var(--muted);font-size:12px}
+  .layout{display:grid;grid-template-columns:300px 1fr 360px;gap:0;min-height:calc(100vh - 44px)}
+  aside,section{padding:12px;overflow:auto}
+  aside{background:var(--panel)}
+  #left{border-right:1px solid var(--line)}
+  #right{border-left:1px solid var(--line)}
+  h2{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  h2:first-child{margin-top:0}
+  .card{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;background:#fff}
+  .card.unplaced{border-color:#e8b9a2;background:#fff7f3}
+  .card .title{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .card .name{font-weight:600}
+  .card .meta{color:var(--muted);font-size:12px}
+  .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:10px;border:1px solid var(--line);color:var(--muted);margin-left:4px;white-space:nowrap}
+  .badge.verified{border-color:var(--ok);color:var(--ok)}
+  .badge.tocheck{border-color:var(--warn);color:var(--warn)}
+  .badge.assumed{border-color:#999;color:#666}
+  .badge.userset{border-color:var(--accent);color:var(--accent)}
+  .swatch{display:inline-block;width:12px;height:12px;border:1px solid #8a8a8a;vertical-align:-2px;margin-right:4px}
+  .override{display:flex;gap:4px;align-items:center;margin-top:6px}
+  .override input{width:72px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;font:inherit}
+  button{font:inherit;font-size:12px;padding:2px 8px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:4px;cursor:pointer}
+  button:hover{background:#eef4f8}
+  button.link{border:none;padding:0 4px;text-decoration:underline;color:var(--muted)}
+  .controls{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
+  .controls label{display:flex;gap:6px;align-items:center}
+  .controls input[type=number]{width:64px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;font:inherit}
+  .controls input[type=range]{width:120px}
+  .readout{color:var(--muted);font-size:12px}
+  svg#plan{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px;touch-action:none;user-select:none}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:8px;color:var(--muted)}
+  .banner{padding:8px 10px;border-radius:6px;margin-bottom:8px;font-size:13px}
+  .banner.bad{background:#fbe9ea;border:1px solid #e3a4aa;color:var(--bad)}
+  .banner.warn{background:#fdf1e6;border:1px solid #efc7a6;color:var(--warn)}
+  .banner.ok{background:#e9f5ee;border:1px solid #b6dcc4;color:var(--ok)}
+  #right .sec{margin-bottom:12px}
+  #right .sec h3{font-size:13px;margin:0 0 4px;color:var(--accent)}
+  #right ul{margin:4px 0;padding-left:18px}
+  #right li{margin:2px 0}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .check{padding:6px 8px;border-radius:4px;font-weight:600;margin:4px 0}
+  .check.ok{background:#e9f5ee;color:var(--ok)}
+  .check.bad{background:#fbe9ea;color:var(--bad)}
+  .check.over{background:#fdf1e6;color:var(--warn)}
+  select{font:inherit;padding:2px 4px;border:1px solid var(--line);border-radius:4px}
+  .hint{color:var(--muted);font-size:12px}
+  .room{cursor:pointer}
+  .room:hover rect{stroke-width:2.5}
+  .room.selected rect{stroke:#111;stroke-width:3}
+  .handle{fill:#fff;stroke:var(--accent);stroke-width:1.5}
+  .edge{stroke:transparent;stroke-width:10}
+  .edge.ns{cursor:ns-resize}.edge.ew{cursor:ew-resize}
+  .corner{cursor:nwse-resize}.corner.alt{cursor:nesw-resize}
+  text{font-family:inherit;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>社区中心体块推演工具 · 第一版（平面视图）</h1>
+  <span class="sub">ARCH 540 作业二 · 规则见 <code>_shared/Rules/</code> · 颜色表示冬季最低阶段 · 北在上</span>
+</header>
+
+<div class="layout">
+  <aside id="left">
+    <h2>功能清单（Marpole 2021 的主要房间）</h2>
+    <div id="area-summary"></div>
+    <div id="function-list"></div>
+    <h2>未生成的功能</h2>
+    <div id="unplaced"></div>
+  </aside>
+
+  <section id="center">
+    <div class="controls">
+      <label>宽（东西）<input id="in-w" type="number" min="1" max="90" step="1"> m</label>
+      <label>深（南北）<input id="in-d" type="number" min="1" max="52" step="1"> m</label>
+      <span id="massing-readout" class="readout"></span>
+    </div>
+    <div class="controls">
+      <label>南带 <input id="sl-south" type="range" min="0" max="100" step="1"> <span id="rd-south" class="readout"></span></label>
+      <label>中间 <span id="rd-middle" class="readout"></span></label>
+      <label>北带 <input id="sl-north" type="range" min="0" max="100" step="1"> <span id="rd-north" class="readout"></span></label>
+      <span class="hint">三带只是评判背景，不是容器；默认 35 / 30 / 35（假设）</span>
+    </div>
+    <svg id="plan" viewBox="-24 -24 948 568" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--protected)"></span>protected（冬季最低）</span>
+      <span><span class="swatch" style="background:var(--buffered)"></span>buffered（冬季最低）</span>
+      <span><span class="swatch" style="background:var(--tempered)"></span>tempered（冬季最低）</span>
+      <span><span class="swatch" style="background:var(--controlled)"></span>controlled（冬季最低）</span>
+      <span><span class="swatch" style="background:var(--band-south)"></span>南带（直射阳光）</span>
+      <span><span class="swatch" style="background:var(--band-middle)"></span>中间带（服务）</span>
+      <span><span class="swatch" style="background:var(--band-north)"></span>北带（漫射）</span>
+      <span><span class="swatch" style="background:#fff"></span>空白 = 走廊与未分配空间</span>
+    </div>
+    <p class="hint">操作：拖边或角改大小，拖内部移动，吸附 1 m；点击房间看右侧说明。场地范围 90 × 52 m。</p>
+  </section>
+
+  <aside id="right">
+    <div id="sidebar"><p class="hint">点击平面上的任意房间，这里会解释它为什么放在这里。</p></div>
+  </aside>
+</div>
+
+<script>
+/* =====================================================================
+   ① 数据区 —— 功能库、规则、阶段、状态标签、假设值
+   每个数值都带一个“状态”，词汇见 _shared/Rules/README.md。
+   以后要改数值，只改这一区；代码在后面，不用动。
+   日期：2026-10-17
+   ===================================================================== */
+
+const STATUS = {
+  verified:   "已核实",
+  toCheck:    "来源待核对",
+  borrowed:   "借用",
+  inferred:   "推断",
+  assumed:    "假设",
+  userDefined:"用户定义",
+  userDecided:"用户决定",
+  userSet:    "用户设定",
+};
+
+// 五个阶段（用户定义），防护逐级增加。index 用于“渐变适配”的线性对应。
+const STAGES = [
+  { id:"exposed",    index:0, zh:"完全没有天空遮挡的空间",                 status:STATUS.userDefined },
+  { id:"protected",  index:1, zh:"有天空遮挡的空间",                       status:STATUS.userDefined },
+  { id:"buffered",   index:2, zh:"有天空遮挡，且有其他环境遮挡的空间特征",   status:STATUS.userDefined },
+  { id:"tempered",   index:3, zh:"与室外完全隔开，但没有机械调节",           status:STATUS.userDefined },
+  { id:"controlled", index:4, zh:"有机械调节",                             status:STATUS.userDefined },
+];
+const STAGE_INDEX = Object.fromEntries(STAGES.map(s => [s.id, s.index]));
+
+// 房间颜色 = 冬季最低阶段（用户决定）。protected 只有“设备与后勤”用到（2026-10-18 加入）。
+const STAGE_COLORS = { protected:"var(--protected)", buffered:"var(--buffered)", tempered:"var(--tempered)", controlled:"var(--controlled)" };
+
+// 判断规则 R1–R8（STAGE_RULES.md 第 3 节）
+const RULES = {
+  R1:{ text:"怕雨的功能，至少 protected",                                   basis:"温哥华导则把遮雨作为设计意图；常识", status:STATUS.inferred },
+  R2:{ text:"怕风的功能，至少 buffered",                                    basis:"多伦多《行人风条款》的风界限；风界限到阶段的对应是我的对应", status:"借用（风界限）加推断（对应）" },
+  R3:{ text:"久坐的功能，冬季至少 controlled；夏季至少 tempered",            basis:"Mora 2018：适应性模型要求室外月均 10℃ 以上，温哥华 11–4 月低于它；Lau、Zhang", status:"推断（冬）；假设（夏）" },
+  R4:{ text:"剧烈活动能耐受较凉，tempered 就够",                             basis:"Zhang：活动越剧烈中性 PET 越低；Lau", status:"文献方向支持" },
+  R5:{ text:"卫生、安全、精密要求的功能，controlled",                         basis:"常识（厨房、展品、泳池），没有来源", status:STATUS.assumed },
+  R6:{ text:"弱势使用者（老人、儿童）在同类功能基础上提高一级，上限 controlled", basis:"Lau：75 岁以上中性温度偏高 2–3℃；Mora", status:STATUS.inferred },
+  R7:{ text:"中强度以上的室内活动，冬季至少 tempered，夏季至少 buffered",      basis:"用户 2026-10-17 同意补上；季节分法为假设", status:"用户决定（补上）；季节措辞为假设" },
+  R8:{ text:"部分脱衣的功能至少 tempered；完全脱衣的冬季至少 controlled",     basis:"用户 2026-10-17 同意补上；具体写法没有来源", status:"用户决定（补上）；具体写法为假设" },
+};
+
+// 区域带（STAGE_RULES.md 第 4 节，用户决定）
+const BANDS = {
+  south:  { zh:"南带（直射阳光）", role:"优先放需要阳光的空间" },
+  middle: { zh:"中间带（无直射）", role:"放服务空间" },
+  north:  { zh:"北带（漫射）",     role:"放不需要直射阳光的空间" },
+};
+
+// 功能库（FUNCTION_LIBRARY.md 第 2、3、7 节）。面积以平方米参与计算，平方英尺是库里的原值。
+// 2026-10-18 用户决定：面积改用 Marpole 社区中心任务书（2021）；储藏、办公等配套房间并入主房间的面积，不单独画；
+// 走廊改用 Marpole 的组团系数和建筑系数。原文合计与逐行相加不一致的，取较大值（用户决定）。
+// 单个项目的先例，不是温哥华的统一标准。
+const MARPOLE = "Marpole 社区中心任务书（温哥华市，2021）";
+const GROUPS = {
+  lobby:   { zh:"5.1 门厅",           factor:1.3  },
+  admin:   { zh:"5.2 行政",           factor:1.15 },
+  rec:     { zh:"5.3 康体",           factor:1.3  },
+  multi:   { zh:"5.4 多功能与活动",    factor:1.2  },
+  change:  { zh:"5.5 更衣与卫生间",    factor:1.3  },
+  support: { zh:"5.6 设备与后勤",      factor:1.1  },
+};
+const m2of = ft => Math.round(ft / 10.7639 * 10) / 10;
+const sumFt = list => list.reduce((s,x)=>s+x.ft2,0);
+// main：主房间；support：并入的配套房间。单个面积 = 两者之和。
+const fromMarpole = (main, support=[]) => {
+  const ft = sumFt(main) + sumFt(support);
+  return { main, support, areaFt2:ft, areaM2:m2of(ft), areaStatus:STATUS.verified, areaSource:MARPOLE };
+};
+
+const FUNCTIONS = [
+  { id:"lobby", name:"门厅、接待", category:"过渡", required:false, intensity:"轻、短停留、穿着外衣", group:"lobby",
+    rules:["R1","R2"], minStage:{winter:"buffered", summer:"buffered"}, stageNote:"R2 按站立取",
+    count:1, ...fromMarpole(
+      [{name:"聚集与排队空间", ft2:390}, {name:"座位区", ft2:300}, {name:"交通等候区", ft2:100}, {name:"室外泳池排队", ft2:75}],
+      [{name:"青少年小卖部及座位、储藏", ft2:155}, {name:"婴儿车/电动设备停放", ft2:75}, {name:"饮水点", ft2:15}, {name:"清洁间", ft2:40}, {name:"原文合计比逐行相加多出的面积（取较大值）", ft2:40}]),
+    refRange:"", areaNote:"原文合计 1,190 ft²，逐行相加 1,150；取较大值（用户决定）",
+    bandPref:"south", bandPrefStatus:STATUS.assumed, bandPrefNote:"过渡层，靠外",
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    entry:true,  // 硬约束：紧贴入口所在立面（默认南立面）
+    drawn:true },
+  { id:"admin", name:"行政办公", category:"支持", required:false, intensity:"轻、久坐（员工）", group:"admin",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"}, stageNote:"员工整天坐着办公，按久坐处理（我的判断）",
+    count:1, ...fromMarpole(
+      [{name:"前台", ft2:300}, {name:"开放办公区", ft2:250}, {name:"员工休息室", ft2:250}, {name:"主任办公室", ft2:150}, {name:"收银/档案/复印", ft2:150}, {name:"小会议室", ft2:120}, {name:"社区协会办公室", ft2:100}],
+      [{name:"员工卫生间", ft2:50}, {name:"储藏", ft2:20}]),
+    refRange:"", areaNote:"原文合计 1,340 ft²，逐行相加 1,390；取较大值（用户决定）",
+    bandPref:"south", bandPrefStatus:STATUS.assumed, bandPrefNote:"员工长时间停留，需要采光（我的判断）",
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"gym", name:"体育馆", category:"核心", required:true, intensity:"中到高", group:"rec",
+    rules:["R1","R2","R4","R7"], minStage:{winter:"tempered", summer:"buffered"},
+    count:1, ...fromMarpole([{name:"体育馆（标准篮球场加缓冲区）", ft2:7500}], [{name:"体育馆储藏", ft2:600}]),
+    refRange:"",
+    bandPref:"north", bandPrefStatus:STATUS.assumed, bandPrefNote:"眩光控制，设计常识；Marpole 也说北墙开窗合适",
+    aspect:{min:1, max:2, status:STATUS.assumed}, splittable:false,
+    columnFree:true, minShortSide:{value:21.3, status:STATUS.verified, note:"Marpole 2021：篮球场 94′×50′ 加缓冲区约 70′×107′（约 21.3 × 32.6 m）"},
+    drawn:true },
+  { id:"fitness", name:"健身中心", category:"核心", required:true, intensity:"中到高", group:"rec",
+    rules:["R1","R4","R7"], minStage:{winter:"tempered", summer:"buffered"},
+    count:1, ...fromMarpole([{name:"健身中心（有氧 2,100、器械 3,000、自由重量 900）", ft2:6000}], [{name:"健身储藏", ft2:125}, {name:"健身办公/签到", ft2:100}]),
+    refRange:"温哥华战略：新建最小 8,000 ft²，全市平均 4,000 ft²", areaNote:"用户决定用 Marpole 的 6,000 ft²（557 m²），不用全市新建最小值 8,000",
+    bandPref:"north", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:2, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"studio", name:"健身/舞蹈工作室", category:"核心", required:false, intensity:"中到高", group:"rec",
+    rules:["R1","R4","R7"], minStage:{winter:"tempered", summer:"buffered"},
+    count:1, ...fromMarpole([{name:"健身/舞蹈工作室（约 30 人）", ft2:630}], [{name:"储藏", ft2:100}]),
+    refRange:"",
+    bandPref:"north", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"smallstudio", name:"小工作室", category:"核心", required:false, intensity:"中到高", group:"rec",
+    rules:["R1","R4","R7"], minStage:{winter:"tempered", summer:"buffered"},
+    count:1, ...fromMarpole([{name:"小工作室（12–15 人）", ft2:500}], [{name:"储藏", ft2:42}]),
+    refRange:"",
+    bandPref:"north", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"hall", name:"大多功能厅", category:"核心", required:true, intensity:"轻（宴会、演出）", group:"multi",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"},
+    count:1, ...fromMarpole([{name:"大多功能厅（宴会 150 座，带舞台）", ft2:2000}], [{name:"桌椅储藏、移动舞台储藏", ft2:250}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"flex", name:"灵活多功能室", category:"核心", required:true, intensity:"轻", group:"multi",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"},
+    count:1, ...fromMarpole([{name:"灵活多功能室（课后托管，30 人）", ft2:1200}], [{name:"灵活多功能室储藏 ×2", ft2:100}, {name:"课后托管储藏", ft2:50}, {name:"课后托管零食储藏", ft2:25}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"musicroom", name:"小多功能室（音乐）", category:"核心", required:false, intensity:"轻", group:"multi",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"},
+    count:1, ...fromMarpole([{name:"小多功能室（6 人，偏音乐）", ft2:160}], [{name:"储藏", ft2:30}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"meeting", name:"小会议/活动室", category:"核心", required:false, intensity:"轻", group:"multi",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"},
+    count:2, ...fromMarpole([{name:"更小的多功能室（4 人）", ft2:100}], [{name:"储藏", ft2:30}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"arts", name:"艺术手工室", category:"核心", required:false, intensity:"轻、久坐", group:"multi",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"},
+    count:1, ...fromMarpole([{name:"艺术手工室", ft2:720}], [{name:"艺术手工储藏", ft2:50}]),
+    refRange:"",
+    bandPref:"north", bandPrefStatus:STATUS.assumed, bandPrefNote:"传统画室的北向漫射光，设计常识",
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"seniors", name:"老年中心", category:"核心", required:true, intensity:"轻", group:"multi",
+    rules:["R1","R3","R6"], minStage:{winter:"controlled", summer:"controlled"}, stageNote:"用户决定：夏季也 controlled",
+    count:1, ...fromMarpole([{name:"老年中心", ft2:1200}], [{name:"小厨房", ft2:100}, {name:"小厨房储藏", ft2:35}, {name:"老年中心储藏", ft2:50}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"youth", name:"青少年与游戏室", category:"核心", required:true, intensity:"轻到中（按中处理）", group:"multi",
+    rules:["R1","R7"], minStage:{winter:"tempered", summer:"buffered"},
+    count:1, ...fromMarpole([{name:"青少年与游戏室", ft2:900}], [{name:"青少年员工办公室", ft2:100}, {name:"储藏", ft2:50}]),
+    refRange:"",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"kitchen", name:"商业/教学厨房", category:"核心", required:true, intensity:"中", group:"multi",
+    rules:["R1","R5"], minStage:{winter:"controlled", summer:"controlled"},
+    count:1, ...fromMarpole([{name:"商业/教学厨房", ft2:500}], [{name:"厨房储藏", ft2:100}]),
+    refRange:"",
+    bandPref:"middle", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"washroom", name:"公共卫生间", category:"支持", required:true, intensity:"轻、短停留", group:"multi",
+    rules:["R1","R8"], minStage:{winter:"tempered", summer:"tempered"}, stageNote:"R8 按部分脱衣取",
+    count:1, ...fromMarpole([{name:"公共卫生间（6 个通用隔间）", ft2:250}, {name:"单人通用卫生间 ×2", ft2:100}], [{name:"清洁间", ft2:35}]),
+    refRange:"",
+    bandPref:"middle", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"changing", name:"更衣淋浴与卫生间", category:"支持", required:false, intensity:"轻、短停留", group:"change",
+    rules:["R1","R8"], minStage:{winter:"controlled", summer:"tempered"}, stageNote:"R8 按完全脱衣取",
+    count:1, ...fromMarpole(
+      [{name:"更衣淋浴与公共卫生间（免费区）", ft2:1340}, {name:"带成人护理台的卫生间", ft2:145}, {name:"桑拿", ft2:155}, {name:"蒸汽房", ft2:155}, {name:"通用卫生间", ft2:50}],
+      [{name:"急救室", ft2:120}, {name:"救生员/员工办公室", ft2:130}]),
+    refRange:"",
+    bandPref:"middle", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"support", name:"设备与后勤", category:"支持", required:false, intensity:"无人久留", group:"support",
+    rules:["R1"], minStage:{winter:"protected", summer:"protected"}, stageNote:"只按 R1 取（我的判断）；设备本身的要求未列入",
+    count:1, ...fromMarpole(
+      [{name:"空调机房", ft2:1033}, {name:"机房", ft2:904}, {name:"电气室", ft2:592}, {name:"给水与喷淋间", ft2:215}, {name:"发电机房", ft2:205}, {name:"IT 机房", ft2:150}, {name:"电梯机房", ft2:160}, {name:"通信入口间", ft2:100}, {name:"生命安全电气室", ft2:100}],
+      [{name:"垃圾分类间", ft2:160}, {name:"应急物资储藏", ft2:100}, {name:"清洁/储藏", ft2:150}, {name:"清洁间 ×2", ft2:80}]),
+    refRange:"", areaNote:"原文全组 5,756 ft²（取较大值）；去掉了只服务泳池的机房、化学品间（1,399）和只服务托儿的机房、电气（408），因为工具里还没有泳池和托儿",
+    bandPref:"middle", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"cafe", name:"咖啡", category:"核心（非必有，第一版加入）", required:false, intensity:"轻、中等停留", group:"lobby",
+    rules:["R1","R3"], minStage:{winter:"controlled", summer:"tempered"}, stageNote:"用户决定：按久坐处理",
+    count:1, areaFt2:1000, areaM2:93, refRange:"600–1,500 ft²", areaStatus:STATUS.assumed, areaSource:"我的假设（Marpole 没有咖啡）",
+    groupStatus:STATUS.assumed, groupNote:"Marpole 没有咖啡，我把它归到门厅组团",
+    bandPref:"south", bandPrefStatus:STATUS.assumed,
+    aspect:{min:1, max:3, status:STATUS.assumed}, splittable:false,
+    drawn:true },
+  { id:"corridor", name:"走廊、交通", category:"过渡", required:false, intensity:"轻、短停留",
+    rules:["R1"], minStage:{winter:"protected", summer:"protected"},
+    count:0, areaFt2:null, areaM2:null, refRange:"", areaStatus:STATUS.verified, areaSource:"不单列；按各组团系数（1.1–1.3）和建筑系数 1.2 放大（Marpole 2021）",
+    bandPref:"middle", bandPrefStatus:STATUS.assumed,
+    drawn:false },
+];
+const groupFactorOf = fn => GROUPS[fn.group] ? GROUPS[fn.group].factor : 1;
+
+// 空间需求（阶段 0，2026-10-18）：最小净高、楼层要求。来源 Marpole 2021 第 3.5.5 节（第 20–21 页）。
+// 目前只写数据，不参与计算；阶段 4 起生效。原文没写的留 null，不填假设值。
+// 楼层要求：mustGround 必须首层；preferGround 最好首层；preferSecond 最好二层。
+const FT = 0.3048;
+const CLEAR_GYM   = { value:+(24*FT).toFixed(2), status:STATUS.verified, note:"Marpole：体育馆至少 24 ft 净高，能更高更好" };
+const CLEAR_12FT  = (who) => ({ value:+(12*FT).toFixed(2), status:STATUS.verified, note:`Marpole：${who}净高 12 ft` });
+const FLOOR = {
+  mustGround:   { value:"mustGround",   zh:"必须首层" },
+  preferGround: { value:"preferGround", zh:"最好首层" },
+  preferSecond: { value:"preferSecond", zh:"最好二层" },
+};
+const floorReqOf = (key, note) => ({ ...FLOOR[key], status:STATUS.verified, note });
+const SPACE_NEEDS = {
+  lobby:    { floorReq: floorReqOf("mustGround",   "Marpole：门厅必须首层") },
+  admin:    { floorReq: floorReqOf("mustGround",   "Marpole：行政必须首层") },
+  gym:      { minClearHeight: CLEAR_GYM, floorReq: floorReqOf("mustGround", "Marpole：体育馆需要首层（直通室外）") },
+  fitness:  { minClearHeight: CLEAR_12FT("健身中心"), floorReq: floorReqOf("preferSecond", "Marpole：健身中心最好二层（注意楼下噪声和楼板承重）") },
+  hall:     { minClearHeight: CLEAR_12FT("多功能与活动组团的房间"), floorReq: floorReqOf("preferGround", "Marpole：大多功能厅最好首层") },
+  flex:     { minClearHeight: CLEAR_12FT("多功能与活动组团的房间"), floorReq: floorReqOf("mustGround", "Marpole：课后托管用的多功能室必须首层（要接室外游戏场）") },
+  musicroom:{ minClearHeight: CLEAR_12FT("多功能与活动组团的房间") },
+  meeting:  { minClearHeight: CLEAR_12FT("多功能与活动组团的房间") },
+  arts:     { minClearHeight: CLEAR_12FT("多功能与活动组团的房间") },
+  seniors:  { minClearHeight: CLEAR_12FT("多功能与活动组团的房间") },
+  youth:    { minClearHeight: CLEAR_12FT("多功能与活动组团的房间") },
+  kitchen:  { minClearHeight: CLEAR_12FT("多功能与活动组团的房间"), floorReq: floorReqOf("preferGround", "Marpole：商业厨房最好首层") },
+  washroom: { minClearHeight: CLEAR_12FT("多功能与活动组团的房间（原文按组团写，卫生间也在这个组团里）") },
+  changing: { floorReq: floorReqOf("mustGround", "Marpole：干更衣必须首层") },
+};
+for (const f of FUNCTIONS) Object.assign(f, { minClearHeight:null, floorReq:null }, SPACE_NEEDS[f.id] || {});
+
+// 排布用的默认假设（FUNCTION_LIBRARY.md 第 7 节、PLACEMENT_CRITERIA.md、Tool_Logic_Draft_v2.md 第七节）
+const ASSUMPTIONS = {
+  // 面积三层（Marpole 2021，用户 2026-10-18 决定采用）：净面积 × 组团系数（组团内走廊、内墙）× 建筑系数（入口与疏散走廊、外墙、大管井）
+  buildingFactor:  { value:1.2, status:STATUS.verified, note:"Marpole 2021 的建筑系数 1.2；组团系数 1.1–1.3 见 GROUPS" },
+  bandDefaults:    { south:35, middle:30, north:35, status:STATUS.assumed, note:"示意里随手设的，不是来源" },
+  defaultMassing:  { w:65, d:42, status:STATUS.userDecided },
+  // 标高与空间识别的设置（用户 2026-10-18 设定，见 Architecture_Massing_Level_Space_Program.md 第 5 节）。阶段 1 只存储，阶段 3 起参与计算。
+  storeyHeight:    { value:4.2, status:STATUS.userSet, note:"默认层高，只在添加新标高时使用（2026-10-18）" },
+  slabThickness:   { value:0.4, status:STATUS.userSet, note:"楼板加结构厚度；净高 = 顶部边界 − 底标高 − 这个厚度（2026-10-18）" },
+  minUsableClear:  { value:3.0, status:STATUS.userSet, note:"层段净高低于它不算可用楼层（2026-10-18）" },
+  minContactWidth: { value:5,   status:STATUS.userSet, note:"两个体块的接触宽度至少这么多才算连成一个空间；取重叠或贴面矩形的较长边（2026-10-18）" },
+  site:            { w:90, d:52, status:STATUS.userDecided },
+  snapM:           { value:1, status:STATUS.userDecided },
+  defaultStage:    { value:"tempered", status:STATUS.userDecided, note:"新区域默认阶段" },
+  entryFacade:     { value:"south", status:STATUS.userDecided, note:"默认南立面，第一版不可挪" },
+  gradientMapping: { status:STATUS.assumed, note:"阶段越高越靠内，线性对应：目标深度 = 阶段序号 ÷ 4 × 最大可能深度（南北进深的一半）" },
+  depthToFacades:  { status:STATUS.userDecided, note:"深度只量到南、北立面，不量到东、西山墙（2026-10-17）" },
+  facadeContact:   { status:STATUS.userDecided, note:"偏好南带或北带的房间，贴着对应立面才算完全适配（2026-10-17）；没贴着时按空隙线性打折：系数 = 1 − 空隙 ÷ 带深度", discountStatus:STATUS.assumed },
+  simplicityRule:  { status:STATUS.assumed, note:"前三项都相同时，贴边更多（与外墙或已放房间的边对齐）的位置更好；仍相同时取最西、最南的位置" },
+  judgeOrder:      ["带适配", "渐变适配", "形状", "简洁"],
+};
+
+// 未生成的三种原因（STAGE_RULES.md 第 6 节，用户决定）
+const UNPLACED_REASONS = {
+  U1:"面积不够",
+  U2:"没有合适的区域",
+  U3:"面积被分割",
+};
+
+/* =====================================================================
+   ② 几何与单位
+   ===================================================================== */
+const PX = 10;                   // 每米 10 个绘图单位
+const SITE = ASSUMPTIONS.site;
+const EPS = 1e-6;
+const ft2 = m2 => m2 * 10.7639;
+const fmt = (n, d=0) => n.toLocaleString("zh-CN", {maximumFractionDigits:d, minimumFractionDigits:d});
+const snap = v => Math.round(v / ASSUMPTIONS.snapM.value) * ASSUMPTIONS.snapM.value;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// 体块按多边形（点的列表）存储，以后接 L 形、多体块时不用重写。第一版只能编辑矩形。
+function rectPoints(x0, y0, w, d){ return [[x0,y0],[x0+w,y0],[x0+w,y0+d],[x0,y0+d]]; }
+function bboxOf(points){
+  const xs = points.map(p=>p[0]), ys = points.map(p=>p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  return { x0, y0, x1, y1, w:x1-x0, d:y1-y0, area:(x1-x0)*(y1-y0) };
+}
+const toSX = x => x * PX;
+const toSY = y => (SITE.d - y) * PX;   // 北在上：模型 y 向北增大，屏幕 y 向下增大
+
+/* =====================================================================
+   ③ 状态
+   ===================================================================== */
+// 体块列表（阶段 1，2026-10-18）：每个体块独立，有自己的平面轮廓、底标高、顶标高；接触或相交也不合并。
+// 标高列表：标高只是高度参照（与 Revit 一致），不代表那里一定有楼板。
+// 阶段 1 只有一个体块、一个标高，排布仍只用第一个体块，结果与改之前相同。
+let massSeq = 0;
+const newMass = (x0, y0, w, d, base=0, top=ASSUMPTIONS.storeyHeight.value) => ({ id:`M${++massSeq}`, points:rectPoints(x0, y0, w, d), base, top });
+const state = {
+  masses: [ newMass(12, 5, ASSUMPTIONS.defaultMassing.w, ASSUMPTIONS.defaultMassing.d) ],
+  levels: [ { id:"L01", name:"Level 01", elevation:0 } ],
+  selectedMass: "M1",
+  bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
+  overrides: {},   // fnId -> { areaM2, date }
+  stages: {},      // roomId -> 指派的阶段（默认 tempered）
+  selected: null,
+  layout: null,
+};
+const middlePct = () => 100 - state.bands.south - state.bands.north;
+// 当前编辑的体块（阶段 1 只有一个）
+const activeMass = () => state.masses.find(m => m.id === state.selectedMass) || state.masses[0];
+const effectiveArea = fn => state.overrides[fn.id] ? state.overrides[fn.id].areaM2 : fn.areaM2;
+const areaStatusOf = fn => state.overrides[fn.id] ? `${STATUS.userSet}（${state.overrides[fn.id].date}）` : fn.areaStatus;
+
+/* =====================================================================
+   ④ 自动摆放（PLACEMENT_CRITERIA.md）
+   大件优先、就近最优；硬约束 → 带适配 > 渐变适配 > 形状 > 简洁；同样输入同样结果。
+   ===================================================================== */
+function bandRanges(bbox){
+  const s = bbox.y0 + bbox.d * state.bands.south / 100;
+  const m = s + bbox.d * middlePct() / 100;
+  return { south:[bbox.y0, s], middle:[s, m], north:[m, bbox.y1] };
+}
+const overlapLen = (a0,a1,b0,b1) => Math.max(0, Math.min(a1,b1) - Math.max(a0,b0));
+function overlaps(r, q){ return r.x0 < q.x1 - EPS && r.x1 > q.x0 + EPS && r.y0 < q.y1 - EPS && r.y1 > q.y0 + EPS; }
+function inside(r, b){ return r.x0 >= b.x0 - EPS && r.y0 >= b.y0 - EPS && r.x1 <= b.x1 + EPS && r.y1 <= b.y1 + EPS; }
+
+// 面积固定，长宽在允许范围内变化；一边取整米，另一边由面积算出。
+function candidateShapes(fn, area, bbox){
+  const out = new Map();
+  const maxDim = Math.ceil(Math.max(bbox.w, bbox.d));
+  const minSide = fn.minShortSide ? fn.minShortSide.value : 0;
+  const test = (w, h) => {
+    if (w <= 0 || h <= 0) return;
+    const ratio = Math.max(w,h) / Math.min(w,h);
+    if (ratio > fn.aspect.max + EPS || ratio < fn.aspect.min - EPS) return;
+    if (Math.min(w,h) < minSide - EPS) return;
+    if (w > bbox.w + EPS || h > bbox.d + EPS) return;
+    out.set(`${w.toFixed(4)}x${h.toFixed(4)}`, { w, h, ratio });
+  };
+  for (let n = 1; n <= maxDim; n++){ test(n, area/n); test(area/n, n); }
+  return [...out.values()].sort((a,b) => a.w - b.w || a.h - b.h);
+}
+// 一维候选位置：整米位置 + 与已放房间或外墙贴边的位置
+function candidateCoords(lo, hi, size, intervals){
+  const set = new Set();
+  const add = v => { if (v >= lo - EPS && v <= hi - size + EPS) set.add(+v.toFixed(4)); };
+  for (let v = Math.ceil(lo - EPS); v <= hi - size + EPS; v++) add(v);
+  add(hi - size);
+  for (const [a,b] of intervals){ add(b); add(a - size); }
+  return [...set].sort((a,b) => a-b);
+}
+function scoreRect(r, fn, bbox, placed){
+  const area = (r.x1-r.x0)*(r.y1-r.y0);
+  const br = bandRanges(bbox);
+  const frac = {};
+  for (const k of ["south","middle","north"]) frac[k] = overlapLen(r.y0, r.y1, br[k][0], br[k][1]) * (r.x1-r.x0) / area;
+  // 带适配：南带、北带偏好的房间要贴着对应立面才算完全适配（用户决定 2026-10-17）；没贴着时按空隙线性打折（假设）
+  let gap = 0, bandDepth = 0, facadeFactor = 1;
+  if (fn.bandPref === "south"){ gap = r.y0 - bbox.y0; bandDepth = br.south[1] - br.south[0]; }
+  if (fn.bandPref === "north"){ gap = bbox.y1 - r.y1; bandDepth = br.north[1] - br.north[0]; }
+  if (fn.bandPref !== "middle") facadeFactor = gap <= EPS ? 1 : (bandDepth > EPS ? clamp(1 - gap / bandDepth, 0, 1) : 0);
+  const bandFit = frac[fn.bandPref] * facadeFactor;
+  // 渐变适配：深度只量到南、北立面（用户决定 2026-10-17）
+  const cy = (r.y0+r.y1)/2;
+  const dist = Math.min(cy-bbox.y0, bbox.y1-cy);
+  const maxDepth = bbox.d/2;
+  const target = STAGE_INDEX[fn.minStage.winter]/4 * maxDepth;
+  const gradFit = maxDepth > 0 ? clamp(1 - Math.abs(dist-target)/maxDepth, 0, 1) : 1;
+  const w = r.x1-r.x0, h = r.y1-r.y0, ratio = Math.max(w,h)/Math.min(w,h);
+  const shapeOk = (ratio <= fn.aspect.max + EPS && ratio >= fn.aspect.min - EPS &&
+                   (!fn.minShortSide || Math.min(w,h) >= fn.minShortSide.value - EPS)) ? 1 : 0;
+  // 简洁：贴边数（假设的判法）
+  let flush = 0;
+  const touchX = (x, side) => Math.abs(x - (side==="w"?bbox.x0:bbox.x1)) < 1e-4 ||
+    placed.some(q => Math.abs((side==="w"?q.x1:q.x0) - x) < 1e-4 && overlapLen(r.y0,r.y1,q.y0,q.y1) > EPS);
+  const touchY = (y, side) => Math.abs(y - (side==="s"?bbox.y0:bbox.y1)) < 1e-4 ||
+    placed.some(q => Math.abs((side==="s"?q.y1:q.y0) - y) < 1e-4 && overlapLen(r.x0,r.x1,q.x0,q.x1) > EPS);
+  if (touchX(r.x0,"w")) flush++; if (touchX(r.x1,"e")) flush++;
+  if (touchY(r.y0,"s")) flush++; if (touchY(r.y1,"n")) flush++;
+  return { bandFit, frac, gap, bandDepth, facadeFactor, gradFit, dist, target, maxDepth, shapeOk, ratio, flush };
+}
+function better(a, b, ra, rb){
+  const keys = ["bandFit","gradFit","shapeOk","flush"];
+  for (const k of keys){ if (a[k] > b[k] + EPS) return true; if (a[k] < b[k] - EPS) return false; }
+  if (ra.x0 !== rb.x0) return ra.x0 < rb.x0;
+  if (ra.y0 !== rb.y0) return ra.y0 < rb.y0;
+  return (ra.x1-ra.x0) < (rb.x1-rb.x0);
+}
+function searchBest(fn, area, bbox, placed){
+  const shapes = candidateShapes(fn, area, bbox);
+  let best = null;
+  const xi = placed.map(q=>[q.x0,q.x1]), yi = placed.map(q=>[q.y0,q.y1]);
+  for (const sh of shapes){
+    const xs = candidateCoords(bbox.x0, bbox.x1, sh.w, xi);
+    const ys = fn.entry ? [bbox.y0] : candidateCoords(bbox.y0, bbox.y1, sh.h, yi);   // 门厅贴南立面
+    for (const y of ys) for (const x of xs){
+      const r = { x0:x, y0:y, x1:x+sh.w, y1:y+sh.h };
+      if (!inside(r, bbox)) continue;
+      if (placed.some(q => overlaps(r, q))) continue;
+      const sc = scoreRect(r, fn, bbox, placed);
+      if (!best || better(sc, best.score, r, best.rect)) best = { rect:r, score:sc, shape:sh };
+    }
+  }
+  return best;
+}
+// 放置顺序：门厅 → 体育馆 → 健身 → 其余必有功能按面积从大到小 → 其余非必有功能按面积从大到小 → 咖啡
+function placementOrder(){
+  const byId = Object.fromEntries(FUNCTIONS.map(f=>[f.id,f]));
+  const items = [];
+  const push = fn => { for (let i=1;i<=fn.count;i++) items.push({ fn, inst:i, id: fn.count>1 ? `${fn.id}_${i}` : fn.id,
+                                                                  label: fn.count>1 ? `${fn.name} ${i}` : fn.name }); };
+  const bySize = (a,b) => effectiveArea(b) - effectiveArea(a) || FUNCTIONS.indexOf(a) - FUNCTIONS.indexOf(b);
+  const fixed = ["lobby","gym","fitness","cafe"];
+  push(byId.lobby); push(byId.gym); push(byId.fitness);
+  FUNCTIONS.filter(f => f.drawn && f.required && !fixed.includes(f.id)).sort(bySize).forEach(push);
+  FUNCTIONS.filter(f => f.drawn && !f.required && !fixed.includes(f.id)).sort(bySize).forEach(push);
+  push(byId.cafe);
+  return items;
+}
+function generateLayout(){
+  const bbox = bboxOf(activeMass().points);
+  const rooms = [], unplaced = [];
+  const items = placementOrder();
+  let order = 0;
+  // 总面积本来就不够时，被挤出去的功能一律标“面积不够”，细节里再说总面积的缺口和这个功能自己的问题（用户 2026-10-18 决定）
+  const netAll = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
+  const shortTotal = netAll > bbox.area + EPS;
+  const addUnplaced = (base, reason, detail, detailShort) => {
+    if (shortTotal){
+      const own = reason === "U1" ? detail : `这个功能自己的问题：${detailShort || detail}`;
+      unplaced.push({ ...base, reason:"U1", detail:`总面积不够：体块 ${fmt(bbox.area)} m²，所有功能净面积合计 ${fmt(netAll)} m²，缺 ${fmt(netAll-bbox.area)} m²。` + own });
+    } else unplaced.push({ ...base, reason, detail });
+  };
+  for (const it of items){
+    order++;
+    const fn = it.fn, area = effectiveArea(fn);
+    const used = rooms.reduce((s,r)=>s+r.area,0);
+    const free = bbox.area - used;
+    const base = { id:it.id, fnId:fn.id, label:it.label, fn, area, order };
+    if (area > free + EPS){
+      addUnplaced(base, "U1", `整个体块剩余 ${fmt(free)} m²，这个功能需要 ${fmt(area)} m²，缺 ${fmt(area-free)} m²`);
+      continue;
+    }
+    // 超过最大单间面积的功能必须拆分（用户 2026-10-18 决定：设最大单间面积，超过就拆）
+    const maxU = (fn.splittable && fn.maxUnitAreaM2) ? fn.maxUnitAreaM2.value : null;
+    const kMin = maxU ? Math.max(1, Math.ceil(area / maxU - EPS)) : 1;
+    const forced = kMin > 1;
+    if (!forced){
+      const shapes = candidateShapes(fn, area, bbox);
+      if (shapes.length === 0){
+        let which;
+        if (fn.minShortSide && Math.min(bbox.w,bbox.d) < fn.minShortSide.value)
+          which = `无柱矩形短边至少约 ${fn.minShortSide.value} m（${fn.minShortSide.status}），体块最短边只有 ${fmt(Math.min(bbox.w,bbox.d))} m`;
+        else
+          which = `按允许的长宽比 1:${fn.aspect.min}–1:${fn.aspect.max}（${fn.aspect.status}），没有一种形状能放进 ${bbox.w} × ${bbox.d} m 的体块`;
+        addUnplaced(base, "U2", `面积够，但形状约束不满足：${which}`, `形状约束也不满足：${which}`);
+        continue;
+      }
+      const best = searchBest(fn, area, bbox, rooms);
+      if (best){
+        rooms.push({ ...base, ...best.rect, area, score:best.score, shape:best.shape, split:null });
+        continue;
+      }
+    }
+    // 拆成更小的房间：超过最大单间面积时必须拆；放不下整间时也试着拆（PLACEMENT_CRITERIA.md 第 4 节）
+    let done = false;
+    if (fn.splittable && fn.minUnitAreaM2){
+      for (let k=Math.max(2,kMin); area/k >= fn.minUnitAreaM2.value - EPS; k++){
+        const parts = [];
+        let ok = true;
+        for (let p=1;p<=k;p++){
+          const b = searchBest(fn, area/k, bbox, rooms.concat(parts));
+          if (!b){ ok=false; break; }
+          parts.push({ ...base, id:`${it.id}_p${p}`, label:`${it.label}（${p}/${k}）`, ...b.rect, area:area/k, score:b.score, shape:b.shape,
+                       split:{part:p, of:k, why: forced ? "max" : "fit"} });
+        }
+        if (ok){ rooms.push(...parts); done = true; break; }
+      }
+    }
+    if (!done){
+      const tail = (fn.splittable ? `${forced ? `；它超过最大单间面积 ${maxU} m²（${fn.maxUnitAreaM2.status}），必须拆成至少 ${kMin} 间` : ""}；拆分到最小单间 ${fn.minUnitAreaM2.value} m²（${fn.minUnitAreaM2.status}）也放不下` : "；这个功能不可拆分");
+      addUnplaced(base, "U3",
+        `总面积够（剩余 ${fmt(free)} m²），但没有一块连续的空地能放下 ${fmt(area)} m² 的房间` + tail,
+        `剩余 ${fmt(free)} m² 的空地被切碎，没有一块连续的空地能放下 ${fmt(area)} m² 的房间` + tail);
+    }
+  }
+  const net = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
+  const groupGross = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count*groupFactorOf(f),0);
+  state.layout = { bbox, rooms, unplaced, net, groupGross, gross: groupGross * ASSUMPTIONS.buildingFactor.value };
+}
+
+/* =====================================================================
+   ⑤ 界面：平面
+   ===================================================================== */
+const svg = document.getElementById("plan");
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs={}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text!=null) e.textContent = text; return e; };
+
+function renderPlan(){
+  const L = state.layout, b = L.bbox;
+  svg.innerHTML = "";
+  // 场地网格
+  const g = el("g");
+  for (let x=0;x<=SITE.w;x++) g.appendChild(el("line",{x1:toSX(x),y1:toSY(0),x2:toSX(x),y2:toSY(SITE.d),stroke:x%10?"#f0ede6":"#ddd8cc","stroke-width":x%10?0.5:1}));
+  for (let y=0;y<=SITE.d;y++) g.appendChild(el("line",{x1:toSX(0),y1:toSY(y),x2:toSX(SITE.w),y2:toSY(y),stroke:y%10?"#f0ede6":"#ddd8cc","stroke-width":y%10?0.5:1}));
+  svg.appendChild(g);
+  svg.appendChild(el("rect",{x:0,y:0,width:SITE.w*PX,height:SITE.d*PX,fill:"none",stroke:"#bbb","stroke-dasharray":"4 4"}));
+  svg.appendChild(el("text",{x:0,y:-8,"font-size":11,fill:"#888"},`场地 ${SITE.w} × ${SITE.d} m`));
+  svg.appendChild(el("text",{x:SITE.w*PX-30,y:-8,"font-size":12,fill:"#333","font-weight":"600"},"北 ↑"));
+
+  // 三带（淡色背景）
+  const br = bandRanges(b);
+  const bandFill = { south:"var(--band-south)", middle:"var(--band-middle)", north:"var(--band-north)" };
+  for (const k of ["south","middle","north"]){
+    const [y0,y1] = br[k];
+    svg.appendChild(el("rect",{x:toSX(b.x0),y:toSY(y1),width:b.w*PX,height:(y1-y0)*PX,fill:bandFill[k]}));
+    const pct = k==="south"?state.bands.south:k==="north"?state.bands.north:middlePct();
+    if (y1-y0 > 0.01) svg.appendChild(el("text",{x:toSX(b.x1)+6,y:toSY((y0+y1)/2)+4,"font-size":10,fill:"#777"},`${BANDS[k].zh.slice(0,2)} ${pct}% · ${fmt(y1-y0,1)} m`));
+  }
+  // 可拖动的体块内部（在房间下面）
+  const inner = el("rect",{x:toSX(b.x0),y:toSY(b.y1),width:b.w*PX,height:b.d*PX,fill:"transparent",style:"cursor:move"});
+  inner.dataset.handle = "move"; svg.appendChild(inner);
+
+  // 房间
+  for (const r of L.rooms){
+    const grp = el("g",{class:"room"+(state.selected===r.id?" selected":"")});
+    grp.dataset.room = r.id; grp.dataset.handle = "move";
+    const w = (r.x1-r.x0)*PX, h = (r.y1-r.y0)*PX;
+    grp.appendChild(el("rect",{x:toSX(r.x0),y:toSY(r.y1),width:w,height:h,fill:STAGE_COLORS[r.fn.minStage.winter],stroke:"#4a4a4a","stroke-width":1.2}));
+    const cx = toSX((r.x0+r.x1)/2), cy = toSY((r.y0+r.y1)/2);
+    const small = w < 70 || h < 30;
+    grp.appendChild(el("text",{x:cx,y:cy-(small?0:4),"text-anchor":"middle","font-size":small?9:11,"font-weight":"600",fill:"#222"},r.label));
+    if (!small) grp.appendChild(el("text",{x:cx,y:cy+10,"text-anchor":"middle","font-size":9,fill:"#333"},`${fmt(r.area)} m² · 带 ${fmt(r.score.bandFit*100)}%`));
+    svg.appendChild(grp);
+  }
+  // 体块轮廓与把手
+  svg.appendChild(el("polygon",{points:activeMass().points.map(p=>`${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"none",stroke:"#1f2a2e","stroke-width":2.5,"pointer-events":"none"}));
+  svg.appendChild(el("text",{x:toSX(b.x0),y:toSY(b.y1)-6,"font-size":11,fill:"#1f2a2e"},`体块 ${b.w} × ${b.d} m · ${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft²`));
+  svg.appendChild(el("text",{x:toSX((b.x0+b.x1)/2),y:toSY(b.y0)+14,"text-anchor":"middle","font-size":10,fill:"#8a5a00"},"南立面 · 入口（默认）"));
+  const X0=toSX(b.x0),X1=toSX(b.x1),Y0=toSY(b.y1),Y1=toSY(b.y0);  // 屏幕坐标：Y0 上（北），Y1 下（南）
+  const edge = (h,cls,a)=>{const e=el("line",{...a,class:"edge "+cls});e.dataset.handle=h;svg.appendChild(e);};
+  edge("n","ns",{x1:X0,y1:Y0,x2:X1,y2:Y0}); edge("s","ns",{x1:X0,y1:Y1,x2:X1,y2:Y1});
+  edge("w","ew",{x1:X0,y1:Y0,x2:X0,y2:Y1}); edge("e","ew",{x1:X1,y1:Y0,x2:X1,y2:Y1});
+  const corner=(h,cls,x,y)=>{const c=el("rect",{x:x-5,y:y-5,width:10,height:10,class:"handle corner "+cls});c.dataset.handle=h;svg.appendChild(c);};
+  corner("nw","alt",X0,Y0); corner("ne","",X1,Y0); corner("sw","",X0,Y1); corner("se","alt",X1,Y1);
+}
+
+// 拖动：边、角改大小，内部移动；吸附 1 m；不出场地
+let drag = null;
+function pointerToModel(ev){
+  const pt = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse());
+  return { x: pt.x / PX, y: SITE.d - pt.y / PX };
+}
+svg.addEventListener("pointerdown", ev => {
+  const t = ev.target.closest("[data-handle]"); if (!t) return;
+  const b = bboxOf(activeMass().points);
+  drag = { handle:t.dataset.handle, room:t.closest("[data-room]")?.dataset.room || null, start:pointerToModel(ev), b0:{...b}, moved:false };
+  svg.setPointerCapture(ev.pointerId); ev.preventDefault();
+});
+svg.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  const p = pointerToModel(ev);
+  const dx = snap(p.x - drag.start.x), dy = snap(p.y - drag.start.y);
+  if (dx===0 && dy===0 && !drag.moved) return;
+  drag.moved = drag.moved || dx!==0 || dy!==0;
+  const b = drag.b0; let x0=b.x0, x1=b.x1, y0=b.y0, y1=b.y1;
+  const h = drag.handle;
+  if (h==="move"){
+    const w=b.w, d=b.d;
+    x0 = clamp(b.x0+dx, 0, SITE.w-w); y0 = clamp(b.y0+dy, 0, SITE.d-d); x1=x0+w; y1=y0+d;
+  } else {
+    if (h.includes("e")) x1 = clamp(b.x1+dx, b.x0+1, SITE.w);
+    if (h.includes("w")) x0 = clamp(b.x0+dx, 0, b.x1-1);
+    if (h.includes("n")) y1 = clamp(b.y1+dy, b.y0+1, SITE.d);
+    if (h.includes("s")) y0 = clamp(b.y0+dy, 0, b.y1-1);
+  }
+  const cur = bboxOf(activeMass().points);
+  if (cur.x0!==x0||cur.x1!==x1||cur.y0!==y0||cur.y1!==y1){
+    activeMass().points = rectPoints(x0,y0,x1-x0,y1-y0);
+    regenerate();
+  }
+});
+const endDrag = ev => {
+  if (!drag) return;
+  if (!drag.moved && drag.room){ state.selected = drag.room; renderPlan(); renderSidebar(); }
+  drag = null;
+};
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+
+/* =====================================================================
+   ⑥ 界面：左栏（功能清单、面积检查、未生成）
+   ===================================================================== */
+function statusBadge(s){
+  const cls = s.startsWith(STATUS.verified)?"verified":s.startsWith(STATUS.toCheck)?"tocheck":s.startsWith(STATUS.userSet)?"userset":"assumed";
+  return `<span class="badge ${cls}">${s}</span>`;
+}
+function renderLeft(){
+  const L = state.layout, b = L.bbox;
+  // 面积检查
+  let html = `<div class="kv" style="margin-bottom:6px">
+    <div>体块面积</div><div>${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft²</div>
+    <div>功能净面积合计</div><div>${fmt(L.net)} m² · ${fmt(ft2(L.net))} ft²</div>
+    <div>× 组团系数（1.1–1.3）</div><div>${fmt(L.groupGross)} m² · ${fmt(ft2(L.groupGross))} ft²</div>
+    <div>× 建筑系数 ${ASSUMPTIONS.buildingFactor.value} = 总建筑面积</div><div>${fmt(L.gross)} m² · ${fmt(ft2(L.gross))} ft² ${statusBadge(ASSUMPTIONS.buildingFactor.status)}</div>
+  </div>
+  <p class="hint">系数来自 Marpole 2021。工具目前只有一层。</p>`;
+  if (L.net > b.area + EPS) html += `<div class="banner bad">面积不够：功能净面积合计比体块多 ${fmt(L.net-b.area)} m²（${fmt(ft2(L.net-b.area))} ft²）。体块不会自动加大，请调整体块或面积。工具目前只有一层；Marpole 本身是两层加屋顶托儿。</div>`;
+  else if (L.gross > b.area + EPS) html += `<div class="banner warn">净面积放得下，但按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-b.area)} m²，走廊会偏紧。第一版不检查走廊的宽度和连通。</div>`;
+  else html += `<div class="banner ok">面积够：净面积和按 Marpole 系数放大后的总建筑面积都在体块以内。</div>`;
+  document.getElementById("area-summary").innerHTML = html;
+
+  // 功能卡
+  const placedIds = new Set(L.rooms.map(r=>r.fnId));
+  const unplacedIds = new Set(L.unplaced.map(u=>u.fnId));
+  document.getElementById("function-list").innerHTML = FUNCTIONS.map(fn => {
+    if (!fn.drawn) return `<div class="card"><div class="title"><span class="name">${fn.name}</span><span class="meta">不单列</span></div>
+      <div class="meta">${fn.category} · 房间之间的空隙 · ${fn.areaSource} ${statusBadge(fn.areaStatus)}</div>
+      <div class="meta">冬 / 夏最低阶段：${fn.minStage.winter} / ${fn.minStage.summer}</div></div>`;
+    const a = effectiveArea(fn);
+    const st = unplacedIds.has(fn.id) ? (placedIds.has(fn.id) ? "部分未生成" : "未生成") : "已放入";
+    const col = STAGE_COLORS[fn.minStage.winter];
+    return `<div class="card ${unplacedIds.has(fn.id)?"unplaced":""}">
+      <div class="title"><span class="name"><span class="swatch" style="background:${col}"></span>${fn.name}${fn.count>1?` × ${fn.count}`:""}</span><span class="meta">${st}</span></div>
+      <div class="meta">${fn.category}${fn.required?" · 必有":""} · 冬 <b>${fn.minStage.winter}</b> / 夏 ${fn.minStage.summer}</div>
+      <div>${fmt(a)} m² · ${fmt(ft2(a))} ft²${fn.count>1?"（每间）":""} ${statusBadge(areaStatusOf(fn))}</div>
+      <div class="meta">${GROUPS[fn.group] ? `${GROUPS[fn.group].zh} · 组团系数 ${groupFactorOf(fn)}` : ""}${fn.support && fn.support.length ? ` · 含配套 ${fmt(m2of(sumFt(fn.support)),1)} m²` : ""}${fn.refRange ? ` · 参考 ${fn.refRange}` : ""}</div>
+      <div class="override"><input type="number" min="1" step="1" placeholder="新面积 m²" data-ov="${fn.id}"><button data-ovbtn="${fn.id}">覆盖面积</button>${state.overrides[fn.id]?`<button class="link" data-ovreset="${fn.id}">恢复库值</button>`:""}</div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll("[data-ovbtn]").forEach(btn => btn.onclick = () => {
+    const id = btn.dataset.ovbtn, inp = document.querySelector(`[data-ov="${id}"]`), v = parseFloat(inp.value);
+    if (!(v > 0)) { inp.focus(); return; }
+    state.overrides[id] = { areaM2: v, date: new Date().toISOString().slice(0,10) };
+    regenerate();
+  });
+  document.querySelectorAll("[data-ovreset]").forEach(btn => btn.onclick = () => { delete state.overrides[btn.dataset.ovreset]; regenerate(); });
+
+  // 未生成
+  document.getElementById("unplaced").innerHTML = L.unplaced.length ? L.unplaced.map(u =>
+    `<div class="card unplaced"><div class="title"><span class="name">${u.label}</span><span class="badge tocheck">${UNPLACED_REASONS[u.reason]}</span></div>
+     <div class="meta">${fmt(u.area)} m² · 放置顺序第 ${u.order} 位</div><div>${u.detail}</div></div>`).join("")
+    : `<p class="hint">所有功能都已放入。</p>`;
+}
+
+/* =====================================================================
+   ⑦ 界面：右栏（点击房间的说明，模板生成，不接 AI）
+   ===================================================================== */
+const stageRank = id => STAGE_INDEX[id];
+function stageCheck(assigned, min){
+  if (stageRank(assigned) === stageRank(min)) return { cls:"ok", text:"满足（刚好够）" };
+  if (stageRank(assigned) < stageRank(min)) return { cls:"bad", text:"不满足" };
+  return { cls:"over", text:"过度调节" };
+}
+function renderSidebar(){
+  const box = document.getElementById("sidebar");
+  const r = state.layout.rooms.find(x => x.id === state.selected);
+  if (!r){ box.innerHTML = `<p class="hint">点击平面上的任意房间，这里会解释它为什么放在这里。</p>`; return; }
+  const fn = r.fn, sc = r.score, b = state.layout.bbox;
+  const assigned = state.stages[r.id] || ASSUMPTIONS.defaultStage.value;
+  const w = r.x1-r.x0, h = r.y1-r.y0;
+  const chk = stageCheck(assigned, fn.minStage.winter);
+  const chkS = stageCheck(assigned, fn.minStage.summer);
+  const depthWord = sc.dist < sc.target - 0.5 ? "偏靠外" : sc.dist > sc.target + 0.5 ? "偏靠内" : "接近目标深度";
+  const pref = BANDS[fn.bandPref];
+
+  // 没有满足的地方和建议
+  const issues = [];
+  if (chk.cls === "bad"){
+    // 优先列“冬季最低阶段刚好等于指派阶段”的功能；需求更低的功能放在这里会过度调节，只作补充（用户 2026-10-18 同意）
+    const exact = FUNCTIONS.filter(f => f.drawn && stageRank(f.minStage.winter) === stageRank(assigned)).map(f=>f.name);
+    const lower = FUNCTIONS.filter(f => f.drawn && stageRank(f.minStage.winter) < stageRank(assigned)).map(f=>f.name);
+    issues.push(`<b>阶段不满足：</b>这个房间现在是 <b>${assigned}</b>，${fn.name} 冬季至少要 <b>${fn.minStage.winter}</b>。`);
+    let swap;
+    if (exact.length) swap = `在 ${assigned} 下冬季刚好满足的功能有：${exact.join("、")}。可以把这里换成其中之一，或把 ${fn.name} 挪到一个设为 ${fn.minStage.winter} 的区域。` +
+      (lower.length ? `（需求更低的 ${lower.join("、")} 也能放，但放在 ${assigned} 会过度调节。）` : "");
+    else if (lower.length) swap = `没有功能刚好需要 ${assigned}。需求更低的 ${lower.join("、")} 可以放，但放在 ${assigned} 会过度调节；或把 ${fn.name} 挪到一个设为 ${fn.minStage.winter} 的区域。`;
+    else swap = `没有任何功能能在 ${assigned} 下满足冬季最低要求。请先提高这个房间的阶段，或把 ${fn.name} 挪到一个设为 ${fn.minStage.winter} 的区域。`;
+    issues.push(`<b>功能调整（先做）：</b>${swap}`);
+    issues.push(`<b>附加策略（之后）：</b>把这个房间的阶段提高到 ${fn.minStage.winter}（可在上面的下拉里试）。具体的防护手段工具库尚未收集。`);
+  } else if (chk.cls === "over"){
+    issues.push(`<b>过度调节：</b>指派的 ${assigned} 高于冬季最低的 ${fn.minStage.winter}。工具的目标是“刚好够”，可以考虑降到 ${fn.minStage.winter}。`);
+  }
+  if (sc.bandFit < 1 - EPS){
+    const why = sc.frac[fn.bandPref] < 1 - EPS ? `有 ${fmt((1-sc.frac[fn.bandPref])*100)}% 的面积落在${pref.zh.slice(0,2)}之外` : "";
+    const why2 = sc.gap > EPS ? `离${fn.bandPref==="south"?"南":"北"}立面空 ${fmt(sc.gap,1)} m，没贴着立面` : "";
+    issues.push(`<b>带适配 ${fmt(sc.bandFit*100)}%：</b>${[why,why2].filter(Boolean).join("；")}。要提高它，可以调整${pref.zh.slice(0,2)}的深度滑块，或改体块的长宽比；房间形状只能在长宽比 1:${fn.aspect.min}–1:${fn.aspect.max} 内变化。`);
+  }
+  if (fn.entry && Math.abs(r.y0 - b.y0) > EPS) issues.push(`<b>入口：</b>门厅没有贴在南立面。`);
+  if (!issues.length) issues.push("没有发现不满足的地方。");
+
+  box.innerHTML = `
+    <div class="sec"><h3>${r.label}</h3>
+      <div class="kv">
+        <div>类别</div><div>${fn.category}${fn.required?"（必有）":"（非必有）"}</div>
+        <div>活动强度</div><div>${fn.intensity}</div>
+        <div>面积</div><div>${fmt(r.area)} m² · ${fmt(ft2(r.area))} ft² ${statusBadge(areaStatusOf(fn))}</div>
+        <div>面积来源</div><div>${fn.areaSource}${fn.refRange?`；参考范围 ${fn.refRange}`:""}${fn.areaNote?`<div class="hint">${fn.areaNote}</div>`:""}</div>
+        ${fn.main?`<div>包含</div><div>${fn.main.map(x=>`${x.name} ${fmt(x.ft2)} ft²`).join("；")}</div>`:""}
+        ${fn.support&&fn.support.length?`<div>并入的配套</div><div>${fn.support.map(x=>`${x.name} ${fmt(x.ft2)} ft²`).join("；")}<div class="hint">配套房间不单独画，面积算在这个房间里（用户 2026-10-18 决定）</div></div>`:""}
+        <div>空间需求</div><div>最小净高 ${fn.minClearHeight ? `${fn.minClearHeight.value} m ${statusBadge(fn.minClearHeight.status)}` : "原文未写"}；楼层 ${fn.floorReq ? `${fn.floorReq.zh} ${statusBadge(fn.floorReq.status)}` : "原文未写"}<div class="hint">目前只记录，阶段 4 起参与判断</div></div>
+        <div>组团</div><div>${GROUPS[fn.group] ? `${GROUPS[fn.group].zh}，组团系数 ${groupFactorOf(fn)} ${statusBadge(fn.groupStatus || STATUS.verified)}${fn.groupNote?`（${fn.groupNote}）`:""}` : "—"}</div>
+        ${r.split?`<div>拆分</div><div>第 ${r.split.part} 间，共 ${r.split.of} 间（${r.split.why==="max"?`超过最大单间面积 ${fn.maxUnitAreaM2.value} m² ${statusBadge(fn.maxUnitAreaM2.status)}，所以拆；每间 ${fmt(r.area)} m²`:"放不下整间，所以拆"}）</div>`:""}
+        <div>放置顺序</div><div>第 ${r.order} 位</div>
+      </div></div>
+
+    <div class="sec"><h3>为什么放在这里</h3>
+      <p class="hint">评判顺序：${ASSUMPTIONS.judgeOrder.join(" > ")}（不设数值权重）</p>
+      <ul>
+        <li><b>带适配：</b>偏好 ${pref.zh} ${statusBadge(fn.bandPrefStatus)}${fn.bandPrefNote?`（${fn.bandPrefNote}）`:""}，<b>${fmt(sc.bandFit*100)}%</b>。带内面积比例：南 ${fmt(sc.frac.south*100)}% · 中 ${fmt(sc.frac.middle*100)}% · 北 ${fmt(sc.frac.north*100)}%。${fn.bandPref!=="middle" ? (sc.gap<=EPS ? `贴着${fn.bandPref==="south"?"南":"北"}立面，算完全适配。` : `离${fn.bandPref==="south"?"南":"北"}立面空 ${fmt(sc.gap,1)} m，按空隙打折（系数 ${fmt(sc.facadeFactor,2)}）。`) + ` ${statusBadge(ASSUMPTIONS.facadeContact.status)}` : "服务空间没有对应的立面，不打折。"}</li>
+        <li><b>渐变位置：</b>冬季最低阶段 <b>${fn.minStage.winter}</b>，房间中心离较近的南/北立面 ${fmt(sc.dist,1)} m，目标约 ${fmt(sc.target,1)} m（最大 ${fmt(sc.maxDepth,1)} m），${depthWord}；渐变适配 ${fmt(sc.gradFit*100)}%。${statusBadge(ASSUMPTIONS.gradientMapping.status)} ${ASSUMPTIONS.gradientMapping.note}；${ASSUMPTIONS.depthToFacades.note} ${statusBadge(ASSUMPTIONS.depthToFacades.status)}</li>
+        <li><b>形状：</b>${fmt(w,1)} × ${fmt(h,1)} m，长宽比 1:${fmt(sc.ratio,2)}，允许 1:${fn.aspect.min}–1:${fn.aspect.max} ${statusBadge(fn.aspect.status)}，${sc.shapeOk?"在范围内":"超出范围"}。${fn.minShortSide?`短边至少 ${fn.minShortSide.value} m ${statusBadge(fn.minShortSide.status)}：${Math.min(w,h)>=fn.minShortSide.value-EPS?"满足":"不满足"}；无柱矩形、不可拆分。`:""}</li>
+        <li><b>入口：</b>${fn.entry ? (Math.abs(r.y0-b.y0)<EPS ? "紧贴南立面（默认入口），满足硬约束。" : "没有贴在南立面。") : "不适用（只有门厅要求贴入口）。"}</li>
+        <li><b>简洁：</b>贴边 ${sc.flush} 条（与外墙或已放房间的边对齐）。${statusBadge(ASSUMPTIONS.simplicityRule.status)}</li>
+      </ul></div>
+
+    <div class="sec"><h3>触发的规则</h3>
+      <ul>${fn.rules.map(k=>`<li><b>${k}</b> ${RULES[k].text} ${statusBadge(RULES[k].status)}<div class="hint">${RULES[k].basis}</div></li>`).join("")}</ul>
+      <div class="kv"><div>冬季最低阶段</div><div><b>${fn.minStage.winter}</b></div><div>夏季最低阶段</div><div>${fn.minStage.summer}</div>${fn.stageNote?`<div>备注</div><div>${fn.stageNote}</div>`:""}</div>
+      <p class="hint">最低阶段 = 触发的规则所要求的阶段中最高的那个；“刚好够”= 最低阶段。</p></div>
+
+    <div class="sec"><h3>阶段检查</h3>
+      <label>给这个房间指派阶段：
+        <select id="stage-select">${STAGES.map(s=>`<option value="${s.id}" ${s.id===assigned?"selected":""}>${s.id} — ${s.zh}</option>`).join("")}</select>
+      </label>
+      <p class="hint">新区域默认 ${ASSUMPTIONS.defaultStage.value} ${statusBadge(ASSUMPTIONS.defaultStage.status)}</p>
+      <div class="check ${chk.cls}">冬季：${chk.text}（指派 ${assigned}，最低 ${fn.minStage.winter}）</div>
+      <div class="check ${chkS.cls}" style="opacity:.8">夏季（参考）：${chkS.text}（最低 ${fn.minStage.summer}）</div></div>
+
+    <div class="sec"><h3>没有满足的地方和建议</h3>
+      <ul>${issues.map(i=>`<li>${i}</li>`).join("")}</ul></div>
+  `;
+  document.getElementById("stage-select").onchange = e => { state.stages[r.id] = e.target.value; renderSidebar(); };
+}
+
+/* =====================================================================
+   ⑧ 控件联动与启动
+   ===================================================================== */
+function syncControls(){
+  const b = state.layout.bbox;
+  document.getElementById("in-w").value = b.w;
+  document.getElementById("in-d").value = b.d;
+  document.getElementById("massing-readout").textContent = `${fmt(b.area)} m² · ${fmt(ft2(b.area))} ft² · 单层 · 吸附 ${ASSUMPTIONS.snapM.value} m`;
+  document.getElementById("sl-south").value = state.bands.south;
+  document.getElementById("sl-north").value = state.bands.north;
+  document.getElementById("rd-south").textContent = `${state.bands.south}% · ${fmt(b.d*state.bands.south/100,1)} m`;
+  document.getElementById("rd-middle").textContent = `${middlePct()}% · ${fmt(b.d*middlePct()/100,1)} m`;
+  document.getElementById("rd-north").textContent = `${state.bands.north}% · ${fmt(b.d*state.bands.north/100,1)} m`;
+}
+function regenerate(){
+  generateLayout();
+  if (state.selected && !state.layout.rooms.some(r=>r.id===state.selected)) state.selected = null;
+  syncControls(); renderPlan(); renderLeft(); renderSidebar();
+}
+document.getElementById("in-w").onchange = e => {
+  const raw = parseFloat(e.target.value); if (!isFinite(raw)) { syncControls(); return; }   // 非数字：保持原值
+  const b = bboxOf(activeMass().points); const w = clamp(snap(raw), 1, SITE.w);
+  const x0 = clamp(b.x0, 0, SITE.w - w); activeMass().points = rectPoints(x0, b.y0, w, b.d); regenerate();
+};
+document.getElementById("in-d").onchange = e => {
+  const raw = parseFloat(e.target.value); if (!isFinite(raw)) { syncControls(); return; }   // 非数字：保持原值
+  const b = bboxOf(activeMass().points); const d = clamp(snap(raw), 1, SITE.d);
+  const y0 = clamp(b.y0, 0, SITE.d - d); activeMass().points = rectPoints(b.x0, y0, b.w, d); regenerate();
+};
+document.getElementById("sl-south").oninput = e => {
+  state.bands.south = +e.target.value; if (state.bands.south + state.bands.north > 100) state.bands.north = 100 - state.bands.south; regenerate();
+};
+document.getElementById("sl-north").oninput = e => {
+  state.bands.north = +e.target.value; if (state.bands.south + state.bands.north > 100) state.bands.south = 100 - state.bands.north; regenerate();
+};
+regenerate();
+</script>
+</body>
+</html>
