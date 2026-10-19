@@ -286,8 +286,8 @@
 
 <!-- 三维视图：第 4 步和第 5 步共用，切换步骤时移到对应位置 -->
 <div id="v3wrap">
-  <div id="view3d"><div id="view3d-msg" class="hint">三维视图加载中（需要联网加载 three.js）……</div><div id="view3d-tip" class="v3tip"></div><button id="v3-add" class="v3add">＋ 添加体块</button><div class="v3right"><button id="v3-white" title="只看体块的白模，不显示功能区和标高">白模</button><button id="v3-exit" style="display:none">退出单独编辑（Esc）</button></div><div id="v3-bar" class="v3bar"></div></div>
-  <p class="hint">三维视图：左键拖动旋转，右键拖动平移，滚轮缩放。<b>单独编辑：</b>双击一个体块：它变得更实，其他体块和功能变淡（仍可看到周边关系，但不能点选，不会挡住选面）；双击空白处或按 Esc 退出。<b>白模：</b>右上角按钮切换，只看体块。<b>推拉：</b>点击体块的一个面选中它（变橙色），拖橙色箭头沿这个面的法线推拉；立面吸附 1 m，顶面和底面吸附 0.1 m。拖动时只更新体块和数字，松开后再重新识别空间、排布功能（用户决定）。点空白处取消选面。蓝色箭头指北；橙色框是平面所看的标高。功能区随体块实时排布；要只看体块，点“白模”。</p>
+  <div id="view3d"><div id="view3d-msg" class="hint">三维视图加载中（需要联网加载 three.js）……</div><div id="view3d-tip" class="v3tip"></div><button id="v3-add" class="v3add">＋ 添加体块</button><div class="v3right"><button id="v3-ctx" title="显示 / 隐藏场地周围的建筑（2009 年数据）" style="display:none">周边建筑</button><button id="v3-white" title="只看体块的白模，不显示功能区和标高">白模</button><button id="v3-exit" style="display:none">退出单独编辑（Esc）</button></div><div id="v3-bar" class="v3bar"></div></div>
+  <p class="hint">三维视图：左键拖动旋转，右键拖动平移，滚轮缩放。<b>单独编辑：</b>双击一个体块：它变得更实，其他体块和功能变淡（仍可看到周边关系，但不能点选，不会挡住选面）；双击空白处或按 Esc 退出。<b>白模：</b>右上角按钮切换，只看体块。<b>周边建筑：</b>选了真实场地后，右上角可以显示 / 隐藏场地周围约 200 m 的建筑（2009 年数据，按平地处理，浅橙色为场地内现有建筑）。<b>推拉：</b>点击体块的一个面选中它（变橙色），拖橙色箭头沿这个面的法线推拉；立面吸附 1 m，顶面和底面吸附 0.1 m。拖动时只更新体块和数字，松开后再重新识别空间、排布功能（用户决定）。点空白处取消选面。蓝色箭头指北；橙色框是平面所看的标高。功能区随体块实时排布；要只看体块，点“白模”。</p>
 </div>
 
 <script>
@@ -659,6 +659,8 @@ const state = {
   site: { area:null, view:"city", pick:null, applied:null }, // 2026-10-18：第 3 步选的社区、选中的公园 / 地块、已用作场地的那块
   sitePolys: null,    // 已用作场地的边界（场地坐标，米）；null = 90 × 52 m 示意场地
   siteMask: null,     // 场地内的格子（1 = 场地内）
+  context: null,      // 2026-10-18：场地周围约 200 m 的周边建筑 { status, items:[{ polys, h, inSite }], error, key }
+  showContext: true,  // 三维和平面里显示周边建筑
   section: { dir:"ew", pos:null },   // 剖面：方向和位置（null = 切过选中体块的中线）
   bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
   overrides: {},   // fnId -> { areaM2, date }
@@ -1603,6 +1605,14 @@ function renderPlan(){
   for (let x=Math.ceil(vx0);x<=vx1;x++) g.appendChild(el("line",{x1:toSX(x),y1:toSY(vy0),x2:toSX(x),y2:toSY(vy1),stroke:x%10?"#f0ede6":"#ddd8cc","stroke-width":x%10?0.5:1}));
   for (let y=Math.ceil(vy0);y<=vy1;y++) g.appendChild(el("line",{x1:toSX(vx0),y1:toSY(y),x2:toSX(vx1),y2:toSY(y),stroke:y%10?"#f0ede6":"#ddd8cc","stroke-width":y%10?0.5:1}));
   svg.appendChild(g);
+  if (state.showContext && state.context && state.context.status === "ok"){   // 周边建筑轮廓（灰色；场地内现有建筑为橙色虚线）
+    for (const b of state.context.items){
+      for (const poly of b.polys){
+        const bb = bboxOf(poly); if (bb.x1 < vx0 || bb.x0 > vx1 || bb.y1 < vy0 || bb.y0 > vy1) continue;
+        svg.appendChild(el("polygon",{points:poly.map(q => `${toSX(q[0])},${toSY(q[1])}`).join(" "),fill:b.inSite ? "rgba(242,182,121,0.18)" : "#ebe8e1",stroke:b.inSite ? "#c9874a" : "#b8b2a6","stroke-width":1,"stroke-dasharray":b.inSite ? "4 3" : "","pointer-events":"none"}));
+      }
+    }
+  }
   if (state.sitePolys){   // 真实场地的边界（绿色虚线）
     for (const poly of state.sitePolys) svg.appendChild(el("polygon",{points:poly.map(p => `${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"rgba(120,170,100,0.06)",stroke:"#5f8f4e","stroke-width":2,"stroke-dasharray":"8 4","pointer-events":"none"}));
   } else svg.appendChild(el("rect",{x:0,y:0,width:SITE.w*PX,height:SITE.d*PX,fill:"none",stroke:"#bbb","stroke-dasharray":"4 4"}));
@@ -2295,6 +2305,40 @@ function pickedSite(){
   const ps = d.parcels.filter(x => pk.ids.includes(x.id)); if (!ps.length) return null;
   return { polys:ps.flatMap(x => x.polys), label:ps.length === 1 ? `地块 ${ps[0].addr || ""}` : `${ps.length} 个地块（${ps.slice(0, 3).map(x => x.addr).join("、")}${ps.length > 3 ? "……" : ""}）`, m2:ps.reduce((t, x) => t + x.m2, 0) };
 }
+function contextLine(){
+  const c = state.context;
+  if (!c) return "";
+  if (c.status === "loading") return `<span class="hint">正在查询周边约 ${CONTEXT_RADIUS} m 的建筑……</span>`;
+  if (c.status === "error") return `<span class="hint" style="color:var(--bad)">周边建筑查询失败：${c.error}</span> <button class="link" onclick="loadContext()">再试一次</button>`;
+  return `<span class="hint">周边约 ${CONTEXT_RADIUS} m 内有 ${fmt(c.bldgs)} 栋建筑（2009 年数据）${c.bldgsInSite ? `，其中 ${c.bldgsInSite} 栋在场地内（现有建筑，三维里为浅橙色）` : ""}。</span>`;
+}
+// 周边建筑（B，2026-10-18）：场地外接框外扩 200 m，查询 Building footprints 2009（2009 年激光扫描，偏旧），
+// 每个建筑部件按“离地高度”（hgt_agl）拉伸；地形起伏不算（场地按平地处理）。中心点在场地内的标为“场地内现有建筑”。
+const CONTEXT_RADIUS = 200;
+async function loadContext(){
+  const ap = state.site.applied; if (!ap) { state.context = null; return; }
+  const [ox, oy] = ap.origin, key = `${ap.label}@${ox},${oy}`;
+  state.context = { status:"loading", items:[], key };
+  renderSiteMap(); renderMassingCheck();
+  const [lonA, latA] = toLonLat(ox - CONTEXT_RADIUS, oy - CONTEXT_RADIUS), [lonB, latB] = toLonLat(ox + ap.w + CONTEXT_RADIUS, oy + ap.d + CONTEXT_RADIUS);
+  try {
+    const g = await odsGeo("building-footprints-2009", { where:`in_bbox(geo_point_2d, ${latA}, ${lonA}, ${latB}, ${lonB})`, select:"bldgid,hgt_agl,geom" });
+    if (!state.context || state.context.key !== key) return;   // 期间又换了场地
+    const items = [];
+    for (const f of g.features){
+      const h = +f.properties.hgt_agl; if (!(h > 0.5)) continue;
+      const polys = ringsOf(f.geometry).map(r => r.map(([x, y]) => [x - ox, y - oy])); if (!polys.length) continue;
+      const c = ringCentroid(polys[0]);
+      items.push({ polys, h, bldg:f.properties.bldgid, inSite: !!state.sitePolys && state.sitePolys.some(sp => pointInPoly(c[0], c[1], sp)) });
+    }
+    state.context = { status:"ok", items, key, bldgs:new Set(items.map(x => x.bldg)).size, bldgsInSite:new Set(items.filter(x => x.inSite).map(x => x.bldg)).size };
+  } catch (e){
+    if (state.context && state.context.key === key) state.context = { status:"error", items:[], key, error:String(e.message || e) };
+  }
+  renderPlan(); renderSiteMap(); renderMassingCheck();
+  if (window.render3D) window.render3D();
+}
+
 // 把选中的场地变成体块推演的场地：网格 = 场地外接框；场地外的格子不算楼面；体块整体挪到场地中间
 function applySite(){
   const st = pickedSite(); if (!st) return;
@@ -2316,9 +2360,11 @@ function applySite(){
   for (const m of state.masses) m.points = m.points.map(([x, y]) => [x + dx, y + dy]);
   state.site.applied = { area:state.site.area, label:st.label, m2:st.m2, origin:[ox, oy], w:SITE.w, d:SITE.d };
   state.memory = {}; state.spaceMemory = null; state.section.pos = null;   // 场地换了，原来的排布不再记住
+  state.context = null;
   regenerate();
   if (window.frame3D) window.frame3D();
   renderSiteMap();
+  loadContext();   // 联网查询周边建筑
 }
 function renderSiteMap(){
   const map = document.getElementById("sitemap"), info = document.getElementById("site-info");
@@ -2365,7 +2411,7 @@ function renderSiteMap(){
       <p class="hint">点一个公园，或点地块（可以连选几块，再点一次取消）。社区中心大多建在公园里。</p>` : ""}
     ${st ? `<div class="card" style="margin:6px 0"><b>选中：</b>${st.label}<div class="kv"><div>面积</div><div>${fmt(st.m2)} m²</div><div>外接框</div><div>${dims}</div></div>
       <div class="btnrow"><button class="primary" data-apply>用这个场地</button><button class="link" data-clear>清除选择</button></div></div>` : ""}
-    ${state.site.applied ? `<p>当前场地：<b>${state.site.applied.label}</b>（${state.site.applied.area}）<br><span class="hint">体块已挪到场地中间；超出场地的部分不算楼面。</span></p>
+    ${state.site.applied ? `<p>当前场地：<b>${state.site.applied.label}</b>（${state.site.applied.area}）<br><span class="hint">体块已挪到场地中间；超出场地的部分不算楼面。</span><br>${contextLine()}</p>
       <div class="stepnav"><span></span><button class="primary" data-goto2="4">进入体块推演 →</button></div>` : ""}
     <div class="btnrow" style="margin-top:6px"><button class="link" data-city>← 回到全市地图</button></div>`;
   const q = sel => info.querySelector(sel);
@@ -2384,7 +2430,7 @@ function renderMassingCheck(){
   const tall = act.filter(f => f.minClearHeight && f.minClearHeight.value > ASSUMPTIONS.storeyHeight.value - ASSUMPTIONS.slabThickness.value + EPS);
   const ok = b => `<b style="color:${b ? "var(--ok)" : "var(--bad)"}">${b ? "✓" : "✗"}</b>`;
   document.getElementById("massing-check").innerHTML = `<h3>体块够不够用（实时）</h3>
-    <p class="hint" style="margin:0 0 4px">场地：${state.site.applied ? `<b>${state.site.applied.label}</b>（${state.site.applied.area}，${fmt(state.site.applied.m2)} m²，绿色虚线）` : `${state.site.area ? `${state.site.area}，` : ""}还没选场地，用 ${SITE.w} × ${SITE.d} m 的示意场地（第 3 步可选）`}</p>
+    <p class="hint" style="margin:0 0 4px">场地：${state.site.applied ? `<b>${state.site.applied.label}</b>（${state.site.applied.area}，${fmt(state.site.applied.m2)} m²，绿色虚线）<br>${contextLine()}` : `${state.site.area ? `${state.site.area}，` : ""}还没选场地，用 ${SITE.w} × ${SITE.d} m 的示意场地（第 3 步可选）`}</p>
     <div class="kv">
       <div>可用楼面（所有标高）</div><div>${ok(L.usableStart >= L.net - EPS)} ${fmt(L.usableStart)} m² / 需要净面积 ${fmt(L.net)} m²</div>
       <div>按系数放大后</div><div>${ok(L.usableStart >= L.gross - EPS)} 总建筑面积约 ${fmt(L.gross)} m²</div>
@@ -2441,9 +2487,14 @@ controls.target.copy(center); controls.update();
 // 场地：地面、10 m 网格、场地边界、指北箭头（场地换了就重画，2026-10-18）
 const stat = new THREE.Group(); scene.add(stat); let statKey = "";
 function buildStatic(){
-  const key = `${SITE.w}x${SITE.d}:${state.site.applied ? state.site.applied.label : "示意"}`;
+  const ext = state.context && state.context.status === "ok" ? CONTEXT_RADIUS : 0;   // 有周边建筑时地面铺到周边范围
+  const key = `${SITE.w}x${SITE.d}:${state.site.applied ? state.site.applied.label : "示意"}:${ext}`;
   if (key === statKey) return; statKey = key;
   stat.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); stat.clear();
+  if (ext){
+    const outer = new THREE.Mesh(new THREE.PlaneGeometry(SITE.w + 2 * ext, SITE.d + 2 * ext), new THREE.MeshBasicMaterial({ color:0xfbfaf7 }));
+    outer.rotation.x = -Math.PI/2; outer.position.set(SITE.w/2, -0.02, -SITE.d/2); stat.add(outer);
+  }
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(SITE.w, SITE.d), new THREE.MeshBasicMaterial({ color:0xf6f4ef }));
   ground.rotation.x = -Math.PI/2; ground.position.set(SITE.w/2, -0.01, -SITE.d/2); stat.add(ground);
   const gridPts = [];
@@ -2467,6 +2518,27 @@ window.frame3D = () => {
 };
 
 const dyn = new THREE.Group(); scene.add(dyn);
+// 周边建筑（B）：数据或显示方式变了才重建
+const ctx = new THREE.Group(); scene.add(ctx); let ctxKey = "";
+function buildContext(){
+  const c = state.context, on = state.showContext && c && c.status === "ok";
+  const key = on ? `${c.key}|${c.items.length}|${state.whiteModel}` : "off";
+  document.getElementById("v3-ctx").style.display = c && c.status === "ok" ? "" : "none";
+  document.getElementById("v3-ctx").classList.toggle("on", !!on);
+  if (key === ctxKey) return; ctxKey = key;
+  ctx.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); ctx.clear();
+  if (!on) return;
+  const matOut = new THREE.MeshLambertMaterial({ color:0xf4f2ee }), matIn = new THREE.MeshLambertMaterial({ color:0xf3dcc2, transparent:true, opacity:0.6, depthWrite:false });
+  const edgeOut = new THREE.LineBasicMaterial({ color:0xb0aca4 }), edgeIn = new THREE.LineBasicMaterial({ color:0xc9874a });
+  for (const b of c.items) for (const poly of b.polys){
+    if (poly.length < 3) continue;
+    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(q => new THREE.Vector2(q[0], q[1]))), { depth:b.h, bevelEnabled:false });
+    geo.rotateX(-Math.PI/2);
+    ctx.add(new THREE.Mesh(geo, b.inSite ? matIn : matOut));
+    ctx.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), b.inSite ? edgeIn : edgeOut));
+  }
+}
+document.getElementById("v3-ctx").onclick = () => { state.showContext = !state.showContext; renderPlan(); rebuild(); };
 const css = name => new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#cccccc");
 const toV = (x, y, z) => new THREE.Vector3(x, z, -y);
 
@@ -2498,6 +2570,7 @@ let drag = null;       // 正在推拉：{ m, f, b0, base0, top0, axis, s0, d }
 
 function rebuild(){
   buildStatic();
+  buildContext();
   dyn.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   dyn.clear();
   const lv = viewLevel();
