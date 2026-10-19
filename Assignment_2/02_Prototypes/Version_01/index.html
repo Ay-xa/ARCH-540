@@ -138,6 +138,9 @@
     <div class="controls">
       <label>平面标高 <select id="plan-level"></select></label>
       <button id="btn-relayout" title="忘掉没锁定的功能区的位置，全部按“大件优先”重新放；锁定的不动">重新排布（锁定的不动）</button>
+      <label><input type="checkbox" id="chk-adj" checked> 显示邻接连线</label>
+      <button id="btn-options" class="primary" title="按几种不同的排布方式各排一次，并排比较，选一个最合适的">生成几种方案</button>
+      <span id="strategy-readout" class="readout"></span>
       <span id="massing-readout" class="readout"></span>
     </div>
     <div class="controls">
@@ -160,6 +163,7 @@
       <span><span class="swatch" style="background:#dceaf5;border:1px solid #7aa7c7"></span>挑空（这一层不设楼板）</span>
       <span><span class="swatch" style="background:#fbe9ea;border:1.5px dashed var(--bad)"></span>需要调整（原位置）</span>
       <span><span class="swatch" style="background:#e9f5ee;border:1.5px dashed var(--ok)"></span>建议位置</span>
+      <span><span class="swatch" style="background:#fff;border:none;border-top:3px solid var(--ok)"></span>邻接满足 / <span style="color:var(--bad)">红虚线</span> 不满足</span>
     </div>
     <p class="hint">平面显示所选标高的截面：只画在这个标高处存在的体块（底标高 ≤ 标高 &lt; 顶标高）。粗黑线 = 外墙；红色虚线 = 体块贴着但接触宽度不足 5 m，不连通；灰色斜线 = 净高不足 3.0 m，不算可用楼面；细虚线 = 各个体块的轮廓。平面里不能改体块。<b>拖动功能区</b>可以挪动它（吸附 1 m，只在这一层里移动；拖动时绿色 = 落在可用楼面里，红色 = 不在）；拖过的功能区自动锁定（🔒），被它压住的没锁定的功能区会重新找位置。点选房间看说明，点体块选中体块。场地范围 90 × 52 m。</p>
     <h2>剖面</h2>
@@ -425,6 +429,30 @@ const SPACE_NEEDS = {
 };
 for (const f of FUNCTIONS) Object.assign(f, { minClearHeight:null, floorReq:null }, SPACE_NEEDS[f.id] || {});
 
+// 功能之间的邻接关系（2026-10-18，来源 Marpole 2021 第 5 章正文，已核实；页码为文件上印的页码）
+// kind：must = 必须相邻（原文 directly adjacent / required）；prefer = 最好相邻（beneficial / should）；near = 靠近（in proximity，可以上下叠放）
+const ADJACENCY = [
+  { a:"hall",     b:"kitchen",  kind:"must",   note:"大多功能厅与商业厨房直接相邻，有传菜口（Marpole 第 47、49 页）" },
+  { a:"flex",     b:"kitchen",  kind:"must",   note:"灵活多功能室（课后托管）按托儿发牌要求须邻近商业厨房（第 48、49 页）" },
+  { a:"flex",     b:"washroom", kind:"must",   note:"公共卫生间须直接邻近灵活多功能室（课后托管用，第 48、49 页）" },
+  { a:"seniors",  b:"washroom", kind:"must",   note:"公共卫生间须直接邻近老年中心（第 49 页）" },
+  { a:"changing", b:"lobby",    kind:"must",   note:"免费区更衣淋浴与公共卫生间须直接邻近门厅（第 28 页）" },
+  { a:"admin",    b:"lobby",    kind:"must",   note:"前台直接邻近门厅，能看到整个门厅（第 33 页）" },
+  { a:"youth",    b:"gym",      kind:"prefer", note:"青少年常在青少年室和体育馆之间走动，最好相邻（第 40、48 页）" },
+  { a:"seniors",  b:"kitchen",  kind:"prefer", note:"老年中心若邻近商业厨房，可以不设完整厨房；将来做课后托管也需要厨房（第 48 页）" },
+  { a:"fitness",  b:"changing", kind:"near",   note:"健身中心应靠近更衣室；在二层时要和更衣室上下对位（第 41 页）" },
+];
+// 需要直通室外的功能（原文 direct / exterior access），用“贴着外墙”来判断
+const EXTERIOR_ACCESS = {
+  hall:"大多功能厅要能直接到室外演出场地（第 47 页）",
+  flex:"灵活多功能室要直通室外游戏场（第 48 页）",
+  seniors:"老年中心要直通室外（第 51 页表）",
+  youth:"青少年室要有通向室外的出口（第 48 页）",
+  gym:"体育馆要在地面层直通室外（第 40 页）",
+};
+const ADJ_WEIGHT = { must:1, prefer:0.5, near:0.5, exterior:1 };   // 邻接适配的权重（假设）
+const ADJ_ZH = { must:"必须相邻", prefer:"最好相邻", near:"靠近", exterior:"直通室外" };
+
 // 排布用的默认假设（FUNCTION_LIBRARY.md 第 7 节、PLACEMENT_CRITERIA.md、Tool_Logic_Draft_v2.md 第七节）
 const ASSUMPTIONS = {
   // 面积三层（Marpole 2021，用户 2026-10-18 决定采用）：净面积 × 组团系数（组团内走廊、内墙）× 建筑系数（入口与疏散走廊、外墙、大管井）
@@ -444,8 +472,11 @@ const ASSUMPTIONS = {
   depthToFacades:  { status:STATUS.userDecided, note:"深度只量到南、北立面，不量到东、西山墙（2026-10-17）" },
   facadeContact:   { status:STATUS.userDecided, note:"偏好南带或北带的房间，贴着对应立面才算完全适配（2026-10-17）；没贴着时按空隙线性打折：系数 = 1 − 空隙 ÷ 带深度", discountStatus:STATUS.assumed },
   simplicityRule:  { status:STATUS.assumed, note:"前几项都相同时，周长中贴着外墙或已放功能区的比例越高越好（紧凑，2026-10-18 改）；仍相同时取最西、最南的位置" },
+  adjShared:       { value:3, status:STATUS.assumed, note:"“相邻”= 两个功能区共用的墙至少这么长（米），大致是一个门洞加两侧墙垛（2026-10-18，用户决定先用假设值）" },
+  adjNear:         { value:6, status:STATUS.assumed, note:"“靠近”= 两个功能区之间的净距不超过这么多（米），大致是一条走廊的宽度量级；不同楼层时要上下有重叠（2026-10-18，用户决定先用假设值）" },
+  extTouch:        { value:3, status:STATUS.assumed, note:"“直通室外”= 贴着外墙至少这么长（米）（2026-10-18，用户决定先用假设值）" },
   gradientStep:    { value:0.1, status:STATUS.assumed, note:"渐变适配按 10% 一档比较，深度差不多的位置算一样，让“紧凑”决定（2026-10-18，为了更紧凑）" },
-  judgeOrder:      ["楼层适配", "带适配", "渐变适配", "形状", "简洁"],
+  judgeOrder:      ["楼层适配", "邻接适配", "带适配", "渐变适配", "形状", "简洁"],
   floorPrefFirst:  { status:STATUS.userDecided, note:"“楼层适配”（最好首层 / 最好二层）排在带适配之前（用户 2026-10-18 确认）" },
   manualVoidShared:{ status:STATUS.userDecided, note:"手动挑空的空间可以放多个功能（用户 2026-10-18 确认）" },
 };
@@ -494,7 +525,9 @@ const state = {
   viewLevel: "L01",   // 平面所看的标高
   selectedFace: null, // 三维里选中的面：south / north / east / west / top / bottom（阶段 5）
   isolate: null,      // 2026-10-18：双击体块单独编辑，只显示这个体块
-  whiteModel: false,  // 2026-10-18：三维只看体块白模
+  whiteModel: false,
+  showAdj: true,      // 2026-10-18：平面上显示邻接连线
+  strategy: "climate", // 2026-10-18：当前的排布方式（设计师在“生成几种方案”里选）  // 2026-10-18：三维只看体块白模
   section: { dir:"ew", pos:null },   // 剖面：方向和位置（null = 切过选中体块的中线）
   bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
   overrides: {},   // fnId -> { areaM2, date }
@@ -796,9 +829,81 @@ function scoreRect(r, fn, sp, placed){
   // 渐变适配按 10% 一档比较（假设）：深度差不多的位置算一样，让“紧凑”来决定
   const gradQ = Math.round(gradFit / ASSUMPTIONS.gradientStep.value) * ASSUMPTIONS.gradientStep.value;
   const floorFit = floorFitOf(fn, sp);
-  return { floorFit, bandFit, frac, gap, bandDepth, facadeFactor, gradFit, gradQ, dist, target, maxDepth, shapeOk, ratio, flush, contact };
+  const adjFit = adjacencyFit(fn, r, sp, null);
+  return { floorFit, adjFit, bandFit, frac, gap, bandDepth, facadeFactor, gradFit, gradQ, dist, target, maxDepth, shapeOk, ratio, flush, contact };
 }
-const JUDGE_KEYS = ["floorFit","bandFit","gradQ","shapeOk","contact"];
+// 邻接（2026-10-18）：两个功能区之间满不满足某条关系
+let LAYOUT_ROOMS = [];   // 排布进行中已放好的所有功能区（各层），供邻接评分用
+function sharedEdge(r, q){
+  let len = 0;
+  if (Math.abs(r.x1 - q.x0) < 1e-3 || Math.abs(q.x1 - r.x0) < 1e-3) len = Math.max(len, overlapLen(r.y0, r.y1, q.y0, q.y1));
+  if (Math.abs(r.y1 - q.y0) < 1e-3 || Math.abs(q.y1 - r.y0) < 1e-3) len = Math.max(len, overlapLen(r.x0, r.x1, q.x0, q.x1));
+  return len;
+}
+const rectGap = (r, q) => Math.hypot(Math.max(0, q.x0 - r.x1, r.x0 - q.x1), Math.max(0, q.y0 - r.y1, r.y0 - q.y1));
+function adjacencyOk(kind, r, rLevel, q){
+  const sameLevel = q.levelId === rLevel || (q.spans && q.spans.includes(rLevel));
+  if (kind === "near"){
+    if (sameLevel) return rectGap(r, q) <= ASSUMPTIONS.adjNear.value + EPS;
+    return overlapLen(r.x0, r.x1, q.x0, q.x1) > EPS && overlapLen(r.y0, r.y1, q.y0, q.y1) > EPS;   // 上下对位
+  }
+  return sameLevel && sharedEdge(r, q) >= ASSUMPTIONS.adjShared.value - EPS;
+}
+function exteriorTouch(r, sp){
+  let t = 0;
+  for (const w of sp.walls.south) if (Math.abs(w.pos - r.y0) < 1e-3) t += overlapLen(r.x0, r.x1, w.a0, w.a1);
+  for (const w of sp.walls.north) if (Math.abs(w.pos - r.y1) < 1e-3) t += overlapLen(r.x0, r.x1, w.a0, w.a1);
+  for (const w of sp.walls.west)  if (Math.abs(w.pos - r.x0) < 1e-3) t += overlapLen(r.y0, r.y1, w.a0, w.a1);
+  for (const w of sp.walls.east)  if (Math.abs(w.pos - r.x1) < 1e-3) t += overlapLen(r.y0, r.y1, w.a0, w.a1);
+  return t;
+}
+// 一个功能区在某个位置的邻接适配：已经放好的伙伴里满足的权重 ÷ 总权重；还没有伙伴时为 1（不影响）
+function adjacencyFit(fn, r, sp, selfId){
+  let tot = 0, got = 0;
+  for (const rule of ADJACENCY){
+    const other = rule.a === fn.id ? rule.b : rule.b === fn.id ? rule.a : null;
+    if (!other) continue;
+    const partners = LAYOUT_ROOMS.filter(q => q.fnId === other && q.id !== selfId);
+    if (!partners.length) continue;
+    const w = ADJ_WEIGHT[rule.kind]; tot += w;
+    if (partners.some(q => adjacencyOk(rule.kind, r, sp.levelId, q))) got += w;
+  }
+  if (EXTERIOR_ACCESS[fn.id]){ tot += ADJ_WEIGHT.exterior; if (exteriorTouch(r, sp) >= ASSUMPTIONS.extTouch.value - EPS) got += ADJ_WEIGHT.exterior; }
+  return tot ? got / tot : 1;
+}
+// 排好以后每条关系的结果（平面连线、右侧说明用）
+function adjacencyReport(rooms){
+  const out = [];
+  for (const rule of ADJACENCY){
+    const A = rooms.filter(q => q.fnId === rule.a), B = rooms.filter(q => q.fnId === rule.b);
+    if (!A.length || !B.length){ out.push({ rule, ok:false, missing:true }); continue; }
+    let best = null;
+    for (const ra of A) for (const rb of B){
+      const ok = adjacencyOk(rule.kind, ra, ra.levelId, rb);
+      if (!best || (ok && !best.ok)) best = { ra, rb, ok };
+    }
+    out.push({ rule, ...best });
+  }
+  for (const id of Object.keys(EXTERIOR_ACCESS)){
+    const rs = rooms.filter(q => q.fnId === id);
+    if (!rs.length){ out.push({ rule:{ a:id, b:null, kind:"exterior", note:EXTERIOR_ACCESS[id] }, ok:false, missing:true }); continue; }
+    const r = rs[0]; out.push({ rule:{ a:id, b:null, kind:"exterior", note:EXTERIOR_ACCESS[id] }, ra:r, ok: exteriorTouch(r, r.space) >= ASSUMPTIONS.extTouch.value - EPS });
+  }
+  return out;
+}
+// 排布方式（2026-10-18，用户决定：工具生成几种可能，由设计师挑最合适的）
+// 每种方式是一套评判顺序 + 是否成组放置。楼层要求永远排第一。
+const STRATEGIES = [
+  { id:"climate",  name:"气候优先", desc:"楼层 > 带适配 > 渐变 > 形状 > 紧凑；不考虑邻接（用户之前选的顺序 A）",
+    keys:["floorFit","bandFit","gradQ","shapeOk","contact"], cluster:false },
+  { id:"adjacent", name:"邻接优先", desc:"楼层 > 邻接 > 带适配 > 渐变 > 形状 > 紧凑；相关功能成组放置",
+    keys:["floorFit","adjFit","bandFit","gradQ","shapeOk","contact"], cluster:true },
+  { id:"compact",  name:"紧凑优先", desc:"楼层 > 紧凑 > 带适配 > 渐变 > 形状；不考虑邻接",
+    keys:["floorFit","contact","bandFit","gradQ","shapeOk"], cluster:false },
+  { id:"adjcomp",  name:"邻接 + 紧凑", desc:"楼层 > 邻接 > 紧凑 > 带适配 > 渐变 > 形状；相关功能成组放置",
+    keys:["floorFit","adjFit","contact","bandFit","gradQ","shapeOk"], cluster:true },
+];
+const JUDGE_KEYS = [...STRATEGIES[0].keys];
 // 比较两组评分：1 = a 更好，−1 = b 更好，0 = 一样
 function compareScores(a, b){
   for (const k of JUDGE_KEYS){ if (a[k] > b[k] + EPS) return 1; if (a[k] < b[k] - EPS) return -1; }
@@ -839,7 +944,7 @@ function compactRooms(rooms, levelInfo){
           if (r.fn.entry && facadeGap(sp, nr, "south") > EPS) continue;
           if (r.fn.minClearHeight && roomClear(nr, sp.info.clear) < r.fn.minClearHeight.value - EPS) continue;
           const sc = scoreRect(nr, r.fn, sp, others);
-          const notWorse = ["floorFit","bandFit","gradQ"].every(k => sc[k] >= base[k] - EPS);
+          const notWorse = ["floorFit","adjFit","bandFit","gradQ"].every(k => sc[k] >= base[k] - EPS);
           if (notWorse && sc.contact > base.contact + EPS && (!best || sc.contact > best.sc.contact + EPS)) best = { nr, sc };
           break;
         }
@@ -925,17 +1030,27 @@ function maxReachableClear(fn, spaces){
   return { best, where };
 }
 // 放置顺序：门厅 → 体育馆 → 健身 → 其余必有功能按面积从大到小 → 其余非必有功能按面积从大到小 → 咖啡
+// 2026-10-18 加：邻接成组——放好一个功能后，紧接着放和它“必须相邻 / 最好相邻”的功能（按上面的顺序，连锁下去），
+// 否则伙伴旁边的位置会先被别的大房间占掉。可用 CLUSTER_ORDER 关掉做对比。
+let CLUSTER_ORDER = false;
 function placementOrder(){
   const byId = Object.fromEntries(FUNCTIONS.map(f=>[f.id,f]));
-  const items = [];
-  const push = fn => { for (let i=1;i<=fn.count;i++) items.push({ fn, inst:i, id: fn.count>1 ? `${fn.id}_${i}` : fn.id,
-                                                                  label: fn.count>1 ? `${fn.name} ${i}` : fn.name }); };
   const bySize = (a,b) => effectiveArea(b) - effectiveArea(a) || FUNCTIONS.indexOf(a) - FUNCTIONS.indexOf(b);
   const fixed = ["lobby","gym","fitness","cafe"];
-  push(byId.lobby); push(byId.gym); push(byId.fitness);
-  FUNCTIONS.filter(f => f.drawn && f.required && !fixed.includes(f.id)).sort(bySize).forEach(push);
-  FUNCTIONS.filter(f => f.drawn && !f.required && !fixed.includes(f.id)).sort(bySize).forEach(push);
-  push(byId.cafe);
+  const base = [byId.lobby, byId.gym, byId.fitness,
+    ...FUNCTIONS.filter(f => f.drawn && f.required && !fixed.includes(f.id)).sort(bySize),
+    ...FUNCTIONS.filter(f => f.drawn && !f.required && !fixed.includes(f.id)).sort(bySize),
+    byId.cafe];
+  let seq = base;
+  if (CLUSTER_ORDER){
+    const rank = new Map(base.map((f, i) => [f.id, i])), done = new Set(); seq = [];
+    const partners = id => ADJACENCY.filter(r => r.kind !== "near" && (r.a === id || r.b === id)).map(r => r.a === id ? r.b : r.a)
+      .filter(x => rank.has(x)).sort((x, y) => rank.get(x) - rank.get(y));
+    const visit = f => { if (done.has(f.id)) return; done.add(f.id); seq.push(f); for (const pid of partners(f.id)) visit(byId[pid]); };
+    base.forEach(visit);
+  }
+  const items = [];
+  for (const fn of seq) for (let i=1;i<=fn.count;i++) items.push({ fn, inst:i, id: fn.count>1 ? `${fn.id}_${i}` : fn.id, label: fn.count>1 ? `${fn.name} ${i}` : fn.name });
   return items;
 }
 // 空间配对（阶段 6）：新识别出的空间与上一次的空间按同一标高、可用格子重叠最多配对，配上的沿用原来的编号；
@@ -975,6 +1090,7 @@ function generateLayout(){
   const markOcc = (levelId, r) => { const o = occ.get(levelId), { ix0, iy0, ix1, iy1 } = rectCells(r);
     for (let j = iy0; j < iy1; j++) for (let i = ix0; i < ix1; i++) o[cellIdx(i, j)] = 1; };
   const rooms = [], unplaced = [], flagged = [];
+  LAYOUT_ROOMS = rooms;
   const items = placementOrder();
   const place = (base, b, extra) => {
     const sp = b.space, spans = lvls.slice(sp.levelIdx, sp.levelIdx + b.n).map(l => l.id);
@@ -1184,7 +1300,7 @@ function generateLayout(){
   const net = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
   const groupGross = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count*groupFactorOf(f),0);
   const usableArea = spaces.reduce((s, sp) => s + sp.area, 0);
-  state.layout = { spaces, warnings, levelInfo, slabs, usableArea, usableStart, rooms, unplaced, flagged, net, groupGross, gross: groupGross * ASSUMPTIONS.buildingFactor.value };
+  state.layout = { spaces, warnings, levelInfo, slabs, usableArea, usableStart, rooms, unplaced, flagged, net, groupGross, gross: groupGross * ASSUMPTIONS.buildingFactor.value, adjacency: adjacencyReport(rooms) };
 }
 // 用户操作（阶段 6）
 function acceptSuggestion(id){
@@ -1205,6 +1321,86 @@ function toggleLock(id){
   const m = state.memory[id]; if (!m) return;
   m.locked = !m.locked; regenerate();
 }
+// ---------- 方案生成（2026-10-18） ----------
+function applyStrategy(id){
+  const st = STRATEGIES.find(x => x.id === id) || STRATEGIES[0];
+  JUDGE_KEYS.splice(0, JUDGE_KEYS.length, ...st.keys); CLUSTER_ORDER = st.cluster; state.strategy = st.id;
+}
+// 一个排布的指标：邻接、带适配、渐变、贴边（整个排布完成后算）、未放入
+function layoutMetrics(L){
+  const adj = L.adjacency || [], must = adj.filter(a => a.rule.kind === "must"), oth = adj.filter(a => a.rule.kind !== "must");
+  const avg = k => L.rooms.length ? L.rooms.reduce((t, r) => t + r.score[k], 0) / L.rooms.length : 0;
+  let cs = 0;
+  for (const r of L.rooms){
+    const sp = r.space, others = L.rooms.filter(q => q !== r && q.spaceId === r.spaceId), w = r.x1 - r.x0, h = r.y1 - r.y0;
+    const seg = (list, pos, a0, a1) => list.reduce((t, q) => t + (Math.abs(q.pos - pos) < 1e-3 ? overlapLen(a0, a1, q.a0, q.a1) : 0), 0);
+    const nb = (cond, a0, a1, b0, b1) => others.reduce((t, q) => t + (cond(q) ? overlapLen(a0, a1, q[b0], q[b1]) : 0), 0);
+    const t = Math.min(w, seg(sp.walls.south, r.y0, r.x0, r.x1) + nb(q => Math.abs(q.y1 - r.y0) < 1e-3, r.x0, r.x1, "x0", "x1"))
+            + Math.min(w, seg(sp.walls.north, r.y1, r.x0, r.x1) + nb(q => Math.abs(q.y0 - r.y1) < 1e-3, r.x0, r.x1, "x0", "x1"))
+            + Math.min(h, seg(sp.walls.west,  r.x0, r.y0, r.y1) + nb(q => Math.abs(q.x1 - r.x0) < 1e-3, r.y0, r.y1, "y0", "y1"))
+            + Math.min(h, seg(sp.walls.east,  r.x1, r.y0, r.y1) + nb(q => Math.abs(q.x0 - r.x1) < 1e-3, r.y0, r.y1, "y0", "y1"));
+    cs += t / (2 * (w + h));
+  }
+  const nm = id => (FUNCTIONS.find(f => f.id === id) || {}).name || id;
+  return { must:`${must.filter(a => a.ok).length}/${must.length}`, mustN:must.filter(a => a.ok).length, oth:`${oth.filter(a => a.ok).length}/${oth.length}`,
+    band:Math.round(avg("bandFit") * 100), grad:Math.round(avg("gradFit") * 100), contact:Math.round((L.rooms.length ? cs / L.rooms.length : 0) * 100),
+    unplaced:L.unplaced.map(u => u.label), flagged:L.flagged.length,
+    fail:adj.filter(a => !a.ok && !a.missing).map(a => a.rule.kind === "exterior" ? `${nm(a.rule.a)}–室外` : `${nm(a.rule.a)}–${nm(a.rule.b)}`) };
+}
+// 按每种排布方式各排一次（锁定的功能区不动），并排显示，让设计师选
+let OPTIONS = [];
+function generateOptions(){
+  const keepMemory = JSON.parse(JSON.stringify(state.memory)), keepSpaceMem = state.spaceMemory, keepStrategy = state.strategy;
+  const keepView = state.viewLevel, keepSel = state.selected, keepLayout = state.layout;
+  const locked = Object.fromEntries(Object.entries(keepMemory).filter(([, m]) => m.locked));
+  OPTIONS = [];
+  for (const st of STRATEGIES){
+    applyStrategy(st.id);
+    state.memory = JSON.parse(JSON.stringify(locked)); state.spaceMemory = keepSpaceMem; state.selected = null;
+    generateLayout();
+    const L = state.layout, levels = sortedLevels().filter(l => L.rooms.some(r => r.spans.includes(l.id)) || L.spaces.some(sp => sp.levelId === l.id));
+    const svgs = levels.map(l => { state.viewLevel = l.id; renderPlan(); const g = svg.cloneNode(true); g.removeAttribute("id"); g.querySelector("g")?.remove(); g.style.width = "100%"; return { name:l.name, svg:g.outerHTML }; });
+    OPTIONS.push({ st, metrics:layoutMetrics(L), svgs,
+      memory:Object.fromEntries(L.rooms.filter(r => !r.split).map(r => [r.id, { fnId:r.fnId, area:r.area, levelId:r.levelId, x0:r.x0, y0:r.y0, x1:r.x1, y1:r.y1, locked:!!(locked[r.id]) }])) });
+  }
+  // 恢复原来的状态
+  state.memory = keepMemory; state.spaceMemory = keepSpaceMem; state.viewLevel = keepView; state.selected = keepSel; applyStrategy(keepStrategy);
+  state.layout = keepLayout; renderPlan();
+  showOptions();
+}
+function showOptions(){
+  document.getElementById("opt-overlay")?.remove();
+  const ov = document.createElement("div"); ov.id = "opt-overlay";
+  ov.style.cssText = "position:fixed;inset:0;background:#fff;z-index:1000;overflow:auto;padding:14px 18px";
+  const best = Math.max(...OPTIONS.map(o => o.metrics.mustN));
+  ov.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:16px;color:var(--ink);text-transform:none;letter-spacing:0">几种排布方案：选一个最合适的</h2><button id="opt-close">关闭（不改）</button></div>
+    <p class="hint">同一组体块和标高，按不同的排布方式各排一次；锁定的功能区不动。指标：必须相邻（共 6 条）、其他邻接（最好相邻、靠近、直通室外）、带适配、渐变适配、贴边（功能区周长贴着外墙或别的功能区的平均比例）。平面上绿线 = 邻接满足，红虚线 = 不满足。选定后工具记住这个方案的位置；之后体块改动时按这个方案的方式继续排。</p>
+    <div style="display:grid;grid-template-columns:repeat(${OPTIONS.length},minmax(220px,1fr));gap:12px">${OPTIONS.map((o, i) => `<div class="card" style="${o.st.id === state.strategy ? "border-color:var(--accent);border-width:2px" : ""}">
+      <div class="title"><span class="name">${o.st.name}${o.st.id === state.strategy ? "（当前）" : ""}</span><button class="primary" data-opt="${i}">用这个方案</button></div>
+      <div class="meta">${o.st.desc}</div>
+      <div class="kv" style="margin:6px 0">
+        <div>必须相邻</div><div><b style="color:${o.metrics.mustN === best ? "var(--ok)" : "inherit"}">${o.metrics.must}</b></div>
+        <div>其他邻接</div><div>${o.metrics.oth}</div>
+        <div>带适配</div><div>${o.metrics.band}%</div>
+        <div>渐变适配</div><div>${o.metrics.grad}%</div>
+        <div>贴边</div><div>${o.metrics.contact}%</div>
+        <div>未放入</div><div>${o.metrics.unplaced.length ? o.metrics.unplaced.join("、") : "无"}</div>
+      </div>
+      ${o.metrics.fail.length ? `<div class="hint" style="color:var(--bad)">不满足：${o.metrics.fail.join("、")}</div>` : ""}
+      ${o.svgs.map(v => `<div class="hint" style="margin-top:6px">${v.name}</div>${v.svg}`).join("")}
+    </div>`).join("")}</div>`;
+  document.body.appendChild(ov);
+  document.getElementById("opt-close").onclick = () => ov.remove();
+  ov.querySelectorAll("[data-opt]").forEach(b => b.onclick = () => pickOption(+b.dataset.opt));
+}
+function pickOption(i){
+  const o = OPTIONS[i]; if (!o) return;
+  applyStrategy(o.st.id);
+  state.memory = JSON.parse(JSON.stringify(o.memory));
+  document.getElementById("opt-overlay")?.remove();
+  regenerate();
+}
+
 // 重新排布：忘掉没锁定的功能区的位置，全部按“大件优先”重新放；锁定的不动
 function relayoutUnlocked(){
   for (const id of Object.keys(state.memory)) if (!state.memory[id].locked) delete state.memory[id];
@@ -1326,6 +1522,12 @@ function renderPlan(){
     svg.appendChild(el("polygon",{points:m.points.map(p=>`${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"none",stroke:on?"var(--accent)":"#888","stroke-width":on?2:1,"stroke-dasharray":"5 4","pointer-events":"none"}));
     svg.appendChild(el("text",{x:toSX(mb.x1)-4,y:toSY(mb.y1)+12,"text-anchor":"end","font-size":10,fill:on?"var(--accent)":"#888"},`${m.id} · 底 ${fmt(m.base,1)} / 顶 ${fmt(m.top,1)} m`));
   }
+  // 邻接连线（2026-10-18）：同一层的两个相关功能区，绿色实线 = 满足，红色虚线 = 不满足
+  if (state.showAdj) for (const a of (L.adjacency || [])){
+    if (!a.ra || !a.rb || a.ra.levelId !== lv.id || a.rb.levelId !== lv.id) continue;
+    const c1 = [(a.ra.x0 + a.ra.x1) / 2, (a.ra.y0 + a.ra.y1) / 2], c2 = [(a.rb.x0 + a.rb.x1) / 2, (a.rb.y0 + a.rb.y1) / 2];
+    svg.appendChild(el("line",{x1:toSX(c1[0]),y1:toSY(c1[1]),x2:toSX(c2[0]),y2:toSY(c2[1]),stroke:a.ok ? "var(--ok)" : "var(--bad)","stroke-width":a.rule.kind === "must" ? 2.5 : 1.5,"stroke-dasharray":a.ok ? "" : "5 4","pointer-events":"none",opacity:0.85}));
+  }
   // 外墙（粗线）和不连通的接触（红色虚线）
   const line = (x0, y0, x1, y1, attrs) => svg.appendChild(el("line",{x1:toSX(x0),y1:toSY(y0),x2:toSX(x1),y2:toSY(y1),"pointer-events":"none",...attrs}));
   for (const sp of spaces){
@@ -1438,6 +1640,8 @@ function renderLeft(){
   if (L.net > U + EPS) html += `<div class="banner bad">面积不够：功能净面积比可用空间多 ${fmt(L.net-U)} m²。</div>`;
   else if (L.gross > U + EPS) html += `<div class="banner warn">净面积放得下；按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-U)} m²，走廊会偏紧。</div>`;
   else html += `<div class="banner ok">面积够。</div>`;
+  const adj = L.adjacency || [], must = adj.filter(a => a.rule.kind === "must"), others = adj.filter(a => a.rule.kind !== "must");
+  html += `<div class="kv" style="margin-top:4px"><div>邻接（Marpole）</div><div>必须相邻 ${must.filter(a => a.ok).length}/${must.length} · 其他 ${others.filter(a => a.ok).length}/${others.length}</div></div>`;
   document.getElementById("area-summary").innerHTML = html;
 
   // 已放入：每个功能区一行（名称、楼层、锁）；点击在平面上选中它
@@ -1511,6 +1715,17 @@ function bindSettings(box){
   });
   box.querySelectorAll("[data-lock]").forEach(b => b.onclick = () => toggleLock(b.dataset.lock));
 }
+// 右侧：这个功能的邻接关系（2026-10-18）
+function adjacencyBox(fnId){
+  const nm = id => (FUNCTIONS.find(f => f.id === id) || {}).name || id;
+  const list = (state.layout.adjacency || []).filter(a => a.rule.a === fnId || a.rule.b === fnId);
+  if (!list.length) return `<div class="sec"><h3>邻接</h3><p class="hint">Marpole 没有给这个功能写邻接要求。</p></div>`;
+  return `<div class="sec"><h3>邻接（Marpole）</h3><ul>${list.map(a => {
+    const other = a.rule.kind === "exterior" ? "室外（贴外墙）" : nm(a.rule.a === fnId ? a.rule.b : a.rule.a);
+    const st = a.missing ? "对方未放入" : a.ok ? "✓ 满足" : "✗ 不满足";
+    return `<li><b style="color:${a.ok ? "var(--ok)" : "var(--bad)"}">${st}</b> · ${ADJ_ZH[a.rule.kind]}：${other}<div class="hint">${a.rule.note} ${statusBadge(STATUS.verified)}</div></li>`;
+  }).join("")}</ul><p class="hint">相邻 = 共用墙 ≥ ${ASSUMPTIONS.adjShared.value} m；靠近 = 净距 ≤ ${ASSUMPTIONS.adjNear.value} m（或上下对位）；直通室外 = 贴外墙 ≥ ${ASSUMPTIONS.extTouch.value} m ${statusBadge(ASSUMPTIONS.adjShared.status)}</p></div>`;
+}
 function renderSidebar(){
   const box = document.getElementById("sidebar");
   const r = state.layout.rooms.find(x => x.id === state.selected);
@@ -1563,6 +1778,7 @@ function renderSidebar(){
     <div class="sec"><h3>${r.locked ? "🔒 " : ""}${r.label}</h3>
       <p class="hint" style="margin:0 0 6px">${sp.levelName}${r.spans.length > 1 ? `（挑空到 ${fmt(r.topBoundary,1)} m）` : ""} · ${fmt(r.area)} m² · 净高 ${fmt(r.clear,1)} m${r.kept ? " · 体块改动后留在原位" : r.pushed ? " · 被拖动的功能区压住，重新找了位置" : r.fresh ? " · 新放入" : ""}</p>
       ${settingsBox(fn, r.id, { lockable:true, locked:r.locked })}
+      ${adjacencyBox(fn.id)}
       <div class="sec"><h3>阶段检查</h3>
         <label>给这个房间指派阶段：
           <select id="stage-select">${STAGES.map(s=>`<option value="${s.id}" ${s.id===assigned?"selected":""}>${s.id} — ${s.zh}</option>`).join("")}</select>
@@ -1591,6 +1807,7 @@ function renderSidebar(){
     <details class="more"><summary>为什么放在这里</summary>
       <p class="hint">评判顺序：${ASSUMPTIONS.judgeOrder.join(" > ")}（不设数值权重）</p>
       <ul>
+        <li><b>邻接适配：</b>放入时已放好的相关功能区中，满足的比例 ${fmt(sc.adjFit*100)}%（必须相邻、直通室外权重 1，最好相邻、靠近权重 0.5 ${statusBadge(STATUS.assumed)}）。</li>
         <li><b>楼层适配：</b>${fn.floorReq ? `${fn.floorReq.zh} ${statusBadge(fn.floorReq.status)}（${fn.floorReq.note}），现在在 ${sp.levelName}：${fn.floorReq.value === "mustGround" ? "硬约束，满足" : sc.floorFit ? "符合" : "不符合"}。` : "没有楼层要求（原文未写）。"}${statusBadge(ASSUMPTIONS.floorPrefFirst.status)} 楼层偏好排在带适配之前（用户 2026-10-18 确认）。</li>
         <li><b>带适配：</b>偏好 ${pref.zh} ${statusBadge(fn.bandPrefStatus)}${fn.bandPrefNote?`（${fn.bandPrefNote}）`:""}，<b>${fmt(sc.bandFit*100)}%</b>。带内面积比例：南 ${fmt(sc.frac.south*100)}% · 中 ${fmt(sc.frac.middle*100)}% · 北 ${fmt(sc.frac.north*100)}%。${fn.bandPref!=="middle" ? (sc.gap<=EPS ? `贴着${fn.bandPref==="south"?"南":"北"}立面，算完全适配。` : `离${fn.bandPref==="south"?"南":"北"}立面空 ${fmt(sc.gap,1)} m，按空隙打折（系数 ${fmt(sc.facadeFactor,2)}）。`) + ` ${statusBadge(ASSUMPTIONS.facadeContact.status)}` : "服务空间没有对应的立面，不打折。"}</li>
         <li><b>渐变位置：</b>冬季最低阶段 <b>${fn.minStage.winter}</b>，房间中心离较近的南/北立面 ${fmt(sc.dist,1)} m，目标约 ${fmt(sc.target,1)} m（最大 ${fmt(sc.maxDepth,1)} m），${depthWord}；渐变适配 ${fmt(sc.gradFit*100)}%。${statusBadge(ASSUMPTIONS.gradientMapping.status)} ${ASSUMPTIONS.gradientMapping.note}；${ASSUMPTIONS.depthToFacades.note} ${statusBadge(ASSUMPTIONS.depthToFacades.status)}</li>
@@ -1615,6 +1832,8 @@ function syncControls(){
   const lv = viewLevel();
   const cut = state.masses.filter(m => massCutAt(m, lv.elevation)).map(m => m.id);
   const nsp = state.layout.spaces.filter(sp => sp.levelId === lv.id).length;
+  const stc = STRATEGIES.find(x => x.id === state.strategy);
+  document.getElementById("strategy-readout").textContent = `排布方式：${stc ? stc.name : ""}`;
   document.getElementById("massing-readout").textContent = `${lv.name}（标高 ${fmt(lv.elevation,1)} m）· 截到体块 ${cut.length ? cut.join("、") : "无"} · ${nsp} 个空间`;
   document.getElementById("plan-level").innerHTML = sortedLevels().map(l => `<option value="${l.id}" ${l.id===lv.id?"selected":""}>${l.name}（${fmt(l.elevation,1)} m）</option>`).join("");
   document.getElementById("sl-south").value = state.bands.south;
@@ -1699,6 +1918,8 @@ function renderLevelPanel(){
 }
 document.getElementById("plan-level").onchange = e => { state.viewLevel = e.target.value; regenerate(); };
 document.getElementById("btn-relayout").onclick = relayoutUnlocked;
+document.getElementById("btn-options").onclick = generateOptions;
+document.getElementById("chk-adj").onchange = e => { state.showAdj = e.target.checked; renderPlan(); };
 
 // 剖面（阶段 4）：沿一条线切开，画体块轮廓、楼板（由空间推出）、屋顶、功能区和挑空
 const secSvg = document.getElementById("section");
