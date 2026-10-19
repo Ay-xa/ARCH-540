@@ -110,6 +110,18 @@
   .area.on path{fill:#9ec3dc;stroke:var(--accent);stroke-width:2.5}
   .area text{font-size:240px;fill:#555;text-anchor:middle;pointer-events:none}
   .area.on text{fill:#1f2a2e;font-weight:600}
+  #sitemap .arealine{fill:none;stroke:#2b5d7a;stroke-width:2;vector-effect:non-scaling-stroke}
+  #sitemap .parcel{cursor:pointer}
+  #sitemap .parcel path{fill:#fff;stroke:#cfc9bc;stroke-width:0.5;vector-effect:non-scaling-stroke}
+  #sitemap .parcel:hover path{fill:#fde9d3}
+  #sitemap .parcel.on path{fill:#f2b679;stroke:#b4541c;stroke-width:1.5}
+  #sitemap .park{cursor:pointer}
+  #sitemap .park path{fill:#cfe5c3;stroke:#6f9a5f;stroke-width:1;vector-effect:non-scaling-stroke}
+  #sitemap .park:hover path{fill:#b9dba9}
+  #sitemap .park.on path{fill:#f2b679;stroke:#b4541c;stroke-width:2}
+  #sitemap .park text{fill:#3d5f31;text-anchor:middle;pointer-events:none}
+  #sitemap .centre circle{fill:var(--bad);stroke:#fff;stroke-width:1;vector-effect:non-scaling-stroke}
+  #sitemap .centre text{fill:var(--bad);text-anchor:middle;font-weight:600;pointer-events:none}
   .prog{border:1px solid var(--line);border-radius:6px;background:#fff;margin-bottom:12px}
   .prog h3{margin:0;padding:8px 10px;font-size:13px;border-bottom:1px solid var(--line);color:var(--accent)}
   .prog .pr{display:grid;grid-template-columns:28px 1fr auto;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #f0ede6;font-size:13px}
@@ -183,9 +195,9 @@
 <div id="step3" class="step">
   <div class="steppage">
     <h2>第 3 步 · 选场地</h2>
-    <p class="hint">点地图上的社区，选择社区中心所在的分区（温哥华的 22 个 local area）。以后会在选中的社区里直接选地块，体块推演时就能看到周边的建筑。现在体块推演仍用 90 × 52 m 的示意场地。</p>
+    <p class="hint">先点地图上的社区（温哥华的 22 个 local area），进入社区后点一个公园或几个地块，按“用这个场地”。场地边界会带到体块推演里（绿色虚线），超出场地的体块部分不算楼面。进入社区时会联网查询温哥华开放数据。不选场地也可以继续，用 90 × 52 m 的示意场地。</p>
     <div class="sitewrap"><svg id="sitemap" xmlns="http://www.w3.org/2000/svg"></svg><div><div class="card" id="site-info"></div></div></div>
-    <p class="hint">社区边界：City of Vancouver Open Data，<i>Local area boundary</i>（Open Government Licence – Vancouver）。边界大致沿街道中线。北在上。</p>
+    <p class="hint">数据：City of Vancouver Open Data（Open Government Licence – Vancouver）——<i>Local area boundary</i>、<i>Parks – polygon representation</i>、<i>Property parcel polygons</i>、<i>Community centres</i>。社区边界大致沿街道中线；公园边界只是示意，不等于法定地界；地块按物业评估划分，公园用地通常不在地块里。北在上。</p>
     <div class="stepnav"><button data-goto="2">← 上一步</button><button class="primary" data-goto="4">下一步：体块推演 →</button></div>
   </div>
 </div>
@@ -644,7 +656,9 @@ const state = {
   step: 1,            // 2026-10-18：当前步骤 1 选择功能 / 2 面积与净高 / 3 选场地 / 4 体块推演 / 5 功能排布与邻接
   excluded: {},       // 2026-10-18：第 1 步里没勾选的功能 { fnId: true }
   layoutStarted: false, // 2026-10-18：设计师进入过第 5 步以后，排布才开始“记住”位置
-  site: { area:null }, // 2026-10-18：第 3 步选的社区（以后加地块）
+  site: { area:null, view:"city", pick:null, applied:null }, // 2026-10-18：第 3 步选的社区、选中的公园 / 地块、已用作场地的那块
+  sitePolys: null,    // 已用作场地的边界（场地坐标，米）；null = 90 × 52 m 示意场地
+  siteMask: null,     // 场地内的格子（1 = 场地内）
   section: { dir:"ew", pos:null },   // 剖面：方向和位置（null = 切过选中体块的中线）
   bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
   overrides: {},   // fnId -> { areaM2, date }
@@ -676,8 +690,17 @@ const areaStatusOf = fn => state.overrides[fn.id] ? `${STATUS.userSet}（${state
    - 挑空（阶段 4）：用户手动标成挑空的体块，在它最低的一层之上不切楼板（上面各层的格子是挑空）；
      大功能需要的净高超过一层时，在排布时占用几个层段（见 ④）。
    ===================================================================== */
-const GW = SITE.w, GD = SITE.d;
+// 场地网格（2026-10-18 起可变）：默认 90 × 52 m 示意场地；在第 3 步选了公园或地块后，变成那块场地的外接框大小。
+let GW = SITE.w, GD = SITE.d;
 const cellIdx = (i, j) => j * GW + i;
+// 工作窗口：所有体块的外接框外扩 2 m（真实场地可能有几百米宽，只在体块附近计算，保持速度）
+let WIN = { i0:0, i1:GW, j0:0, j1:GD };
+function updateWindow(){
+  if (!state.masses.length){ WIN = { i0:0, i1:GW, j0:0, j1:GD }; return; }
+  const bs = state.masses.map(m => bboxOf(m.points));
+  WIN = { i0:Math.max(0, Math.floor(Math.min(...bs.map(b => b.x0))) - 2), i1:Math.min(GW, Math.ceil(Math.max(...bs.map(b => b.x1))) + 2),
+          j0:Math.max(0, Math.floor(Math.min(...bs.map(b => b.y0))) - 2), j1:Math.min(GD, Math.ceil(Math.max(...bs.map(b => b.y1))) + 2) };
+}
 function pointInPoly(x, y, pts){
   let inside = false;
   for (let a = 0, b = pts.length - 1; a < pts.length; b = a++){
@@ -717,7 +740,7 @@ function mergeRuns(items){
 // 一组格子的前缀和：快速判断一个矩形是否完全落在这组格子里
 function prefixOf(mask){
   const P = new Int32Array((GW + 1) * (GD + 1)), W1 = GW + 1;
-  for (let j = 0; j < GD; j++) for (let i = 0; i < GW; i++)
+  for (let j = WIN.j0; j < WIN.j1; j++) for (let i = WIN.i0; i < WIN.i1; i++)
     P[(j + 1) * W1 + (i + 1)] = (mask[cellIdx(i, j)] ? 1 : 0) + P[j * W1 + (i + 1)] + P[(j + 1) * W1 + i] - P[j * W1 + i];
   return P;
 }
@@ -740,7 +763,7 @@ function refreshSpace(sp){
     const o = owner[cellIdx(ni, nj)];
     return o === -1 ? "ext" : o === -2 ? null : o !== c ? "part" : null;   // −2 = 挑空，不算墙
   };
-  for (let idx = 0; idx < GW * GD; idx++){
+  for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++){
     if (!usable[idx]) continue;
     const i = idx % GW, j = (idx - i) / GW;
     area++; cmin = Math.min(cmin, info.clear[idx]); cmax = Math.max(cmax, info.clear[idx]);
@@ -759,6 +782,7 @@ function refreshSpace(sp){
 }
 function analyzeSpaces(){
   const S = ASSUMPTIONS, lvls = sortedLevels(), spaces = [], warnings = [], levelInfo = [];
+  updateWindow();
   for (const m of state.masses){ m._bb = bboxOf(m.points); m._first = lvls.findIndex(l => massCutAt(m, l.elevation)); }
   const cellsOf = new Map(state.masses.map(m => [m.id, massCells(m)]));
   // 底标高不在任何标高上的体块：它和上面第一个标高之间没有楼面
@@ -789,12 +813,17 @@ function analyzeSpaces(){
       if (connected) parent[find(a)] = find(b);
     }
     // 格子归属：按体块列表顺序先到先得（重叠但不连通时，重叠部分归列表里靠前的体块）；挑空优先
-    present.forEach((m, k) => { const c = find(k); for (const idx of cellsOf.get(m.id)) if (owner[idx] === -1) owner[idx] = c; });
+    const outside = {};   // 场地外的格子（选了真实场地时）不算楼面
+    present.forEach((m, k) => { const c = find(k); for (const idx of cellsOf.get(m.id)){
+      if (state.siteMask && !state.siteMask[idx]){ outside[m.id] = (outside[m.id] || 0) + 1; continue; }
+      if (owner[idx] === -1) owner[idx] = c; } });
+    for (const [mid, n] of Object.entries(outside)) if (state.masses.find(m => m.id === mid)._first === li)
+      warnings.push(`体块 ${mid} 有 ${fmt(n)} m² 超出场地边界，这部分不算楼面；请在第 4 步把体块挪进场地。`);
     // 净高：从标高往上，体块连续覆盖到的高度（上下叠放的体块接着算）= reach；最多到下一个标高；减去楼板加结构厚度
     // 手动挑空的体块在它最低的一层不受中间标高限制
     const clear = new Float32Array(GW * GD).fill(NaN), reach = new Float32Array(GW * GD).fill(NaN);
     const voidBase = state.masses.filter(m => m.void && m._first === li);
-    for (let idx = 0; idx < GW * GD; idx++){
+    for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++){
       if (owner[idx] < 0) continue;
       const i = idx % GW, j = (idx - i) / GW;
       let z = e, grew = true;
@@ -813,7 +842,7 @@ function analyzeSpaces(){
       const masses = present.filter((_, k) => find(k) === c).map(m => m.id);
       const usable = new Uint8Array(GW * GD);
       let low = 0;
-      for (let idx = 0; idx < GW * GD; idx++){
+      for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++){
         if (owner[idx] !== c) continue;
         if (clear[idx] < S.minUsableClear.value - EPS){ low++; continue; }
         usable[idx] = 1;
@@ -832,7 +861,7 @@ function columnClear(sp, n){
   if (n === 1) return sp.info.clear;
   const lvls = sortedLevels(), capE = sp.levelIdx + n < lvls.length ? lvls[sp.levelIdx + n].elevation : Infinity;
   const out = new Float32Array(GW * GD).fill(NaN), reach = sp.info.reach, t = ASSUMPTIONS.slabThickness.value;
-  for (let idx = 0; idx < GW * GD; idx++) if (sp.usable[idx]) out[idx] = Math.min(reach[idx], capE) - sp.elevation - t;
+  for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++) if (sp.usable[idx]) out[idx] = Math.min(reach[idx], capE) - sp.elevation - t;
   return out;
 }
 // 房间的净高：它覆盖的格子里最低的净高
@@ -1103,7 +1132,7 @@ function candidateMask(fn, sp, n, occ){
   const ups = [];
   for (let k = 1; k < n; k++) ups.push({ occ:occ.get(lvls[sp.levelIdx + k].id), e:lvls[sp.levelIdx + k].elevation });
   let any = 0;
-  for (let idx = 0; idx < GW * GD; idx++){
+  for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++){
     if (!sp.usable[idx] || col[idx] < req - EPS) continue;
     if (n > 1 && !(sp.info.reach[idx] > ups[ups.length - 1].e + EPS)) continue;
     if (ups.some(u => u.occ[idx])) continue;
@@ -1141,7 +1170,7 @@ function maxReachableClear(fn, spaces){
   for (const sp of spaces){
     if ((fn.entry || (fn.floorReq && fn.floorReq.value === "mustGround")) && sp.levelIdx !== 0) continue;
     if (state.levelPins[fn.id] && sp.levelId !== state.levelPins[fn.id]) continue;
-    for (let idx = 0; idx < GW * GD; idx++){
+    for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++){
       if (!sp.usable[idx]) continue;
       const v = sp.info.reach[idx] - sp.elevation - ASSUMPTIONS.slabThickness.value;
       if (v > best){ best = v; where = sp; }
@@ -1181,7 +1210,7 @@ function matchSpaceIds(spaces){
     let best = null, bestN = 0;
     for (const p of prev){
       if (p.levelId !== sp.levelId || used.has(p.id)) continue;
-      let n = 0; for (let idx = 0; idx < GW * GD; idx++) if (sp.usable[idx] && p.mask[idx]) n++;
+      let n = 0; for (let wj = WIN.j0; wj < WIN.j1; wj++) for (let idx = wj * GW + WIN.i0, we = wj * GW + WIN.i1; idx < we; idx++) if (sp.usable[idx] && p.mask[idx]) n++;
       if (n > bestN){ bestN = n; best = p; }
     }
     if (best){ sp.id = best.id; used.add(best.id); sp.matched = true; }
@@ -1539,8 +1568,9 @@ function cellBlocks(test){
   const rows = [];
   for (let j = 0; j < GD; j++){
     const runs = []; let a = -1;
-    for (let i = 0; i <= GW; i++){
-      const on = i < GW && test(cellIdx(i, j));
+    if (j < WIN.j0 || j >= WIN.j1){ rows.push(runs); continue; }   // 工作窗口外没有体块
+    for (let i = WIN.i0; i <= WIN.i1; i++){
+      const on = i < WIN.i1 && test(cellIdx(i, j));
       if (on && a < 0) a = i;
       if (!on && a >= 0){ runs.push([a, i]); a = -1; }
     }
@@ -1564,20 +1594,26 @@ function renderPlan(){
   const pv = el("pattern",{id:"hatch-void",width:8,height:8,patternUnits:"userSpaceOnUse",patternTransform:"rotate(-45)"});
   pv.appendChild(el("rect",{width:8,height:8,fill:"#dceaf5"})); pv.appendChild(el("line",{x1:0,y1:0,x2:0,y2:8,stroke:"#7aa7c7","stroke-width":1.5}));
   defs.appendChild(pat); defs.appendChild(pv); svg.appendChild(defs);
-  // 场地网格
+  // 看的范围：体块附近（外扩 12 m），限制在场地内；真实场地可能很大，不画整块（2026-10-18）
+  updateWindow();
+  const vx0 = Math.max(0, WIN.i0 - 10), vx1 = Math.min(SITE.w, WIN.i1 + 10), vy0 = Math.max(0, WIN.j0 - 10), vy1 = Math.min(SITE.d, WIN.j1 + 10);
+  svg.setAttribute("viewBox", `${toSX(vx0) - 24} ${toSY(vy1) - 24} ${(vx1 - vx0) * PX + 48} ${(vy1 - vy0) * PX + 48}`);
+  // 网格（1 m 细线、10 m 粗线）
   const g = el("g");
-  for (let x=0;x<=SITE.w;x++) g.appendChild(el("line",{x1:toSX(x),y1:toSY(0),x2:toSX(x),y2:toSY(SITE.d),stroke:x%10?"#f0ede6":"#ddd8cc","stroke-width":x%10?0.5:1}));
-  for (let y=0;y<=SITE.d;y++) g.appendChild(el("line",{x1:toSX(0),y1:toSY(y),x2:toSX(SITE.w),y2:toSY(y),stroke:y%10?"#f0ede6":"#ddd8cc","stroke-width":y%10?0.5:1}));
+  for (let x=Math.ceil(vx0);x<=vx1;x++) g.appendChild(el("line",{x1:toSX(x),y1:toSY(vy0),x2:toSX(x),y2:toSY(vy1),stroke:x%10?"#f0ede6":"#ddd8cc","stroke-width":x%10?0.5:1}));
+  for (let y=Math.ceil(vy0);y<=vy1;y++) g.appendChild(el("line",{x1:toSX(vx0),y1:toSY(y),x2:toSX(vx1),y2:toSY(y),stroke:y%10?"#f0ede6":"#ddd8cc","stroke-width":y%10?0.5:1}));
   svg.appendChild(g);
-  svg.appendChild(el("rect",{x:0,y:0,width:SITE.w*PX,height:SITE.d*PX,fill:"none",stroke:"#bbb","stroke-dasharray":"4 4"}));
-  svg.appendChild(el("text",{x:0,y:-8,"font-size":11,fill:"#888"},`场地 ${SITE.w} × ${SITE.d} m · ${lv.name}（标高 ${fmt(lv.elevation,1)} m）的截面`));
-  svg.appendChild(el("text",{x:SITE.w*PX-30,y:-8,"font-size":12,fill:"#333","font-weight":"600"},"北 ↑"));
+  if (state.sitePolys){   // 真实场地的边界（绿色虚线）
+    for (const poly of state.sitePolys) svg.appendChild(el("polygon",{points:poly.map(p => `${toSX(p[0])},${toSY(p[1])}`).join(" "),fill:"rgba(120,170,100,0.06)",stroke:"#5f8f4e","stroke-width":2,"stroke-dasharray":"8 4","pointer-events":"none"}));
+  } else svg.appendChild(el("rect",{x:0,y:0,width:SITE.w*PX,height:SITE.d*PX,fill:"none",stroke:"#bbb","stroke-dasharray":"4 4"}));
+  svg.appendChild(el("text",{x:toSX(vx0),y:toSY(vy1)-8,"font-size":11,fill:"#888"},`${state.site.applied ? `场地：${state.site.applied.label}（绿色虚线）` : `示意场地 ${SITE.w} × ${SITE.d} m`} · ${lv.name}（标高 ${fmt(lv.elevation,1)} m）的截面`));
+  svg.appendChild(el("text",{x:toSX(vx1)-30,y:toSY(vy1)-8,"font-size":12,fill:"#333","font-weight":"600"},"北 ↑"));
 
   const info = L.levelInfo.find(x => x.levelId === lv.id);
   const spaces = L.spaces.filter(s => s.levelId === lv.id);
   const cut = state.masses.filter(m => massCutAt(m, lv.elevation));
   if (!cut.length){
-    svg.appendChild(el("text",{x:SITE.w*PX/2,y:SITE.d*PX/2,"text-anchor":"middle","font-size":13,fill:"#888"},`${lv.name} 处没有体块`));
+    svg.appendChild(el("text",{x:toSX((vx0+vx1)/2),y:toSY((vy0+vy1)/2),"text-anchor":"middle","font-size":13,fill:"#888"},`${lv.name} 处没有体块`));
     return;
   }
   // 体块（最下层，可点选）
@@ -1965,7 +2001,7 @@ function syncControls(){
 
 // 添加体块（属性栏和三维视图里的按钮共用）：默认 20 × 15 m，放在场地西南角，高一层
 function addMass(){
-  const nm = newMass(0, 0, 20, 15, 0, ASSUMPTIONS.storeyHeight.value);
+  const nm = newMass(Math.max(0, Math.round(SITE.w / 2 - 10)), Math.max(0, Math.round(SITE.d / 2 - 7)), Math.min(20, SITE.w), Math.min(15, SITE.d), 0, ASSUMPTIONS.storeyHeight.value);
   state.masses.push(nm); state.selectedMass = nm.id; state.selectedFace = null; state.section.pos = null; regenerate();
 }
 document.getElementById("v3-add").onclick = addMass;
@@ -2052,8 +2088,10 @@ function renderSection(){
   document.getElementById("sec-dir").value = dir; document.getElementById("sec-pos").value = pos;
   const span = ew ? GW : GD;
   const zMax = Math.max(lvls[lvls.length - 1].elevation + 4, ...state.masses.map(m => m.top)) + 2, zMin = Math.min(0, lvls[0].elevation) - 1;
-  const SX = 9, SZ = 14, W = span * SX + 90, H = (zMax - zMin) * SZ + 30;
-  secSvg.setAttribute("viewBox", `-60 -10 ${W} ${H}`);
+  const SX = 9, SZ = 14, H = (zMax - zMin) * SZ + 30;
+  updateWindow();
+  const a0 = Math.max(0, (ew ? WIN.i0 : WIN.j0) - 8), a1 = Math.min(span, (ew ? WIN.i1 : WIN.j1) + 8);   // 只看体块附近
+  secSvg.setAttribute("viewBox", `${a0 * SX - 60} -10 ${(a1 - a0) * SX + 90} ${H}`);
   secSvg.innerHTML = "";
   const X = a => a * SX, Z = z => (zMax - z) * SZ;
   const add = (tag, attrs, text) => { const e = el(tag, attrs, text); secSvg.appendChild(e); return e; };
@@ -2067,7 +2105,7 @@ function renderSection(){
   // 标高（虚线）
   for (const l of lvls){
     add("line",{x1:X(0),y1:Z(l.elevation),x2:X(span),y2:Z(l.elevation),stroke:"#bbb","stroke-dasharray":"5 4"});
-    add("text",{x:-56,y:Z(l.elevation)+4,"font-size":10,fill:"#777"},`${l.name} ${fmt(l.elevation,1)}`);
+    add("text",{x:X(a0)-56,y:Z(l.elevation)+4,"font-size":10,fill:"#777"},`${l.name} ${fmt(l.elevation,1)}`);
   }
   // 挑空（这一层没有楼面的格子，画到下一个标高或体块顶）
   lvls.forEach((l, li) => {
@@ -2111,7 +2149,7 @@ function renderSection(){
     add("rect",{x:X(a0),y:Z(m.top),width:X(a1-a0),height:Z(m.base)-Z(m.top),fill:"none",stroke:m.id===am.id?"#2b5d7a":"#888","stroke-width":m.id===am.id?2:1,"stroke-dasharray":"6 4"});
     add("text",{x:X(a0)+3,y:Z(m.top)-4,"font-size":10,fill:m.id===am.id?"#2b5d7a":"#888"},m.id);
   }
-  add("text",{x:X(0),y:H-14,"font-size":10,fill:"#777"},ew ? `东西向剖面，切在 y = ${pos}–${pos+1} m（西 ← → 东）` : `南北向剖面，切在 x = ${pos}–${pos+1} m（南 ← → 北）`);
+  add("text",{x:X(a0),y:H-14,"font-size":10,fill:"#777"},ew ? `东西向剖面，切在 y = ${pos}–${pos+1} m（西 ← → 东）` : `南北向剖面，切在 x = ${pos}–${pos+1} m（南 ← → 北）`);
 }
 document.getElementById("sec-dir").onchange = e => { state.section.dir = e.target.value; state.section.pos = null; renderSection(); };
 document.getElementById("sec-pos").onchange = e => { const v = parseFloat(e.target.value); if (isFinite(v)) state.section.pos = v; renderSection(); };
@@ -2210,22 +2248,132 @@ function renderProgramAreas(){
   document.querySelectorAll("[data-reset]").forEach(b => b.onclick = () => { const f = byId[b.dataset.reset]; delete state.overrides[f.id]; f.count = f._countDefault; f.minClearHeight = f._clearDefault; regenerate(); });
 }
 
-// 第 3 步：选场地（2026-10-18）。线框地图，点社区选中；以后在这里选地块
+// 第 3 步：选场地（2026-10-18）。先在全市地图上点社区；进入社区后联网查询公园、地块、社区中心，点选一个公园或几个地块作为场地
+// 数据：City of Vancouver Open Data（Open Government Licence – Vancouver）：Parks – polygon representation、Property parcel polygons、Community centres
+const ODS = "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets";
+const LAT0 = 49.25, LON0 = -123.12, KX = 111320 * Math.cos(LAT0 * Math.PI / 180), KY = 110540;   // 与嵌入的社区边界同一套米坐标
+const toCity = (lon, lat) => [(lon - LON0) * KX, (lat - LAT0) * KY];
+const toLonLat = (x, y) => [x / KX + LON0, y / KY + LAT0];
+const SITE_DATA = {};   // 社区名 → { status:"loading"|"ok"|"error", parks, parcels, centres, error }
+const ringArea = r => { let a = 0; for (let k = 0; k < r.length; k++){ const [x1, y1] = r[k], [x2, y2] = r[(k + 1) % r.length]; a += x1 * y2 - x2 * y1; } return Math.abs(a) / 2; };
+const ringCentroid = r => { let a = 0, cx = 0, cy = 0; for (let k = 0; k < r.length; k++){ const [x1, y1] = r[k], [x2, y2] = r[(k + 1) % r.length], f = x1 * y2 - x2 * y1; a += f; cx += (x1 + x2) * f; cy += (y1 + y2) * f; } return a ? [cx / (3 * a), cy / (3 * a)] : r[0]; };
+const ringsOf = g => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []).map(poly => poly[0].map(([lon, lat]) => toCity(lon, lat)));
+async function odsGeo(ds, params){
+  const r = await fetch(`${ODS}/${ds}/exports/geojson?` + new URLSearchParams(params));
+  if (!r.ok) throw new Error(`${ds}：HTTP ${r.status}`);
+  return r.json();
+}
+async function loadAreaData(name){
+  if (SITE_DATA[name] && SITE_DATA[name].status !== "error") return;
+  SITE_DATA[name] = { status:"loading" }; renderSiteMap();
+  const a = LOCAL_AREAS.find(x => x.name === name);
+  const xs = a.ring.map(p => p[0]), ys = a.ring.map(p => p[1]);
+  const [lonA, latA] = toLonLat(Math.min(...xs), Math.min(...ys)), [lonB, latB] = toLonLat(Math.max(...xs), Math.max(...ys));
+  try {
+    const [parks, parcels, centres] = await Promise.all([
+      odsGeo("parks-polygon-representation", { where:`local_area="${name}"` }),
+      odsGeo("property-parcel-polygons", { where:`in_bbox(geo_point_2d, ${latA}, ${lonA}, ${latB}, ${lonB})`, select:"civic_number,streetname,site_id,geom" }),
+      odsGeo("community-centres", { where:`geo_local_area="${name}"` }),
+    ]);
+    const d = { status:"ok" };
+    d.parks = parks.features.map((f, k) => ({ id:`P${k}`, name:f.properties.park_name, ha:f.properties.area_hectare, cls:f.properties.classification, polys:ringsOf(f.geometry) })).filter(p => p.polys.length);
+    d.parcels = parcels.features.map((f, k) => { const polys = ringsOf(f.geometry); if (!polys.length) return null;
+      const c = ringCentroid(polys[0]); return { id:`L${k}`, addr:`${f.properties.civic_number || ""} ${f.properties.streetname || ""}`.trim(), polys, c, m2:polys.reduce((t, r) => t + ringArea(r), 0) }; })
+      .filter(p => p && pointInPoly(p.c[0], p.c[1], a.ring));   // 只留中心点在社区边界内的地块
+    d.centres = centres.features.filter(f => f.geometry).map(f => ({ name:f.properties.name, addr:f.properties.address, xy:toCity(...f.geometry.coordinates) }));
+    SITE_DATA[name] = d;
+  } catch (e){
+    SITE_DATA[name] = { status:"error", error:String(e.message || e) };
+  }
+  renderSiteMap();
+}
+// 选中的场地：公园（一个）或地块（可以连选几个）
+function pickedSite(){
+  const pk = state.site.pick, d = SITE_DATA[state.site.area];
+  if (!pk || !d || d.status !== "ok") return null;
+  if (pk.type === "park"){ const p = d.parks.find(x => x.id === pk.ids[0]); return p && { polys:p.polys, label:`${p.name}（公园，${fmt(p.ha, 2)} ha）`, m2:p.polys.reduce((t, r) => t + ringArea(r), 0) }; }
+  const ps = d.parcels.filter(x => pk.ids.includes(x.id)); if (!ps.length) return null;
+  return { polys:ps.flatMap(x => x.polys), label:ps.length === 1 ? `地块 ${ps[0].addr || ""}` : `${ps.length} 个地块（${ps.slice(0, 3).map(x => x.addr).join("、")}${ps.length > 3 ? "……" : ""}）`, m2:ps.reduce((t, x) => t + x.m2, 0) };
+}
+// 把选中的场地变成体块推演的场地：网格 = 场地外接框；场地外的格子不算楼面；体块整体挪到场地中间
+function applySite(){
+  const st = pickedSite(); if (!st) return;
+  const xs = st.polys.flatMap(r => r.map(p => p[0])), ys = st.polys.flatMap(r => r.map(p => p[1]));
+  const ox = Math.floor(Math.min(...xs)), oy = Math.floor(Math.min(...ys));
+  SITE.w = Math.ceil(Math.max(...xs)) - ox; SITE.d = Math.ceil(Math.max(...ys)) - oy; GW = SITE.w; GD = SITE.d;
+  state.sitePolys = st.polys.map(r => r.map(([x, y]) => [x - ox, y - oy]));
+  const mask = new Uint8Array(GW * GD);
+  for (const poly of state.sitePolys){
+    const b = bboxOf(poly);
+    for (let j = Math.max(0, Math.floor(b.y0)); j < Math.min(GD, Math.ceil(b.y1)); j++)
+      for (let i = Math.max(0, Math.floor(b.x0)); i < Math.min(GW, Math.ceil(b.x1)); i++) if (pointInPoly(i + 0.5, j + 0.5, poly)) mask[cellIdx(i, j)] = 1;
+  }
+  state.siteMask = mask;
+  // 体块整体挪到场地的中心（面积最大的那块的形心），吸附 1 m，不出外接框
+  const big = state.sitePolys.reduce((a, r) => !a || ringArea(r) > ringArea(a) ? r : a, null), c = ringCentroid(big);
+  const bs = state.masses.map(m => bboxOf(m.points)), u = { x0:Math.min(...bs.map(b => b.x0)), y0:Math.min(...bs.map(b => b.y0)), x1:Math.max(...bs.map(b => b.x1)), y1:Math.max(...bs.map(b => b.y1)) };
+  const dx = Math.round(clamp(c[0] - (u.x0 + u.x1) / 2, -u.x0, SITE.w - u.x1)), dy = Math.round(clamp(c[1] - (u.y0 + u.y1) / 2, -u.y0, SITE.d - u.y1));
+  for (const m of state.masses) m.points = m.points.map(([x, y]) => [x + dx, y + dy]);
+  state.site.applied = { area:state.site.area, label:st.label, m2:st.m2, origin:[ox, oy], w:SITE.w, d:SITE.d };
+  state.memory = {}; state.spaceMemory = null; state.section.pos = null;   // 场地换了，原来的排布不再记住
+  regenerate();
+  if (window.frame3D) window.frame3D();
+  renderSiteMap();
+}
 function renderSiteMap(){
-  const map = document.getElementById("sitemap");
-  const xs = LOCAL_AREAS.flatMap(a => a.ring.map(p => p[0])), ys = LOCAL_AREAS.flatMap(a => a.ring.map(p => p[1]));
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 400;
-  map.setAttribute("viewBox", `${x0 - pad} ${-y1 - pad} ${x1 - x0 + 2 * pad} ${y1 - y0 + 2 * pad}`);   // 北在上：y 取负
-  map.innerHTML = LOCAL_AREAS.map(a => `<g class="area ${state.site.area === a.name ? "on" : ""}" data-area="${a.name}">
-    <path d="M${a.ring.map(p => `${p[0]},${-p[1]}`).join("L")}Z"></path><text x="${a.c[0]}" y="${-a.c[1] + 80}">${a.name}</text></g>`).join("");
-  map.querySelectorAll("[data-area]").forEach(g => g.onclick = () => { state.site.area = g.dataset.area; renderSiteMap(); renderMassingCheck(); });
-  const a = LOCAL_AREAS.find(x => x.name === state.site.area);
-  document.getElementById("site-info").innerHTML = a ? `<h3 style="margin:0 0 6px;color:var(--accent)">${a.name}</h3>
-      <div class="kv"><div>社区面积</div><div>约 ${fmt(a.km2, 2)} km²（由边界算出）</div><div>地块</div><div>以后在这里选</div><div>体块推演场地</div><div>暂用 ${SITE.w} × ${SITE.d} m 示意场地</div></div>
-      <p class="hint">以后选地块后：场地边界换成真实地块，三维里显示周边建筑（2009 年的建筑轮廓和高度）。</p>
-      <div class="stepnav"><span></span><button class="primary" data-goto2="4">进入体块推演 →</button></div>`
-    : `<p class="hint">还没选社区。点地图上的一个社区。</p>`;
-  const go = document.querySelector("[data-goto2]"); if (go) go.onclick = () => setStep(4);
+  const map = document.getElementById("sitemap"), info = document.getElementById("site-info");
+  const area = LOCAL_AREAS.find(x => x.name === state.site.area);
+  const pathOf = r => `M${r.map(p => `${Math.round(p[0])},${Math.round(-p[1])}`).join("L")}Z`;
+  // ---- 全市地图 ----
+  if (!area || state.site.view !== "area"){
+    const xs = LOCAL_AREAS.flatMap(a => a.ring.map(p => p[0])), ys = LOCAL_AREAS.flatMap(a => a.ring.map(p => p[1]));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 400;
+    map.setAttribute("viewBox", `${x0 - pad} ${-y1 - pad} ${x1 - x0 + 2 * pad} ${y1 - y0 + 2 * pad}`);   // 北在上：y 取负
+    map.innerHTML = LOCAL_AREAS.map(a => `<g class="area ${state.site.area === a.name ? "on" : ""}" data-area="${a.name}"><path d="${pathOf(a.ring)}"></path><text x="${a.c[0]}" y="${-a.c[1] + 80}">${a.name}</text></g>`).join("");
+    map.querySelectorAll("[data-area]").forEach(g => g.onclick = () => { state.site.area = g.dataset.area; state.site.view = "area"; state.site.pick = null; renderSiteMap(); loadAreaData(state.site.area); });
+    info.innerHTML = `<p class="hint">点地图上的一个社区，进入这个社区选公园或地块。</p>${state.site.applied ? `<p>当前场地：<b>${state.site.applied.label}</b>（${state.site.applied.area}）</p>` : ""}`;
+    return;
+  }
+  // ---- 社区地图：公园、地块、社区中心 ----
+  const xs = area.ring.map(p => p[0]), ys = area.ring.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 120;
+  map.setAttribute("viewBox", `${x0 - pad} ${-y1 - pad} ${x1 - x0 + 2 * pad} ${y1 - y0 + 2 * pad}`);
+  const d = SITE_DATA[area.name] || { status:"loading" }, pk = state.site.pick || { type:null, ids:[] };
+  const fs = Math.max(30, (x1 - x0) / 45);   // 文字大小随社区大小
+  let html = `<path d="${pathOf(area.ring)}" class="arealine"></path>`;
+  if (d.status === "ok"){
+    html += `<g class="parcels">${d.parcels.map(p => `<g class="parcel ${pk.type === "parcels" && pk.ids.includes(p.id) ? "on" : ""}" data-parcel="${p.id}">${p.polys.map(r => `<path d="${pathOf(r)}"></path>`).join("")}</g>`).join("")}</g>`;
+    html += `<g class="parks">${d.parks.map(p => `<g class="park ${pk.type === "park" && pk.ids[0] === p.id ? "on" : ""}" data-park="${p.id}">${p.polys.map(r => `<path d="${pathOf(r)}"></path>`).join("")}<text x="${Math.round(ringCentroid(p.polys[0])[0])}" y="${Math.round(-ringCentroid(p.polys[0])[1])}" style="font-size:${fs}px">${p.name}</text></g>`).join("")}</g>`;
+    html += d.centres.map(c => `<g class="centre"><circle cx="${Math.round(c.xy[0])}" cy="${Math.round(-c.xy[1])}" r="${fs * 0.5}"></circle><text x="${Math.round(c.xy[0])}" y="${Math.round(-c.xy[1] - fs * 0.8)}" style="font-size:${fs}px">${c.name} 社区中心</text></g>`).join("");
+  }
+  map.innerHTML = html;
+  map.onclick = e => {
+    const pg = e.target.closest("[data-park]"), lg = e.target.closest("[data-parcel]");
+    if (pg) state.site.pick = { type:"park", ids:[pg.dataset.park] };
+    else if (lg){ const id = lg.dataset.parcel;
+      if (pk.type === "parcels"){ const ids = pk.ids.includes(id) ? pk.ids.filter(x => x !== id) : [...pk.ids, id]; state.site.pick = ids.length ? { type:"parcels", ids } : null; }
+      else state.site.pick = { type:"parcels", ids:[id] }; }
+    else return;
+    renderSiteMap();
+  };
+  const st = pickedSite();
+  const dims = st ? (() => { const a = st.polys.flatMap(r => r.map(p => p[0])), b = st.polys.flatMap(r => r.map(p => p[1])); return `${Math.round(Math.max(...a) - Math.min(...a))} × ${Math.round(Math.max(...b) - Math.min(...b))} m`; })() : "";
+  info.innerHTML = `<h3 style="margin:0 0 6px;color:var(--accent)">${area.name}</h3>
+    ${d.status === "loading" ? `<p class="hint">正在查询温哥华开放数据（公园、地块、社区中心）……</p>` : ""}
+    ${d.status === "error" ? `<div class="banner bad">查询失败：${d.error}。选场地需要联网。<div class="btnrow"><button data-retry>再试一次</button></div></div>` : ""}
+    ${d.status === "ok" ? `<div class="kv"><div>公园</div><div>${d.parks.length} 个（绿色）</div><div>地块</div><div>${fmt(d.parcels.length)} 块（白色）</div><div>社区中心</div><div>${d.centres.map(c => c.name).join("、") || "无"}（红点）</div></div>
+      <p class="hint">点一个公园，或点地块（可以连选几块，再点一次取消）。社区中心大多建在公园里。</p>` : ""}
+    ${st ? `<div class="card" style="margin:6px 0"><b>选中：</b>${st.label}<div class="kv"><div>面积</div><div>${fmt(st.m2)} m²</div><div>外接框</div><div>${dims}</div></div>
+      <div class="btnrow"><button class="primary" data-apply>用这个场地</button><button class="link" data-clear>清除选择</button></div></div>` : ""}
+    ${state.site.applied ? `<p>当前场地：<b>${state.site.applied.label}</b>（${state.site.applied.area}）<br><span class="hint">体块已挪到场地中间；超出场地的部分不算楼面。</span></p>
+      <div class="stepnav"><span></span><button class="primary" data-goto2="4">进入体块推演 →</button></div>` : ""}
+    <div class="btnrow" style="margin-top:6px"><button class="link" data-city>← 回到全市地图</button></div>`;
+  const q = sel => info.querySelector(sel);
+  if (q("[data-retry]")) q("[data-retry]").onclick = () => loadAreaData(area.name);
+  if (q("[data-apply]")) q("[data-apply]").onclick = applySite;
+  if (q("[data-clear]")) q("[data-clear]").onclick = () => { state.site.pick = null; renderSiteMap(); };
+  if (q("[data-goto2]")) q("[data-goto2]").onclick = () => setStep(4);
+  q("[data-city]").onclick = () => { state.site.view = "city"; renderSiteMap(); };
 }
 
 // 第 4 步：体块推演时的实时检查
@@ -2236,7 +2384,7 @@ function renderMassingCheck(){
   const tall = act.filter(f => f.minClearHeight && f.minClearHeight.value > ASSUMPTIONS.storeyHeight.value - ASSUMPTIONS.slabThickness.value + EPS);
   const ok = b => `<b style="color:${b ? "var(--ok)" : "var(--bad)"}">${b ? "✓" : "✗"}</b>`;
   document.getElementById("massing-check").innerHTML = `<h3>体块够不够用（实时）</h3>
-    <p class="hint" style="margin:0 0 4px">场地：${state.site.area ? `<b>${state.site.area}</b>（地块以后选）` : "还没选社区（第 3 步）"}；现在用 ${SITE.w} × ${SITE.d} m 的示意场地。</p>
+    <p class="hint" style="margin:0 0 4px">场地：${state.site.applied ? `<b>${state.site.applied.label}</b>（${state.site.applied.area}，${fmt(state.site.applied.m2)} m²，绿色虚线）` : `${state.site.area ? `${state.site.area}，` : ""}还没选场地，用 ${SITE.w} × ${SITE.d} m 的示意场地（第 3 步可选）`}</p>
     <div class="kv">
       <div>可用楼面（所有标高）</div><div>${ok(L.usableStart >= L.net - EPS)} ${fmt(L.usableStart)} m² / 需要净面积 ${fmt(L.net)} m²</div>
       <div>按系数放大后</div><div>${ok(L.usableStart >= L.gross - EPS)} 总建筑面积约 ${fmt(L.gross)} m²</div>
@@ -2290,16 +2438,33 @@ camera.position.set(SITE.w/2 - 55, 65, 55);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(center); controls.update();
 
-// 场地：地面、10 m 网格、指北箭头（固定不变）
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(SITE.w, SITE.d), new THREE.MeshBasicMaterial({ color:0xf6f4ef }));
-ground.rotation.x = -Math.PI/2; ground.position.set(SITE.w/2, -0.01, -SITE.d/2); scene.add(ground);
-const gridPts = [];
-for (let x=0; x<=SITE.w; x+=10) gridPts.push(x,0,0, x,0,-SITE.d);
-for (let y=0; y<=SITE.d; y+=10) gridPts.push(0,0,-y, SITE.w,0,-y);
-gridPts.push(SITE.w,0,0, SITE.w,0,-SITE.d, 0,0,-SITE.d, SITE.w,0,-SITE.d);
-const gridGeo = new THREE.BufferGeometry(); gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(gridPts, 3));
-scene.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color:0xddd8cc })));
-scene.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(SITE.w+4, 0, -SITE.d+8), 8, 0x2b5d7a, 2.5, 1.6));
+// 场地：地面、10 m 网格、场地边界、指北箭头（场地换了就重画，2026-10-18）
+const stat = new THREE.Group(); scene.add(stat); let statKey = "";
+function buildStatic(){
+  const key = `${SITE.w}x${SITE.d}:${state.site.applied ? state.site.applied.label : "示意"}`;
+  if (key === statKey) return; statKey = key;
+  stat.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); stat.clear();
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(SITE.w, SITE.d), new THREE.MeshBasicMaterial({ color:0xf6f4ef }));
+  ground.rotation.x = -Math.PI/2; ground.position.set(SITE.w/2, -0.01, -SITE.d/2); stat.add(ground);
+  const gridPts = [];
+  for (let x=0; x<=SITE.w; x+=10) gridPts.push(x,0,0, x,0,-SITE.d);
+  for (let y=0; y<=SITE.d; y+=10) gridPts.push(0,0,-y, SITE.w,0,-y);
+  gridPts.push(SITE.w,0,0, SITE.w,0,-SITE.d, 0,0,-SITE.d, SITE.w,0,-SITE.d);
+  const gridGeo = new THREE.BufferGeometry(); gridGeo.setAttribute("position", new THREE.Float32BufferAttribute(gridPts, 3));
+  stat.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color:0xddd8cc })));
+  for (const poly of (state.sitePolys || [])){   // 真实场地的边界（绿色）
+    const pts = poly.map(p => new THREE.Vector3(p[0], 0.05, -p[1])); pts.push(pts[0]);
+    stat.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:0x5f8f4e })));
+  }
+  stat.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(SITE.w+4, 0, -SITE.d+8), 8, 0x2b5d7a, 2.5, 1.6));
+}
+// 镜头对准体块（场地换了时用）：保持原来的视角方向，距离随体块大小变化
+window.frame3D = () => {
+  const bs = state.masses.map(m => bboxOf(m.points)); if (!bs.length) return;
+  const x0 = Math.min(...bs.map(b => b.x0)), x1 = Math.max(...bs.map(b => b.x1)), y0 = Math.min(...bs.map(b => b.y0)), y1 = Math.max(...bs.map(b => b.y1));
+  const c = new THREE.Vector3((x0 + x1) / 2, 0, -(y0 + y1) / 2), k = Math.max(1, Math.max(x1 - x0, y1 - y0) / 65);
+  controls.target.copy(c); camera.position.copy(c).add(new THREE.Vector3(-55, 65, 81).multiplyScalar(k)); controls.update(); rebuild();
+};
 
 const dyn = new THREE.Group(); scene.add(dyn);
 const css = name => new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#cccccc");
@@ -2332,6 +2497,7 @@ let faceAxis = null;   // 选中面的中心和法线（three 坐标），拖箭
 let drag = null;       // 正在推拉：{ m, f, b0, base0, top0, axis, s0, d }
 
 function rebuild(){
+  buildStatic();
   dyn.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   dyn.clear();
   const lv = viewLevel();
@@ -2375,7 +2541,8 @@ function rebuild(){
   // 标高：场地范围的框，平面所看的标高用橙色（白模时不画）
   for (const l of (white ? [] : state.levels)){
     const on = l.id === lv.id;
-    dyn.add(outline([[0,0],[SITE.w,0],[SITE.w,SITE.d],[0,SITE.d]], l.elevation, on ? 0xe08a00 : 0xbbbbbb));
+    const fx0 = Math.max(0, WIN.i0 - 10), fx1 = Math.min(SITE.w, WIN.i1 + 10), fy0 = Math.max(0, WIN.j0 - 10), fy1 = Math.min(SITE.d, WIN.j1 + 10);   // 只框体块附近
+    dyn.add(outline([[fx0,fy0],[fx1,fy0],[fx1,fy1],[fx0,fy1]], l.elevation, on ? 0xe08a00 : 0xbbbbbb));
   }
   // 功能区：画在各自空间的标高上（推拉时先不画，松开后重新排布再画）
   // 单独编辑时：在这个体块里的功能区照常显示，其他功能区变淡
