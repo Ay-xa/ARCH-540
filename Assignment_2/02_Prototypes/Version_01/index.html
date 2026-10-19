@@ -145,7 +145,7 @@
       <span><span class="swatch" style="background:#fbe9ea;border:1.5px dashed var(--bad)"></span>需要调整（原位置）</span>
       <span><span class="swatch" style="background:#e9f5ee;border:1.5px dashed var(--ok)"></span>建议位置</span>
     </div>
-    <p class="hint">平面显示所选标高的截面：只画在这个标高处存在的体块（底标高 ≤ 标高 &lt; 顶标高）。粗黑线 = 外墙；红色虚线 = 体块贴着但接触宽度不足 5 m，不连通；灰色斜线 = 净高不足 3.0 m，不算可用楼面；细虚线 = 各个体块的轮廓。平面里不能改体块，只能点选房间或体块。场地范围 90 × 52 m。</p>
+    <p class="hint">平面显示所选标高的截面：只画在这个标高处存在的体块（底标高 ≤ 标高 &lt; 顶标高）。粗黑线 = 外墙；红色虚线 = 体块贴着但接触宽度不足 5 m，不连通；灰色斜线 = 净高不足 3.0 m，不算可用楼面；细虚线 = 各个体块的轮廓。平面里不能改体块。<b>拖动功能区</b>可以挪动它（吸附 1 m，只在这一层里移动；拖动时绿色 = 落在可用楼面里，红色 = 不在）；拖过的功能区自动锁定（🔒），被它压住的没锁定的功能区会重新找位置。点选房间看说明，点体块选中体块。场地范围 90 × 52 m。</p>
     <h2>剖面</h2>
     <div class="controls">
       <label>方向 <select id="sec-dir"><option value="ew">东西向（沿 y 切）</option><option value="ns">南北向（沿 x 切）</option></select></label>
@@ -926,10 +926,20 @@ function generateLayout(){
   const netAll = FUNCTIONS.filter(f=>f.drawn).reduce((s,f)=>s+effectiveArea(f)*f.count,0);
   const shortTotal = netAll > usableStart + EPS;
   const addUnplaced = (base, reason, detail, detailShort) => {
+    let u;
     if (shortTotal){
       const own = reason === "U1" ? detail : `这个功能自己的问题：${detailShort || detail}`;
-      unplaced.push({ ...base, reason:"U1", detail:`总面积不够：所有标高的可用空间合计 ${fmt(usableStart)} m²，所有功能净面积合计 ${fmt(netAll)} m²，缺 ${fmt(netAll-usableStart)} m²。` + own });
-    } else unplaced.push({ ...base, reason, detail });
+      u = { ...base, reason:"U1", detail:`总面积不够：所有标高的可用空间合计 ${fmt(usableStart)} m²，所有功能净面积合计 ${fmt(netAll)} m²，缺 ${fmt(netAll-usableStart)} m²。` + own };
+    } else u = { ...base, reason, detail };
+    // 被拖动的功能区推开、又找不到位置的：不直接变成“未生成”，而是标红，说明被谁压住，由用户决定（用户 2026-10-18 决定）
+    const mem = state.memory[base.id];
+    if (mem && mem.pushedBy){
+      const lv = sortedLevels().find(l => l.id === mem.levelId);
+      flagged.push({ ...base, x0:mem.x0, y0:mem.y0, x1:mem.x1, y1:mem.y1, levelId:mem.levelId, levelName:lv ? lv.name : mem.levelId, locked:false, pushedBy:mem.pushedBy,
+        reasons:[`被拖动的「${mem.pushedBy.label}」压住，原位置已被占用`, `重新找位置也没有找到（${UNPLACED_REASONS[u.reason]}）：${u.detail}`] });
+      return;
+    }
+    unplaced.push(u);
   };
 
   // ---- 检查记住的位置是否仍然成立 ----
@@ -981,7 +991,7 @@ function generateLayout(){
   const keptIds = new Set(), flaggedIds = new Set();
   items.forEach((it, k) => {
     const fn = it.fn, area = effectiveArea(fn), mem = state.memory[it.id];
-    if (!mem || fn.splittable || mem.fnId !== fn.id || Math.abs(mem.area - area) > EPS) return;
+    if (!mem || mem.pushedBy || fn.splittable || mem.fnId !== fn.id || Math.abs(mem.area - area) > EPS) return;   // 被推开的到第二遍重新找位置
     const base = { id:it.id, fnId:fn.id, label:it.label, fn, area, order:k + 1 };
     const c = checkKept(fn, mem, it.label);
     if (c.ok){
@@ -1003,7 +1013,7 @@ function generateLayout(){
     const used = rooms.reduce((s,r)=>s+r.area,0);
     const free = spaces.reduce((s, sp) => s + sp.area, 0) - used;
     const base = { id:it.id, fnId:fn.id, label:it.label, fn, area, order };
-    const fresh = hadMemory ? { fresh:true } : {};
+    const fresh = state.memory[it.id] && state.memory[it.id].pushedBy ? { pushed:true } : hadMemory ? { fresh:true } : {};
     if (area > free + EPS){
       addUnplaced(base, "U1", `所有可用空间剩余 ${fmt(free)} m²，这个功能需要 ${fmt(area)} m²，缺 ${fmt(area-free)} m²`);
       return;
@@ -1197,6 +1207,13 @@ function renderPlan(){
     for (const bl of cellBlocks(idx => info.owner[idx] >= 0 && info.clear[idx] < ASSUMPTIONS.minUsableClear.value - EPS))
       svg.appendChild(el("rect",{x:toSX(bl.x0),y:toSY(bl.y1),width:(bl.x1-bl.x0)*PX,height:(bl.y1-bl.y0)*PX,fill:"url(#hatch-low)",opacity:0.8,"pointer-events":"none"}));
   }
+  // 标红的功能区（原位置，阶段 6）：画在功能区下面，不挡住已放好的功能区的拖动
+  for (const f of L.flagged.filter(q => q.levelId === lv.id)){
+    const grp = el("g",{class:"room"+(state.selected===f.id?" selected":"")}); grp.dataset.room = f.id;
+    grp.appendChild(el("rect",{x:toSX(f.x0),y:toSY(f.y1),width:(f.x1-f.x0)*PX,height:(f.y1-f.y0)*PX,fill:"rgba(163,33,45,0.12)",stroke:"var(--bad)","stroke-width":2.5,"stroke-dasharray":"6 3"}));
+    grp.appendChild(el("text",{x:toSX((f.x0+f.x1)/2),y:toSY((f.y0+f.y1)/2)+4,"text-anchor":"middle","font-size":11,"font-weight":"600",fill:"var(--bad)"},`${f.locked ? "🔒" : "⚠"} ${f.label}（原位置）`));
+    svg.appendChild(grp);
+  }
   // 房间
   for (const r of L.rooms.filter(q => q.levelId === lv.id)){
     const grp = el("g",{class:"room"+(state.selected===r.id?" selected":"")});
@@ -1211,13 +1228,7 @@ function renderPlan(){
     if (r.fn.entry) svg.appendChild(el("text",{x:cx,y:toSY(r.y0)+14,"text-anchor":"middle","font-size":10,fill:"#8a5a00"},"南立面 · 入口（默认）"));
     if (r.spans.length > 1 && !small) grp.appendChild(el("text",{x:cx,y:cy+22,"text-anchor":"middle","font-size":9,fill:"#2b5d7a"},`挑空 ${r.spans.length} 层 · 净高 ${fmt(r.clear,1)} m`));
   }
-  // 标红的功能区（原位置）和建议位置（阶段 6）
-  for (const f of L.flagged.filter(q => q.levelId === lv.id)){
-    const grp = el("g",{class:"room"+(state.selected===f.id?" selected":"")}); grp.dataset.room = f.id;
-    grp.appendChild(el("rect",{x:toSX(f.x0),y:toSY(f.y1),width:(f.x1-f.x0)*PX,height:(f.y1-f.y0)*PX,fill:"rgba(163,33,45,0.12)",stroke:"var(--bad)","stroke-width":2.5,"stroke-dasharray":"6 3"}));
-    grp.appendChild(el("text",{x:toSX((f.x0+f.x1)/2),y:toSY((f.y0+f.y1)/2)+4,"text-anchor":"middle","font-size":11,"font-weight":"600",fill:"var(--bad)"},`${f.locked ? "🔒" : "⚠"} ${f.label}（原位置）`));
-    svg.appendChild(grp);
-  }
+  // 建议位置（阶段 6）
   for (const f of L.flagged.filter(q => q.suggest && q.suggest.levelId === lv.id)){
     const g2 = f.suggest;
     svg.appendChild(el("rect",{x:toSX(g2.x0),y:toSY(g2.y1),width:(g2.x1-g2.x0)*PX,height:(g2.y1-g2.y0)*PX,fill:"rgba(46,125,79,0.10)",stroke:"var(--ok)","stroke-width":2,"stroke-dasharray":"4 3","pointer-events":"none"}));
@@ -1243,8 +1254,56 @@ function renderPlan(){
   }
 }
 
-// 平面只能点选（阶段 2，用户决定：三维调体块，平面调功能分区；拖动功能区是阶段 7）
+// 平面：点选房间或体块；拖动功能区（阶段 7，用户决定：平面调功能分区，三维调体块）
+// 拖动吸附 1 m，只在同一个标高里移动；松开后这个功能区自动锁定（用户决定），被它压住的、没锁定的功能区重新找位置（“推开”）。
+function pointerToModel(ev){
+  const pt = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse());
+  return { x: pt.x / PX, y: SITE.d - pt.y / PX };
+}
+let roomDrag = null, suppressClick = false;
+svg.addEventListener("pointerdown", ev => {
+  const g = ev.target.closest("[data-room]"); if (!g || ev.button !== 0) return;
+  const L = state.layout, id = g.dataset.room;
+  const r = L.rooms.find(x => x.id === id) || L.flagged.find(x => x.id === id); if (!r) return;
+  roomDrag = { id, r, g, start:pointerToModel(ev), dx:0, dy:0, moved:false };
+  svg.setPointerCapture(ev.pointerId); ev.preventDefault();
+});
+svg.addEventListener("pointermove", ev => {
+  if (!roomDrag) return;
+  const p = pointerToModel(ev), r = roomDrag.r;
+  let dx = Math.round(p.x - roomDrag.start.x), dy = Math.round(p.y - roomDrag.start.y);
+  dx = clamp(dx, -r.x0, SITE.w - r.x1); dy = clamp(dy, -r.y0, SITE.d - r.y1);   // 不出场地
+  if (dx === roomDrag.dx && dy === roomDrag.dy) return;
+  roomDrag.dx = dx; roomDrag.dy = dy; roomDrag.moved = roomDrag.moved || dx !== 0 || dy !== 0;
+  roomDrag.g.setAttribute("transform", `translate(${dx * PX} ${-dy * PX})`);
+  // 拖动中的提示：落在可用楼面里为绿色，否则为红色（松开后再完整检查）
+  const nr = { x0:r.x0 + dx, y0:r.y0 + dy, x1:r.x1 + dx, y1:r.y1 + dy };
+  const sp = state.layout.spaces.find(s2 => s2.levelId === r.levelId && s2.area && insideP(nr, s2.P));
+  const rect = roomDrag.g.querySelector("rect");
+  if (rect){ rect.setAttribute("stroke", sp ? "var(--ok)" : "var(--bad)"); rect.setAttribute("stroke-width", 3); }
+});
+const endRoomDrag = () => {
+  if (!roomDrag) return;
+  const d = roomDrag; roomDrag = null;
+  if (!d.moved){ suppressClick = true; state.selected = d.id; renderPlan(); renderSidebar(); return; }   // 没动：当作点击选中
+  suppressClick = true;
+  const r = d.r, nr = { x0:r.x0 + d.dx, y0:r.y0 + d.dy, x1:r.x1 + d.dx, y1:r.y1 + d.dy };
+  state.memory[d.id] = { fnId:r.fnId, area:r.area, levelId:r.levelId, x0:nr.x0, y0:nr.y0, x1:nr.x1, y1:nr.y1, locked:true };
+  // 推开：同一标高里被它压住的、没锁定的功能区，忘掉位置，重新找（锁定的不动；若压住锁定的，它自己会标红）
+  const pushed = [];
+  for (const q of state.layout.rooms){
+    if (q.id === d.id || !q.spans.includes(r.levelId) || !overlaps(nr, q)) continue;
+    if (state.memory[q.id] && state.memory[q.id].locked) continue;
+    state.memory[q.id] = { ...(state.memory[q.id] || { fnId:q.fnId, area:q.area, levelId:q.levelId, x0:q.x0, y0:q.y0, x1:q.x1, y1:q.y1 }), locked:false, pushedBy:{ id:d.id, label:r.label } };
+    pushed.push(q.id);
+  }
+  state.selected = d.id;
+  regenerate();
+};
+svg.addEventListener("pointerup", endRoomDrag);
+svg.addEventListener("pointercancel", endRoomDrag);
 svg.addEventListener("click", ev => {
+  if (suppressClick){ suppressClick = false; return; }
   const room = ev.target.closest("[data-room]");
   if (room){ state.selected = room.dataset.room; renderPlan(); renderSidebar(); return; }
   const m = ev.target.closest("[data-mass]");
@@ -1263,9 +1322,9 @@ function flaggedCard(f){
   const sug = f.suggest ? `建议移到 ${f.suggest.levelName}（${f.suggest.spaceId}），西南角 (${fmt(f.suggest.x0,1)}, ${fmt(f.suggest.y0,1)}) m${f.suggest.n > 1 ? `，挑空 ${f.suggest.n} 层` : ""}；平面上的绿色虚线框` : "现在没有能放下它的位置。接受后它会变成“未生成”，原因会列在下面。";
   return `<div class="card flagged"><div class="title"><span class="name">${f.locked ? "🔒 " : "⚠ "}${f.label}</span><span class="meta">${f.levelName} · 原位置</span></div>
     <ul style="margin:4px 0;padding-left:18px">${f.reasons.map(x => `<li>${x}</li>`).join("")}</ul>
-    <div class="meta">${sug}</div>
+    <div class="meta">${sug}${f.pushedBy ? `也可以把「${f.pushedBy.label}」拖开（或解锁后“重新排布”），让它回到原位置附近。` : ""}</div>
     <div class="btnrow">${f.locked ? `<span class="hint">已锁定，不会自动改；解锁后才能接受建议。</span><button data-lock="${f.id}">解锁</button>` :
-      `<button class="primary" data-accept="${f.id}">${f.suggest ? "接受建议" : "接受（移出）"}</button><button data-lock="${f.id}">锁定</button>`}
+      `<button class="primary" data-accept="${f.id}">${f.suggest ? "接受建议" : "接受（移出）"}</button>${f.pushedBy ? "" : `<button data-lock="${f.id}">锁定</button>`}`}
       <button class="link" data-showf="${f.id}">在平面上看</button></div></div>`;
 }
 function bindFlaggedButtons(root){
@@ -1387,7 +1446,7 @@ function renderSidebar(){
 
   box.innerHTML = `
     <div class="sec"><h3>${r.locked ? "🔒 " : ""}${r.label}</h3>
-      <div class="btnrow" style="margin:0 0 6px"><button data-lock="${r.id}">${r.locked ? "解锁" : "锁定"}</button><span class="hint">${r.locked ? "已锁定：体块改动或“重新排布”都不会自动移动它。" : r.kept ? "体块改动后原位置仍满足条件，所以留在原位。" : r.fresh ? "新放入：上次没有位置，这次放进了剩下的空间。" : "锁定后，体块改动或“重新排布”都不会自动移动它。"}</span></div>
+      <div class="btnrow" style="margin:0 0 6px"><button data-lock="${r.id}">${r.locked ? "解锁" : "锁定"}</button><span class="hint">${r.locked ? "已锁定：体块改动或“重新排布”都不会自动移动它。" : r.kept ? "体块改动后原位置仍满足条件，所以留在原位。" : r.pushed ? "被拖动的功能区压住，重新找了位置。" : r.fresh ? "新放入：上次没有位置，这次放进了剩下的空间。" : "锁定后，体块改动或“重新排布”都不会自动移动它。"}</span></div>
       <div class="kv">
         <div>类别</div><div>${fn.category}${fn.required?"（必有）":"（非必有）"}</div>
         <div>活动强度</div><div>${fn.intensity}</div>
