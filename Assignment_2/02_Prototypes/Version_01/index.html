@@ -86,11 +86,25 @@
   #view3d-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
   .mass-cut{cursor:pointer}
   .card.flagged{border-color:var(--bad);background:#fbe9ea}
+  .fnrow{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 6px;border-radius:4px;cursor:pointer;font-size:13px}
+  .fnrow:hover{background:#f1eee7}
+  .lvsep{font-size:12px;font-weight:600;color:var(--accent);border-top:1px solid var(--line);padding:6px 6px 2px;margin-top:4px}
+  .lvsep:first-child{border-top:none;margin-top:0}
+  .fnrow.sel{background:#e4eef4}
+  .fnrow .why{color:var(--muted);font-size:11px;display:block}
+  .settings{border:1px solid var(--accent);border-radius:6px;padding:8px 10px;background:#f6fafc;margin-bottom:10px}
+  .settings .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0;font-size:13px}
+  .settings input[type=number]{width:72px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;font:inherit}
+  details.more{margin:6px 0}
+  details.more>summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
   .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   button.primary{background:var(--accent);color:#fff}
   button.primary:hover{background:#244e66}
   .v3tip{position:absolute;left:8px;bottom:8px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:4px;padding:2px 8px;font-size:12px;display:none}
   .v3add{position:absolute;left:8px;top:8px}
+  .v3right{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+  .v3bar{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:#2b5d7a;color:#fff;border-radius:4px;padding:2px 10px;font-size:12px;display:none}
+  button.on{background:var(--accent);color:#fff}
   svg#section{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:6px}
   .fields .chk{grid-column:1 / -1;display:flex;gap:6px;align-items:center}
 </style>
@@ -103,13 +117,15 @@
 
 <div class="layout">
   <aside id="left">
-    <h2>功能清单（Marpole 2021 的主要房间）</h2>
+    <h2>面积</h2>
     <div id="area-summary"></div>
+    <h2>已放入</h2>
     <div id="function-list"></div>
-    <h2>需要调整的功能区（标红）</h2>
+    <h2>需要调整（标红）</h2>
     <div id="flagged"></div>
-    <h2>未生成的功能</h2>
+    <h2>未放入</h2>
     <div id="unplaced"></div>
+    <p class="hint">点一个功能，右侧可以调整它的面积、楼层、锁定和阶段。</p>
   </aside>
 
   <section id="center">
@@ -117,8 +133,8 @@
       <div class="card" id="mass-panel"></div>
       <div class="card" id="level-panel"></div>
     </div>
-    <div id="view3d"><div id="view3d-msg" class="hint">三维视图加载中（需要联网加载 three.js）……</div><div id="view3d-tip" class="v3tip"></div><button id="v3-add" class="v3add">＋ 添加体块</button></div>
-    <p class="hint">三维视图：左键拖动旋转，右键拖动平移，滚轮缩放。<b>推拉：</b>点击体块的一个面选中它（变橙色），拖橙色箭头沿这个面的法线推拉；立面吸附 1 m，顶面和底面吸附 0.1 m。拖动时只更新体块和数字，松开后再重新识别空间、排布功能（用户决定）。点空白处取消选面。蓝色箭头指北；橙色框是平面所看的标高。</p>
+    <div id="view3d"><div id="view3d-msg" class="hint">三维视图加载中（需要联网加载 three.js）……</div><div id="view3d-tip" class="v3tip"></div><button id="v3-add" class="v3add">＋ 添加体块</button><div class="v3right"><button id="v3-white" title="只看体块的白模，不显示功能区和标高">白模</button><button id="v3-exit" style="display:none">退出单独编辑（Esc）</button></div><div id="v3-bar" class="v3bar"></div></div>
+    <p class="hint">三维视图：左键拖动旋转，右键拖动平移，滚轮缩放。<b>单独编辑：</b>双击一个体块：它变得更实，其他体块和功能变淡（仍可看到周边关系，但不能点选，不会挡住选面）；双击空白处或按 Esc 退出。<b>白模：</b>右上角按钮切换，只看体块。<b>推拉：</b>点击体块的一个面选中它（变橙色），拖橙色箭头沿这个面的法线推拉；立面吸附 1 m，顶面和底面吸附 0.1 m。拖动时只更新体块和数字，松开后再重新识别空间、排布功能（用户决定）。点空白处取消选面。蓝色箭头指北；橙色框是平面所看的标高。</p>
     <div class="controls">
       <label>平面标高 <select id="plan-level"></select></label>
       <button id="btn-relayout" title="忘掉没锁定的功能区的位置，全部按“大件优先”重新放；锁定的不动">重新排布（锁定的不动）</button>
@@ -427,7 +443,8 @@ const ASSUMPTIONS = {
   gradientMapping: { status:STATUS.assumed, note:"阶段越高越靠内，线性对应：目标深度 = 阶段序号 ÷ 4 × 最大可能深度（南北进深的一半）" },
   depthToFacades:  { status:STATUS.userDecided, note:"深度只量到南、北立面，不量到东、西山墙（2026-10-17）" },
   facadeContact:   { status:STATUS.userDecided, note:"偏好南带或北带的房间，贴着对应立面才算完全适配（2026-10-17）；没贴着时按空隙线性打折：系数 = 1 − 空隙 ÷ 带深度", discountStatus:STATUS.assumed },
-  simplicityRule:  { status:STATUS.assumed, note:"前三项都相同时，贴边更多（与外墙或已放房间的边对齐）的位置更好；仍相同时取最西、最南的位置" },
+  simplicityRule:  { status:STATUS.assumed, note:"前几项都相同时，周长中贴着外墙或已放功能区的比例越高越好（紧凑，2026-10-18 改）；仍相同时取最西、最南的位置" },
+  gradientStep:    { value:0.1, status:STATUS.assumed, note:"渐变适配按 10% 一档比较，深度差不多的位置算一样，让“紧凑”决定（2026-10-18，为了更紧凑）" },
   judgeOrder:      ["楼层适配", "带适配", "渐变适配", "形状", "简洁"],
   floorPrefFirst:  { status:STATUS.userDecided, note:"“楼层适配”（最好首层 / 最好二层）排在带适配之前（用户 2026-10-18 确认）" },
   manualVoidShared:{ status:STATUS.userDecided, note:"手动挑空的空间可以放多个功能（用户 2026-10-18 确认）" },
@@ -476,11 +493,14 @@ const state = {
   selectedMass: "M1",
   viewLevel: "L01",   // 平面所看的标高
   selectedFace: null, // 三维里选中的面：south / north / east / west / top / bottom（阶段 5）
+  isolate: null,      // 2026-10-18：双击体块单独编辑，只显示这个体块
+  whiteModel: false,  // 2026-10-18：三维只看体块白模
   section: { dir:"ew", pos:null },   // 剖面：方向和位置（null = 切过选中体块的中线）
   bands: { south: ASSUMPTIONS.bandDefaults.south, north: ASSUMPTIONS.bandDefaults.north },  // 中间 = 余数
   overrides: {},   // fnId -> { areaM2, date }
   stages: {},      // roomId -> 指派的阶段（默认 tempered）
   selected: null,
+  levelPins: {},     // 2026-10-18：用户在右侧指定的楼层 { fnId: levelId }
   memory: {},        // 阶段 6：记住每个功能区上一次的位置 { id: { fnId, area, levelId, x0, y0, x1, y1, locked } }
   spaceMemory: null, // 阶段 6：上一次的空间（用于配对编号）
   layout: null,
@@ -764,10 +784,21 @@ function scoreRect(r, fn, sp, placed){
     placed.some(q => Math.abs((side==="s"?q.y1:q.y0) - y) < 1e-4 && overlapLen(r.x0,r.x1,q.x0,q.x1) > EPS);
   if (touchX(r.x0,"w")) flush++; if (touchX(r.x1,"e")) flush++;
   if (touchY(r.y0,"s")) flush++; if (touchY(r.y1,"n")) flush++;
+  // 紧凑（2026-10-18，用户要求功能区更紧凑、少留空白）：房间周长中贴着外墙、不连通的接触或已放功能区的比例。
+  // 取代原来“贴边几条”的判法，作为“简洁”这一项的量法（假设）。
+  const seg = (list, pos, a0, a1) => list.reduce((t, q) => t + (Math.abs(q.pos - pos) < 1e-4 ? overlapLen(a0, a1, q.a0, q.a1) : 0), 0);
+  const nb = (edge, a0, a1, other, b0k, b1k) => placed.reduce((t, q) => t + (Math.abs(q[other] - edge) < 1e-4 ? overlapLen(a0, a1, q[b0k], q[b1k]) : 0), 0);
+  const touch = Math.min(w, seg(sp.walls.south, r.y0, r.x0, r.x1) + seg(sp.partitions.south, r.y0, r.x0, r.x1) + nb(r.y0, r.x0, r.x1, "y1", "x0", "x1"))
+              + Math.min(w, seg(sp.walls.north, r.y1, r.x0, r.x1) + seg(sp.partitions.north, r.y1, r.x0, r.x1) + nb(r.y1, r.x0, r.x1, "y0", "x0", "x1"))
+              + Math.min(h, seg(sp.walls.west,  r.x0, r.y0, r.y1) + seg(sp.partitions.west,  r.x0, r.y0, r.y1) + nb(r.x0, r.y0, r.y1, "x1", "y0", "y1"))
+              + Math.min(h, seg(sp.walls.east,  r.x1, r.y0, r.y1) + seg(sp.partitions.east,  r.x1, r.y0, r.y1) + nb(r.x1, r.y0, r.y1, "x0", "y0", "y1"));
+  const contact = touch / (2 * (w + h));
+  // 渐变适配按 10% 一档比较（假设）：深度差不多的位置算一样，让“紧凑”来决定
+  const gradQ = Math.round(gradFit / ASSUMPTIONS.gradientStep.value) * ASSUMPTIONS.gradientStep.value;
   const floorFit = floorFitOf(fn, sp);
-  return { floorFit, bandFit, frac, gap, bandDepth, facadeFactor, gradFit, dist, target, maxDepth, shapeOk, ratio, flush };
+  return { floorFit, bandFit, frac, gap, bandDepth, facadeFactor, gradFit, gradQ, dist, target, maxDepth, shapeOk, ratio, flush, contact };
 }
-const JUDGE_KEYS = ["floorFit","bandFit","gradFit","shapeOk","flush"];
+const JUDGE_KEYS = ["floorFit","bandFit","gradQ","shapeOk","contact"];
 // 比较两组评分：1 = a 更好，−1 = b 更好，0 = 一样
 function compareScores(a, b){
   for (const k of JUDGE_KEYS){ if (a[k] > b[k] + EPS) return 1; if (a[k] < b[k] - EPS) return -1; }
@@ -778,6 +809,47 @@ function better(a, b, ra, rb){
   if (ra.x0 !== rb.x0) return ra.x0 < rb.x0;
   if (ra.y0 !== rb.y0) return ra.y0 < rb.y0;
   return (ra.x1-ra.x0) < (rb.x1-rb.x0);
+}
+const COMPACT = { slide:true };   // 紧凑的“重力”整理（2026-10-18），可关掉做对比
+// 紧凑的“重力”整理（2026-10-18）：这一次新放的功能区（不是保留在原位的、锁定的、挑空的），
+// 依次试着往西、南、东、北滑到碰到邻居或空间边为止；只有楼层、带适配、渐变（按档）都不变差、且贴边更多时才滑过去。
+// 这样剩下的空白会集中成较大的几块，而不是散成窄条。
+function compactRooms(rooms, levelInfo){
+  const movable = r => !r.kept && !r.locked && r.spans.length === 1 && !r.split;
+  for (let pass = 0; pass < 3; pass++){
+    let movedAny = false;
+    for (const r of rooms){
+      if (!movable(r)) continue;
+      const sp = r.space, others = rooms.filter(q => q !== r && q.spaceId === sp.id);
+      const cur = { x0:r.x0, y0:r.y0, x1:r.x1, y1:r.y1 };
+      const base = scoreRect(cur, r.fn, sp, others);
+      let best = null;
+      for (const [dx, dy] of [[-1,0],[0,-1],[1,0],[0,1]]){
+        // 先算到最近障碍（邻居或空间外接框）的距离，再一步步退回到落在可用楼面里的位置
+        let lim = dx < 0 ? cur.x0 - sp.bbox.x0 : dx > 0 ? sp.bbox.x1 - cur.x1 : dy < 0 ? cur.y0 - sp.bbox.y0 : sp.bbox.y1 - cur.y1;
+        for (const q of others){
+          if (dx !== 0 && overlapLen(cur.y0, cur.y1, q.y0, q.y1) > EPS){ if (dx < 0 && q.x1 <= cur.x0 + EPS) lim = Math.min(lim, cur.x0 - q.x1); if (dx > 0 && q.x0 >= cur.x1 - EPS) lim = Math.min(lim, q.x0 - cur.x1); }
+          if (dy !== 0 && overlapLen(cur.x0, cur.x1, q.x0, q.x1) > EPS){ if (dy < 0 && q.y1 <= cur.y0 + EPS) lim = Math.min(lim, cur.y0 - q.y1); if (dy > 0 && q.y0 >= cur.y1 - EPS) lim = Math.min(lim, q.y0 - cur.y1); }
+        }
+        if (lim <= EPS) continue;
+        const steps = [lim]; for (let k = Math.floor(lim - EPS); k >= 1; k--) steps.push(k);   // 先试贴到底，再按整米退回
+        for (const d of steps){
+          const nr = { x0:cur.x0 + dx * d, y0:cur.y0 + dy * d, x1:cur.x1 + dx * d, y1:cur.y1 + dy * d };
+          if (!insideP(nr, sp.P) || others.some(q => overlaps(nr, q))) continue;
+          if (r.fn.entry && facadeGap(sp, nr, "south") > EPS) continue;
+          if (r.fn.minClearHeight && roomClear(nr, sp.info.clear) < r.fn.minClearHeight.value - EPS) continue;
+          const sc = scoreRect(nr, r.fn, sp, others);
+          const notWorse = ["floorFit","bandFit","gradQ"].every(k => sc[k] >= base[k] - EPS);
+          if (notWorse && sc.contact > base.contact + EPS && (!best || sc.contact > best.sc.contact + EPS)) best = { nr, sc };
+          break;
+        }
+      }
+      if (best){
+        Object.assign(r, best.nr); r.score = best.sc; r.clear = roomClear(r, r.space.info.clear); movedAny = true;
+      }
+    }
+    if (!movedAny) break;
+  }
 }
 function searchBest(fn, area, sp, placed, P){
   const bbox = sp.bbox;
@@ -822,6 +894,7 @@ function searchBestAll(fn, area, spaces, rooms, occ){
   for (const sp of spaces){
     if (!sp.area) continue;
     if ((fn.entry || (fn.floorReq && fn.floorReq.value === "mustGround")) && sp.levelIdx !== 0) continue;
+    if (state.levelPins[fn.id] && sp.levelId !== state.levelPins[fn.id]) continue;   // 用户指定的楼层
     const placed = rooms.filter(q => q.spaceId === sp.id);
     for (let n = 1; sp.levelIdx + n <= nL; n++){
       if (n > 1 && !fn.minClearHeight) break;
@@ -842,6 +915,7 @@ function maxReachableClear(fn, spaces){
   let best = -Infinity, where = null;
   for (const sp of spaces){
     if ((fn.entry || (fn.floorReq && fn.floorReq.value === "mustGround")) && sp.levelIdx !== 0) continue;
+    if (state.levelPins[fn.id] && sp.levelId !== state.levelPins[fn.id]) continue;
     for (let idx = 0; idx < GW * GD; idx++){
       if (!sp.usable[idx]) continue;
       const v = sp.info.reach[idx] - sp.elevation - ASSUMPTIONS.slabThickness.value;
@@ -954,6 +1028,7 @@ function generateLayout(){
       return { ok:false, reasons, rect:r, levelName:lvName };
     }
     if (fn.floorReq && fn.floorReq.value === "mustGround" && sp.levelIdx !== 0) reasons.push(`必须首层（${fn.floorReq.note}），但 ${lvName} 现在不是最低的标高`);
+    if (state.levelPins[fn.id] && mem.levelId !== state.levelPins[fn.id]) reasons.push("不在你指定的楼层");
     if (fn.entry && facadeGap(sp, r, "south") > EPS) reasons.push("门厅不再贴着南面外墙（入口）");
     const hit = rooms.find(q => q.spaceId === sp.id && overlaps(r, q));
     if (hit) reasons.push(`和 ${hit.label} 重叠`);
@@ -1023,6 +1098,12 @@ function generateLayout(){
       addUnplaced(base, "U2", `这个功能必须在首层（${fn.floorReq.note}），但最低的标高 ${lvls[0].name} 处没有可用空间`);
       return;
     }
+    // 指定楼层：那一层要有空间
+    const pin = state.levelPins[fn.id];
+    if (pin && !spaces.some(sp => sp.levelId === pin && sp.area)){
+      addUnplaced(base, "U2", `你指定这个功能只放在 ${(lvls.find(l => l.id === pin) || {}).name || "已删除的标高"}，但那一层没有可用空间`);
+      return;
+    }
     // 净高：哪里都达不到要求（连往上多占几层也不够）
     if (fn.minClearHeight){
       const mx = maxReachableClear(fn, spaces);
@@ -1078,6 +1159,11 @@ function generateLayout(){
     }
   });
   rooms.sort((a, b) => a.order - b.order);
+  if (COMPACT.slide){
+    compactRooms(rooms, levelInfo);
+    for (const o of occ.values()) o.fill(0);   // 滑动后重新登记各层被占用的格子
+    for (const r of rooms) for (const lid of r.spans) markOcc(lid, r);
+  }
 
   // ---- 标红的功能区：给一个建议位置（只是建议，不改动；建议之间互相避让） ----
   const pseudo = [];
@@ -1317,6 +1403,12 @@ function statusBadge(s){
   const cls = s.startsWith(STATUS.verified)?"verified":s.startsWith(STATUS.toCheck)?"tocheck":s.startsWith(STATUS.userSet)?"userset":"assumed";
   return `<span class="badge ${cls}">${s}</span>`;
 }
+// 未放入的一句话原因（完整原因在右侧）
+function shortReason(u){
+  const own = u.detail.includes("这个功能自己的问题：") ? u.detail.split("这个功能自己的问题：")[1] : u.detail;
+  const first = own.split(/[。；]/)[0];
+  return first.length > 46 ? first.slice(0, 46) + "……" : first;
+}
 // 标红功能区的卡片（左栏和侧栏共用）
 function flaggedCard(f){
   const sug = f.suggest ? `建议移到 ${f.suggest.levelName}（${f.suggest.spaceId}），西南角 (${fmt(f.suggest.x0,1)}, ${fmt(f.suggest.y0,1)}) m${f.suggest.n > 1 ? `，挑空 ${f.suggest.n} 层` : ""}；平面上的绿色虚线框` : "现在没有能放下它的位置。接受后它会变成“未生成”，原因会列在下面。";
@@ -1338,45 +1430,28 @@ function bindFlaggedButtons(root){
 }
 function renderLeft(){
   const L = state.layout, U = L.usableArea;
-  // 面积检查（阶段 3：对照所有标高的可用空间）
-  let html = `<div class="kv" style="margin-bottom:6px">
-    <div>可用空间合计（${L.spaces.length} 个空间）</div><div>${fmt(U)} m² · ${fmt(ft2(U))} ft²</div>
-    <div>功能净面积合计</div><div>${fmt(L.net)} m² · ${fmt(ft2(L.net))} ft²</div>
-    <div>× 组团系数（1.1–1.3）</div><div>${fmt(L.groupGross)} m² · ${fmt(ft2(L.groupGross))} ft²</div>
-    <div>× 建筑系数 ${ASSUMPTIONS.buildingFactor.value} = 总建筑面积</div><div>${fmt(L.gross)} m² · ${fmt(ft2(L.gross))} ft² ${statusBadge(ASSUMPTIONS.buildingFactor.status)}</div>
-  </div>
-  <p class="hint">系数来自 Marpole 2021。可用空间 = 所有标高处、净高不低于 ${ASSUMPTIONS.minUsableClear.value} m 的楼面。</p>`;
-  if (L.net > U + EPS) html += `<div class="banner bad">面积不够：功能净面积合计比可用空间多 ${fmt(L.net-U)} m²（${fmt(ft2(L.net-U))} ft²）。体块不会自动加大，请调整体块、加标高，或改面积。</div>`;
-  else if (L.gross > U + EPS) html += `<div class="banner warn">净面积放得下，但按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-U)} m²，走廊会偏紧。第一版不检查走廊的宽度和连通。</div>`;
-  else html += `<div class="banner ok">面积够：净面积和按 Marpole 系数放大后的总建筑面积都在可用空间以内。</div>`;
+  // 面积检查（对照所有标高的可用空间）：只留结论，细节在悬停提示里
+  let html = `<div class="kv" style="margin-bottom:6px" title="功能净面积 × 组团系数 1.1–1.3 × 建筑系数 ${ASSUMPTIONS.buildingFactor.value}（Marpole 2021）= 总建筑面积 ${fmt(L.gross)} m²">
+    <div>可用空间</div><div>${fmt(U)} m²（${L.spaces.length} 个空间）</div>
+    <div>功能净面积</div><div>${fmt(L.net)} m² · 放大后 ${fmt(L.gross)} m²</div>
+  </div>`;
+  if (L.net > U + EPS) html += `<div class="banner bad">面积不够：功能净面积比可用空间多 ${fmt(L.net-U)} m²。</div>`;
+  else if (L.gross > U + EPS) html += `<div class="banner warn">净面积放得下；按 Marpole 的系数，总建筑面积还差 ${fmt(L.gross-U)} m²，走廊会偏紧。</div>`;
+  else html += `<div class="banner ok">面积够。</div>`;
   document.getElementById("area-summary").innerHTML = html;
 
-  // 功能卡
-  const placedIds = new Set(L.rooms.map(r=>r.fnId));
-  const unplacedIds = new Set(L.unplaced.map(u=>u.fnId));
-  const flaggedIds = new Set(L.flagged.map(f=>f.fnId));
-  document.getElementById("function-list").innerHTML = FUNCTIONS.map(fn => {
-    if (!fn.drawn) return `<div class="card"><div class="title"><span class="name">${fn.name}</span><span class="meta">不单列</span></div>
-      <div class="meta">${fn.category} · 房间之间的空隙 · ${fn.areaSource} ${statusBadge(fn.areaStatus)}</div>
-      <div class="meta">冬 / 夏最低阶段：${fn.minStage.winter} / ${fn.minStage.summer}</div></div>`;
-    const a = effectiveArea(fn);
-    const st = flaggedIds.has(fn.id) ? "需要调整" : unplacedIds.has(fn.id) ? (placedIds.has(fn.id) ? "部分未生成" : "未生成") : "已放入";
-    const col = STAGE_COLORS[fn.minStage.winter];
-    return `<div class="card ${flaggedIds.has(fn.id)?"flagged":unplacedIds.has(fn.id)?"unplaced":""}">
-      <div class="title"><span class="name"><span class="swatch" style="background:${col}"></span>${fn.name}${fn.count>1?` × ${fn.count}`:""}</span><span class="meta">${st}</span></div>
-      <div class="meta">${fn.category}${fn.required?" · 必有":""} · 冬 <b>${fn.minStage.winter}</b> / 夏 ${fn.minStage.summer}</div>
-      <div>${fmt(a)} m² · ${fmt(ft2(a))} ft²${fn.count>1?"（每间）":""} ${statusBadge(areaStatusOf(fn))}</div>
-      <div class="meta">${GROUPS[fn.group] ? `${GROUPS[fn.group].zh} · 组团系数 ${groupFactorOf(fn)}` : ""}${fn.support && fn.support.length ? ` · 含配套 ${fmt(m2of(sumFt(fn.support)),1)} m²` : ""}${fn.refRange ? ` · 参考 ${fn.refRange}` : ""}</div>
-      <div class="override"><input type="number" min="1" step="1" placeholder="新面积 m²" data-ov="${fn.id}"><button data-ovbtn="${fn.id}">覆盖面积</button>${state.overrides[fn.id]?`<button class="link" data-ovreset="${fn.id}">恢复库值</button>`:""}</div>
-    </div>`;
-  }).join("");
-  document.querySelectorAll("[data-ovbtn]").forEach(btn => btn.onclick = () => {
-    const id = btn.dataset.ovbtn, inp = document.querySelector(`[data-ov="${id}"]`), v = parseFloat(inp.value);
-    if (!(v > 0)) { inp.focus(); return; }
-    state.overrides[id] = { areaM2: v, date: new Date().toISOString().slice(0,10) };
-    regenerate();
-  });
-  document.querySelectorAll("[data-ovreset]").forEach(btn => btn.onclick = () => { delete state.overrides[btn.dataset.ovreset]; regenerate(); });
+  // 已放入：每个功能区一行（名称、楼层、锁）；点击在平面上选中它
+  const lvName = id => (state.levels.find(l => l.id === id) || {}).name || id;
+  const row = (id, sw, name, right, why) => `<div class="fnrow ${state.selected === id ? "sel" : ""}" data-pickfn="${id}"><span><span class="swatch" style="background:${sw}"></span>${name}${why ? `<span class="why">${why}</span>` : ""}</span><span class="meta">${right}</span></div>`;
+  // 按楼层分组，每层一条分隔线（用户 2026-10-18：不用下拉，只要分隔）；挑空的功能区归在它的底层
+  document.getElementById("function-list").innerHTML = L.rooms.length
+    ? sortedLevels().map(lv => {
+        const rs = L.rooms.filter(r => r.levelId === lv.id);
+        if (!rs.length) return "";
+        return `<div class="lvsep">${lv.name} · ${rs.length} 个 · ${fmt(rs.reduce((t, r) => t + r.area, 0))} m²</div>` +
+          rs.map(r => row(r.id, STAGE_COLORS[r.fn.minStage.winter], `${r.locked ? "🔒 " : ""}${r.label}`, `${r.spans.length > 1 ? `挑空至 ${lvName(r.spans[r.spans.length-1])} · ` : ""}${fmt(r.area)} m²`)).join("");
+      }).join("")
+    : `<p class="hint">还没有功能区。</p>`;
 
   // 需要调整（标红）：原位置不再满足条件；点“接受建议”才改（阶段 6，用户决定）
   const fl = L.flagged;
@@ -1388,9 +1463,13 @@ function renderLeft(){
 
   // 未生成
   document.getElementById("unplaced").innerHTML = L.unplaced.length ? L.unplaced.map(u =>
-    `<div class="card unplaced"><div class="title"><span class="name">${u.label}</span><span class="badge tocheck">${UNPLACED_REASONS[u.reason]}</span></div>
-     <div class="meta">${fmt(u.area)} m² · 放置顺序第 ${u.order} 位</div><div>${u.detail}</div></div>`).join("")
+    row(u.id, STAGE_COLORS[u.fn.minStage.winter], u.label, `<span class="badge tocheck">${UNPLACED_REASONS[u.reason]}</span>`, shortReason(u))).join("")
     : `<p class="hint">所有功能都已放入。</p>`;
+  document.querySelectorAll("#left [data-pickfn]").forEach(el2 => el2.onclick = () => {
+    const id = el2.dataset.pickfn, r = state.layout.rooms.find(x => x.id === id);
+    state.selected = id;
+    if (r && r.levelId !== state.viewLevel){ state.viewLevel = r.levelId; regenerate(); } else { renderPlan(); renderLeft(); renderSidebar(); }
+  });
 }
 
 /* =====================================================================
@@ -1402,15 +1481,51 @@ function stageCheck(assigned, min){
   if (stageRank(assigned) < stageRank(min)) return { cls:"bad", text:"不满足" };
   return { cls:"over", text:"过度调节" };
 }
+// 右侧“调整这个功能”（2026-10-18，用户要求）：面积、指定楼层、锁定（和阶段）都在这里统一调整；放入、标红、未放入的功能都可以调
+function settingsBox(fn, id, opts = {}){
+  const a = effectiveArea(fn), pin = state.levelPins[fn.id] || "";
+  const lv = sortedLevels();
+  return `<div class="settings"><h3 style="margin:0 0 4px">调整这个功能</h3>
+    <div class="row">面积 <b>${fmt(a)} m²</b>${fn.count > 1 ? "（每间）" : ""} ${statusBadge(areaStatusOf(fn))}</div>
+    <div class="row"><input type="number" min="1" step="1" placeholder="新面积 m²" data-ov="${fn.id}"><button data-ovbtn="${fn.id}">改面积</button>${state.overrides[fn.id] ? `<button class="link" data-ovreset="${fn.id}">恢复库值</button>` : ""}</div>
+    <div class="row">楼层 <select data-pin="${fn.id}"><option value="">自动（按规则）</option>${lv.map(l => `<option value="${l.id}" ${pin === l.id ? "selected" : ""}>只放在 ${l.name}</option>`).join("")}</select></div>
+    ${pin ? `<div class="hint">已指定楼层（用户设定）：这个功能只放在 ${(lv.find(l => l.id === pin) || {}).name || pin}。${fn.floorReq && fn.floorReq.value === "mustGround" && lv[0] && pin !== lv[0].id ? "注意：Marpole 要求它在首层，指定的楼层会让它放不进去。" : ""}</div>` : ""}
+    ${opts.lockable ? `<div class="row"><button data-lock="${id}">${opts.locked ? "解锁" : "锁定位置"}</button><span class="hint">${opts.locked ? "已锁定：体块改动或“重新排布”都不会移动它。" : "锁定后不会被自动移动。在平面上拖动也会自动锁定。"}</span></div>` : ""}
+    ${fn.count > 1 ? `<div class="hint">面积和楼层对这个功能的 ${fn.count} 间同时生效。</div>` : ""}
+  </div>`;
+}
+function bindSettings(box){
+  box.querySelectorAll("[data-ovbtn]").forEach(btn => btn.onclick = () => {
+    const id = btn.dataset.ovbtn, inp = box.querySelector(`[data-ov="${id}"]`), v = parseFloat(inp.value);
+    if (!(v > 0)) { inp.focus(); return; }
+    state.overrides[id] = { areaM2: v, date: new Date().toISOString().slice(0,10) };
+    regenerate();
+  });
+  box.querySelectorAll("[data-ovreset]").forEach(btn => btn.onclick = () => { delete state.overrides[btn.dataset.ovreset]; regenerate(); });
+  box.querySelectorAll("[data-pin]").forEach(sel => sel.onchange = () => {
+    const fid = sel.dataset.pin;
+    if (sel.value) state.levelPins[fid] = sel.value; else delete state.levelPins[fid];
+    // 改了楼层：忘掉这个功能各间的位置（也解除锁定），按新的楼层重新放
+    for (const k of Object.keys(state.memory)) if (state.memory[k].fnId === fid) delete state.memory[k];
+    regenerate();
+  });
+  box.querySelectorAll("[data-lock]").forEach(b => b.onclick = () => toggleLock(b.dataset.lock));
+}
 function renderSidebar(){
   const box = document.getElementById("sidebar");
   const r = state.layout.rooms.find(x => x.id === state.selected);
   const fr = !r && state.layout.flagged.find(x => x.id === state.selected);
+  const un = !r && !fr && state.layout.unplaced.find(x => x.id === state.selected);
   if (fr){
-    box.innerHTML = `<div class="sec"><h3>${fr.label} · 需要调整</h3><p class="hint">体块或标高改了以后，它原来的位置不再满足下面的条件。系统不会自动挪它；你可以接受建议、锁定它，或改体块让原位置重新成立（用户决定）。</p>${flaggedCard(fr)}</div>`;
-    bindFlaggedButtons(box); return;
+    box.innerHTML = `<div class="sec"><h3>${fr.label} · 需要调整</h3>${settingsBox(fr.fn, fr.id)}<p class="hint">体块或标高改了以后，它原来的位置不再满足下面的条件。系统不会自动挪它；你可以接受建议、锁定它，或改体块让原位置重新成立（用户决定）。</p>${flaggedCard(fr)}</div>`;
+    bindFlaggedButtons(box); bindSettings(box); return;
   }
-  if (!r){ box.innerHTML = `<p class="hint">点击平面上的任意房间，这里会解释它为什么放在这里。</p>`; return; }
+  if (un){
+    box.innerHTML = `<div class="sec"><h3>${un.label} · 未放入</h3>${settingsBox(un.fn, un.id)}
+      <div class="kv"><div>原因</div><div><span class="badge tocheck">${UNPLACED_REASONS[un.reason]}</span></div><div>说明</div><div>${un.detail}</div><div>放置顺序</div><div>第 ${un.order} 位</div></div></div>`;
+    bindSettings(box); return;
+  }
+  if (!r){ box.innerHTML = `<p class="hint">点击平面上的功能区，或左侧列表里的功能，这里可以调整它，并解释它为什么放在这里。</p>`; return; }
   const fn = r.fn, sc = r.score, sp = r.space;
   const assigned = state.stages[r.id] || ASSUMPTIONS.defaultStage.value;
   const w = r.x1-r.x0, h = r.y1-r.y0;
@@ -1446,7 +1561,17 @@ function renderSidebar(){
 
   box.innerHTML = `
     <div class="sec"><h3>${r.locked ? "🔒 " : ""}${r.label}</h3>
-      <div class="btnrow" style="margin:0 0 6px"><button data-lock="${r.id}">${r.locked ? "解锁" : "锁定"}</button><span class="hint">${r.locked ? "已锁定：体块改动或“重新排布”都不会自动移动它。" : r.kept ? "体块改动后原位置仍满足条件，所以留在原位。" : r.pushed ? "被拖动的功能区压住，重新找了位置。" : r.fresh ? "新放入：上次没有位置，这次放进了剩下的空间。" : "锁定后，体块改动或“重新排布”都不会自动移动它。"}</span></div>
+      <p class="hint" style="margin:0 0 6px">${sp.levelName}${r.spans.length > 1 ? `（挑空到 ${fmt(r.topBoundary,1)} m）` : ""} · ${fmt(r.area)} m² · 净高 ${fmt(r.clear,1)} m${r.kept ? " · 体块改动后留在原位" : r.pushed ? " · 被拖动的功能区压住，重新找了位置" : r.fresh ? " · 新放入" : ""}</p>
+      ${settingsBox(fn, r.id, { lockable:true, locked:r.locked })}
+      <div class="sec"><h3>阶段检查</h3>
+        <label>给这个房间指派阶段：
+          <select id="stage-select">${STAGES.map(s=>`<option value="${s.id}" ${s.id===assigned?"selected":""}>${s.id} — ${s.zh}</option>`).join("")}</select>
+        </label>
+        <div class="check ${chk.cls}">冬季：${chk.text}（指派 ${assigned}，最低 ${fn.minStage.winter}）</div>
+        <div class="check ${chkS.cls}" style="opacity:.8">夏季（参考）：${chkS.text}（最低 ${fn.minStage.summer}）</div></div>
+      <details class="more" ${issues.length && issues[0] !== "没有发现不满足的地方。" ? "open" : ""}><summary>没有满足的地方和建议</summary>
+        <ul>${issues.map(i=>`<li>${i}</li>`).join("")}</ul></details>
+      <details class="more"><summary>功能信息</summary>
       <div class="kv">
         <div>类别</div><div>${fn.category}${fn.required?"（必有）":"（非必有）"}</div>
         <div>活动强度</div><div>${fn.intensity}</div>
@@ -1461,9 +1586,9 @@ function renderSidebar(){
         <div>所在空间</div><div>${sp.id}（${sp.levelName}，标高 ${fmt(sp.elevation,1)} m）· 由体块 ${sp.masses.join("、")} 组成 · 可用 ${fmt(sp.area)} m²</div>
         <div>净高</div><div>这个房间 ${fmt(r.clear,1)} m${fn.minClearHeight ? `；功能要求至少 ${fn.minClearHeight.value} m ${statusBadge(fn.minClearHeight.status)}，${r.clear >= fn.minClearHeight.value - EPS ? "满足" : "<b>不满足</b>"}（硬约束）` : "；功能没有净高要求（原文未写）"}</div>
         <div>竖向</div><div>${r.spans.length > 1 ? `<b>挑空</b>：从 ${sp.levelName} 一直到 ${fmt(r.topBoundary,1)} m，占用 ${r.spans.length} 个层段（${r.spans.map(id => state.levels.find(l => l.id === id)?.name).join("、")}），中间不设楼板；整个空间只给这一个功能（用户决定）。一层的净高不够，所以往上多占层段，取最少的层数。` : "一个层段"}</div>
-      </div></div>
+      </div></details></div>
 
-    <div class="sec"><h3>为什么放在这里</h3>
+    <details class="more"><summary>为什么放在这里</summary>
       <p class="hint">评判顺序：${ASSUMPTIONS.judgeOrder.join(" > ")}（不设数值权重）</p>
       <ul>
         <li><b>楼层适配：</b>${fn.floorReq ? `${fn.floorReq.zh} ${statusBadge(fn.floorReq.status)}（${fn.floorReq.note}），现在在 ${sp.levelName}：${fn.floorReq.value === "mustGround" ? "硬约束，满足" : sc.floorFit ? "符合" : "不符合"}。` : "没有楼层要求（原文未写）。"}${statusBadge(ASSUMPTIONS.floorPrefFirst.status)} 楼层偏好排在带适配之前（用户 2026-10-18 确认）。</li>
@@ -1471,27 +1596,16 @@ function renderSidebar(){
         <li><b>渐变位置：</b>冬季最低阶段 <b>${fn.minStage.winter}</b>，房间中心离较近的南/北立面 ${fmt(sc.dist,1)} m，目标约 ${fmt(sc.target,1)} m（最大 ${fmt(sc.maxDepth,1)} m），${depthWord}；渐变适配 ${fmt(sc.gradFit*100)}%。${statusBadge(ASSUMPTIONS.gradientMapping.status)} ${ASSUMPTIONS.gradientMapping.note}；${ASSUMPTIONS.depthToFacades.note} ${statusBadge(ASSUMPTIONS.depthToFacades.status)}</li>
         <li><b>形状：</b>${fmt(w,1)} × ${fmt(h,1)} m，长宽比 1:${fmt(sc.ratio,2)}，允许 1:${fn.aspect.min}–1:${fn.aspect.max} ${statusBadge(fn.aspect.status)}，${sc.shapeOk?"在范围内":"超出范围"}。${fn.minShortSide?`短边至少 ${fn.minShortSide.value} m ${statusBadge(fn.minShortSide.status)}：${Math.min(w,h)>=fn.minShortSide.value-EPS?"满足":"不满足"}；无柱矩形、不可拆分。`:""}</li>
         <li><b>入口：</b>${fn.entry ? (facadeGap(sp, r, "south")<=EPS ? "紧贴南面外墙（默认入口），满足硬约束。" : "没有贴在南面外墙。") : "不适用（只有门厅要求贴入口）。"}</li>
-        <li><b>简洁：</b>贴边 ${sc.flush} 条（与外墙或已放房间的边对齐）。${statusBadge(ASSUMPTIONS.simplicityRule.status)}</li>
-      </ul></div>
+        <li><b>紧凑：</b>周长的 ${fmt(sc.contact*100)}% 贴着外墙或别的功能区（放入时计算）。${statusBadge(ASSUMPTIONS.simplicityRule.status)} ${ASSUMPTIONS.simplicityRule.note}</li>
+      </ul></details>
 
-    <div class="sec"><h3>触发的规则</h3>
+    <details class="more"><summary>触发的规则</summary>
       <ul>${fn.rules.map(k=>`<li><b>${k}</b> ${RULES[k].text} ${statusBadge(RULES[k].status)}<div class="hint">${RULES[k].basis}</div></li>`).join("")}</ul>
       <div class="kv"><div>冬季最低阶段</div><div><b>${fn.minStage.winter}</b></div><div>夏季最低阶段</div><div>${fn.minStage.summer}</div>${fn.stageNote?`<div>备注</div><div>${fn.stageNote}</div>`:""}</div>
-      <p class="hint">最低阶段 = 触发的规则所要求的阶段中最高的那个；“刚好够”= 最低阶段。</p></div>
-
-    <div class="sec"><h3>阶段检查</h3>
-      <label>给这个房间指派阶段：
-        <select id="stage-select">${STAGES.map(s=>`<option value="${s.id}" ${s.id===assigned?"selected":""}>${s.id} — ${s.zh}</option>`).join("")}</select>
-      </label>
-      <p class="hint">新区域默认 ${ASSUMPTIONS.defaultStage.value} ${statusBadge(ASSUMPTIONS.defaultStage.status)}</p>
-      <div class="check ${chk.cls}">冬季：${chk.text}（指派 ${assigned}，最低 ${fn.minStage.winter}）</div>
-      <div class="check ${chkS.cls}" style="opacity:.8">夏季（参考）：${chkS.text}（最低 ${fn.minStage.summer}）</div></div>
-
-    <div class="sec"><h3>没有满足的地方和建议</h3>
-      <ul>${issues.map(i=>`<li>${i}</li>`).join("")}</ul></div>
+      <p class="hint">最低阶段 = 触发的规则所要求的阶段中最高的那个；“刚好够”= 最低阶段。新区域默认 ${ASSUMPTIONS.defaultStage.value} ${statusBadge(ASSUMPTIONS.defaultStage.status)}</p></details>
   `;
   document.getElementById("stage-select").onchange = e => { state.stages[r.id] = e.target.value; renderSidebar(); };
-  box.querySelectorAll("[data-lock]").forEach(b => b.onclick = () => toggleLock(b.dataset.lock));
+  bindSettings(box);
 }
 
 /* =====================================================================
@@ -1533,11 +1647,11 @@ function renderMassPanel(){
       <label class="chk"><input type="checkbox" data-void ${m.void?"checked":""}> 挑空：在这个体块最低的一层之上不切楼板（例如中庭、挑空门厅）；挑空的空间可以放多个功能</label>
     </div>
     <p class="hint" style="margin:6px 0 0">也可以在三维里点一个面、拖箭头推拉。单位米；位置和尺寸吸附 1 m，标高取 0.1 m。高 ${fmt(m.top-m.base,1)} m。体块各自独立；接触宽度 ≥ ${ASSUMPTIONS.minContactWidth.value} m 的体块在空间上连成一个空间。</p>`;
-  document.querySelectorAll("[data-pick]").forEach(btn => btn.onclick = () => { state.selectedMass = btn.dataset.pick; state.selectedFace = null; state.section.pos = null; regenerate(); });
+  document.querySelectorAll("[data-pick]").forEach(btn => btn.onclick = () => { state.selectedMass = btn.dataset.pick; state.selectedFace = null; state.section.pos = null; if (state.isolate) state.isolate = btn.dataset.pick; regenerate(); });
   document.querySelector("[data-addmass]").onclick = addMass;
   document.querySelector("[data-void]").onchange = e => { m.void = e.target.checked; regenerate(); };
   const del = document.querySelector("[data-delmass]");
-  if (del) del.onclick = () => { state.masses = state.masses.filter(x => x.id !== m.id); state.selectedMass = state.masses[0].id; state.selectedFace = null; regenerate(); };
+  if (del) del.onclick = () => { state.masses = state.masses.filter(x => x.id !== m.id); state.selectedMass = state.masses[0].id; state.selectedFace = null; if (state.isolate === m.id) state.isolate = null; regenerate(); };
   document.querySelectorAll("[data-mf]").forEach(inp => inp.onchange = () => {
     const raw = parseFloat(inp.value); if (!isFinite(raw)) { renderMassPanel(); return; }   // 非数字：保持原值
     const k = inp.dataset.mf; let x0 = b.x0, y0 = b.y0, w = b.w, d = b.d;
@@ -1766,14 +1880,23 @@ function rebuild(){
   dyn.clear();
   const lv = viewLevel();
   // 体块：半透明，选中的体块用蓝色
+  const white = state.whiteModel;
+  if (state.isolate && !state.masses.some(m => m.id === state.isolate)) state.isolate = null;
   for (const m of state.masses){
+    // 单独编辑（用户 2026-10-18 调整）：其他体块仍然显示，但更透明、不能点选；单独编辑的体块更不透明
+    const faded = !!state.isolate && m.id !== state.isolate, iso = state.isolate === m.id;
     const shape = new THREE.Shape(m.points.map(p => new THREE.Vector2(p[0], p[1])));
     const geo = new THREE.ExtrudeGeometry(shape, { depth: m.top - m.base, bevelEnabled:false });
     geo.rotateX(-Math.PI/2); geo.translate(0, m.base, 0);
     const on = m.id === activeMass().id;
-    const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: on ? 0x9ec3dc : 0xd9d4c7, transparent:true, opacity: on ? 0.55 : 0.4, depthWrite:false }));
-    mesh.userData.massId = m.id; dyn.add(mesh);
-    dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: on ? 0x2b5d7a : 0x1f2a2e })));
+    // 白模：白色体块；否则半透明，选中的为蓝色
+    const opacity = faded ? 0.12 : iso ? (white ? 1 : 0.75) : white ? 1 : on ? 0.55 : 0.4;
+    const mat = new THREE.MeshLambertMaterial({ color: white ? 0xf7f7f5 : on ? 0x9ec3dc : 0xd9d4c7, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
+    const mesh = new THREE.Mesh(geo, mat);
+    if (!faded) mesh.userData.massId = m.id;   // 变淡的体块不参与点选，不会挡住选面
+    dyn.add(mesh);
+    const edge = new THREE.LineBasicMaterial({ color: faded ? 0xb8b8b8 : on ? 0x2b5d7a : white ? 0x6b6b6b : 0x1f2a2e, transparent: faded, opacity: faded ? 0.6 : 1 });
+    dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge));
   }
   // 选中的面：橙色面片 + 沿法线的箭头（箭头外面套一个看不见的圆柱，方便点中）
   faceAxis = null;
@@ -1793,24 +1916,37 @@ function rebuild(){
     hm.userData.handle = true; dyn.add(hm);
     faceAxis = { c, n };
   }
-  // 标高：场地范围的框，平面所看的标高用橙色
-  for (const l of state.levels){
+  // 标高：场地范围的框，平面所看的标高用橙色（白模时不画）
+  for (const l of (white ? [] : state.levels)){
     const on = l.id === lv.id;
     dyn.add(outline([[0,0],[SITE.w,0],[SITE.w,SITE.d],[0,SITE.d]], l.elevation, on ? 0xe08a00 : 0xbbbbbb));
   }
   // 功能区：画在各自空间的标高上（推拉时先不画，松开后重新排布再画）
-  for (const r of (drag ? [] : state.layout.rooms)){
+  // 单独编辑时：在这个体块里的功能区照常显示，其他功能区变淡
+  const isoM = state.isolate && state.masses.find(m => m.id === state.isolate), isoB = isoM && bboxOf(isoM.points);
+  const inIso = r => { if (!isoM) return true; const cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2;
+    return cx > isoB.x0 && cx < isoB.x1 && cy > isoB.y0 && cy < isoB.y1 && r.elevation >= isoM.base - EPS && r.elevation < isoM.top - EPS; };
+  for (const r of (drag || white ? [] : state.layout.rooms)){
+    const faded = !inIso(r), op = faded ? 0.2 : 1;
     const g = new THREE.PlaneGeometry(r.x1 - r.x0, r.y1 - r.y0); g.rotateX(-Math.PI/2);
-    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), side:THREE.DoubleSide }));
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), side:THREE.DoubleSide, transparent: faded, opacity: op, depthWrite: !faded }));
     mesh.position.set((r.x0 + r.x1)/2, r.elevation + 0.03, -(r.y0 + r.y1)/2); dyn.add(mesh);
-    dyn.add(outline([[r.x0,r.y0],[r.x1,r.y0],[r.x1,r.y1],[r.x0,r.y1]], r.elevation + 0.05, 0x4a4a4a));
+    const ol = outline([[r.x0,r.y0],[r.x1,r.y0],[r.x1,r.y1],[r.x0,r.y1]], r.elevation + 0.05, faded ? 0xbbbbbb : 0x4a4a4a);
+    if (faded){ ol.material.transparent = true; ol.material.opacity = 0.5; }
+    dyn.add(ol);
     if (r.spans.length > 1){   // 挑空的功能：画出它的高度
       const h = r.clear, box = new THREE.BoxGeometry(r.x1 - r.x0, h, r.y1 - r.y0);
       box.translate((r.x0 + r.x1)/2, r.elevation + h/2, -(r.y0 + r.y1)/2);
-      dyn.add(new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), transparent:true, opacity:0.35, depthWrite:false })));
-      dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color:0x2b5d7a })));
+      dyn.add(new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: css(STAGE_COLORS[r.fn.minStage.winter].slice(4, -1)), transparent:true, opacity: faded ? 0.1 : 0.35, depthWrite:false })));
+      dyn.add(new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: faded ? 0xbbbbbb : 0x2b5d7a })));
     }
   }
+  // 按钮和提示条的状态
+  document.getElementById("v3-white").classList.toggle("on", white);
+  document.getElementById("v3-exit").style.display = state.isolate ? "" : "none";
+  const bar = document.getElementById("v3-bar");
+  bar.style.display = state.isolate ? "block" : "none";
+  if (state.isolate) bar.textContent = `单独编辑 ${state.isolate}：其他体块和功能变淡显示，只能选这个体块的面`;
   draw();
 }
 
@@ -1890,6 +2026,32 @@ renderer.domElement.addEventListener("pointerup", e => {
   state.selectedMass = id; state.selectedFace = face;
   if (sameMass) rebuild(); else { state.section.pos = null; regenerate(); }
 });
+
+// 单独编辑（2026-10-18）：双击体块只显示它，镜头对准它；双击空白处或按 Esc 退出，镜头回到原来的位置
+let savedView = null;
+function enterIsolate(id){
+  const m = state.masses.find(x => x.id === id); if (!m) return;
+  if (!state.isolate) savedView = { pos:camera.position.clone(), target:controls.target.clone() };
+  const b = bboxOf(m.points), c = toV((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (m.base + m.top) / 2);
+  const off = camera.position.clone().sub(controls.target);
+  controls.target.copy(c); camera.position.copy(c).add(off); controls.update();
+  state.isolate = id; state.selectedMass = id; state.selectedFace = null; state.section.pos = null;
+  regenerate();
+}
+function exitIsolate(){
+  if (!state.isolate) return;
+  state.isolate = null; state.selectedFace = null;
+  if (savedView){ camera.position.copy(savedView.pos); controls.target.copy(savedView.target); controls.update(); savedView = null; }
+  rebuild();
+}
+renderer.domElement.addEventListener("dblclick", e => {
+  setRay(e);
+  const hit = ray.intersectObjects(dyn.children.filter(o => o.userData.massId));
+  if (hit.length) enterIsolate(hit[0].object.userData.massId); else exitIsolate();
+});
+window.addEventListener("keydown", e => { if (e.key === "Escape") exitIsolate(); });
+document.getElementById("v3-exit").onclick = exitIsolate;
+document.getElementById("v3-white").onclick = () => { state.whiteModel = !state.whiteModel; rebuild(); };
 
 window.render3D = rebuild;
 resize(); rebuild();
